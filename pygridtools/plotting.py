@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import iotools
+from . import iotools
 
 def checkAx(ax):
     '''

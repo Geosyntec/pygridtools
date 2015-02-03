@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 
 def getDataFiles(submodule, folder):
-    datadir = os.path.join('gridtools', submodule, folder)
+    datadir = os.path.join('pygridtools', submodule, folder)
     files = [d for d in map(
         lambda x: os.path.join(datadir, x),
         os.listdir(datadir)
@@ -12,12 +12,12 @@ def getDataFiles(submodule, folder):
 
 DESCRIPTION = "utilities to facilitate grid generation"
 LONG_DESCRIPTION = DESCRIPTION
-NAME = "gridtools"
+NAME = "pygridtools"
 VERSION = "0.1"
 AUTHOR = "Paul Hobson (Geosyntec Consultants)"
 AUTHOR_EMAIL = "phobson@geosyntec.com"
-URL = "https://github.com/Geosyntec/pygridgen"
-DOWNLOAD_URL = "https://github.com/Geosyntec/pygridgen/archive/master.zip"
+URL = "https://github.com/Geosyntec/pygridtools"
+DOWNLOAD_URL = "https://github.com/Geosyntec/pygridtools/archive/master.zip"
 LICENSE = "BSD 3-clause"
 PACKAGES = find_packages()
 PLATFORMS = "Python 2.7, 3.3 and later."

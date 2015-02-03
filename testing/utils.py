@@ -1,7 +1,7 @@
 import numpy as np
 import pandas
 import fiona
-import octant
+import pygridgen
 
 import nose.tools as nt
 

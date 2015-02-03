@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import pandas
 import pygridgen
 
-from gridutils import misc
-from common import testing
+from pygridtools import misc
+import testing
 
 
 class test_interpolateBathymetry(object):
@@ -90,7 +90,7 @@ class test_makeGrid(object):
             **self.gridparams
         )
         nt.assert_true(isinstance(fig, plt.Figure))
-        fig.savefig('gridutils/tests/result_images/grid_basic.png', dpi=150)
+        fig.savefig('pygridtools/tests/result_images/grid_basic.png', dpi=150)
 
     def test_with_plot_with_xlimits_autosaved(self):
         grid, fig = misc.makeGrid(
@@ -99,7 +99,7 @@ class test_makeGrid(object):
             plot=True,
             makegrid=True,
             xlimits=[0, 20],
-            figpath='gridutils/tests/result_images/grid_autosaved_xlims.png',
+            figpath='pygridtools/tests/result_images/grid_autosaved_xlims.png',
             **self.gridparams
         )
         nt.assert_true(isinstance(fig, plt.Figure))
@@ -181,7 +181,7 @@ class test_makeGrid(object):
             bathydata=self.bathy,
             plot=False,
             makegrid=True,
-            outdir='gridutils/tests/result_files/extra',
+            outdir='pygridtools/tests/result_files/extra',
             title='Extra Test Title',
             **self.gridparams
         )
@@ -189,8 +189,8 @@ class test_makeGrid(object):
         bathyfile = 'depdat.inp'
         gefdcfile = 'gefdc.inp'
 
-        outputdir = 'gridutils/tests/result_files/extra'
-        baselinedir = 'gridutils/tests/baseline_files/extra'
+        outputdir = 'pygridtools/tests/result_files/extra'
+        baselinedir = 'pygridtools/tests/baseline_files/extra'
 
         testing.compareTextFiles(
             os.path.join(outputdir, bathyfile),
@@ -203,7 +203,7 @@ class test_makeGrid(object):
             bathydata=self.bathy,
             plot=False,
             makegrid=True,
-            outdir='gridutils/tests/result_files/extra',
+            outdir='pygridtools/tests/result_files/extra',
             title='Extra Test Title',
             **self.gridparams
         )
@@ -211,8 +211,8 @@ class test_makeGrid(object):
         bathyfile = 'depdat.inp'
         gefdcfile = 'gefdc.inp'
 
-        outputdir = 'gridutils/tests/result_files/extra'
-        baselinedir = 'gridutils/tests/baseline_files/extra'
+        outputdir = 'pygridtools/tests/result_files/extra'
+        baselinedir = 'pygridtools/tests/baseline_files/extra'
         testing.compareTextFiles(
             os.path.join(outputdir, gefdcfile),
             os.path.join(baselinedir, gefdcfile)
@@ -322,11 +322,11 @@ class test_GridDataFrame(object):
         self.other_gdf = misc.GridDataFrame(self.grid)
         self.top_col_level = ['northing', 'easting']
         self.df_attrs = ['u', 'v', 'centers', 'psi', 'verts']
-        self.template = 'gridutils/tests/test_data/schema_template.shp'
-        self.point_baseline = 'gridutils/tests/baseline_files/gdf_point.shp'
-        self.point_output = 'gridutils/tests/result_files/gdf_point.shp'
-        self.polygon_baseline = 'gridutils/tests/baseline_files/gdf_polygon.shp'
-        self.polygon_output = 'gridutils/tests/result_files/gdf_polygon.shp'
+        self.template = 'pygridtools/tests/test_data/schema_template.shp'
+        self.point_baseline = 'pygridtools/tests/baseline_files/gdf_point.shp'
+        self.point_output = 'pygridtools/tests/result_files/gdf_point.shp'
+        self.polygon_baseline = 'pygridtools/tests/baseline_files/gdf_polygon.shp'
+        self.polygon_output = 'pygridtools/tests/result_files/gdf_polygon.shp'
 
     def test_dfs(self):
         for a in self.df_attrs:
@@ -347,8 +347,8 @@ class test_GridDataFrame(object):
         nt.assert_list_equal(self.gdf.merged_grids, [self.other_gdf])
 
     def test_writeGridOut(self):
-        outputfile = 'gridutils/tests/result_files/gdf2grid.out'
-        baselinefile = 'gridutils/tests/baseline_files/grid.out'
+        outputfile = 'pygridtools/tests/result_files/gdf2grid.out'
+        baselinefile = 'pygridtools/tests/baseline_files/grid.out'
 
         self.gdf.writeGridOut(outputfile)
 

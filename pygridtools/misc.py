@@ -9,8 +9,8 @@ import fiona
 
 import pygridgen
 
-import plotting
-import iotools
+from . import plotting
+from . import iotools
 
 
 def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):

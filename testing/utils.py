@@ -1,9 +1,11 @@
 import numpy as np
+import matplotlib; matplotlib.use('agg')
 import pandas
 import fiona
 import pygridgen
 
 import nose.tools as nt
+import numpy.testing as nptest
 
 
 def makeSimpleBoundary():
@@ -55,7 +57,7 @@ def compareTextFiles(baselinefile, outputfile):
     nt.assert_equal(results, expected)
 
 
-def compareShapefiles(baselinefile, outputfile):
+def compareShapefiles(baselinefile, outputfile, atol=0.001):
     base_records = []
     result_records = []
     with fiona.open(outputfile, 'r') as result:
@@ -65,4 +67,10 @@ def compareShapefiles(baselinefile, outputfile):
         base_records = list(baseline)
 
     for rr, br in zip(result_records, base_records):
-        nt.assert_dict_equal(rr, br)
+        nt.assert_dict_equal(rr['properties'], br['properties'])
+        nt.assert_equal(rr['geometry']['type'], br['geometry']['type'])
+        nptest.assert_allclose(
+            rr['geometry']['coordinates'], 
+            br['geometry']['coordinates'],
+            atol=atol
+        )

@@ -19,6 +19,7 @@ before_install:
   - ./miniconda.sh -b
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes conda
+  - cp testing/matplotlibrc .
 
 install:
 

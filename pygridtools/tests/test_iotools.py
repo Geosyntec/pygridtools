@@ -3,6 +3,7 @@ import os
 import nose.tools as nt
 import numpy as np
 import numpy.testing as nptest
+import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas
 import fiona
@@ -14,7 +15,8 @@ import testing
 class test_loadBoundaryFromShapefile(object):
     def setup(self):
         self.shapefile = 'pygridtools/tests/test_data/simple_boundary.shp'
-        self.known_df_columns = ['x', 'y', 'beta', 'order', 'reach']
+        self.known_df_columns = ['x', 'y', 'beta', 'upperleft', 
+        					     'reach', 'order']
         self.known_points_in_boundary = 19
         self.test_reach = 1
         self.known_points_in_testreach = 10
@@ -213,7 +215,8 @@ class test_saveGridShapefile(object):
                                   outfile, 'w', river=self.river,
                                   elev=None)
 
-        testing.compareShapefiles(basefile, outfile)
+        testing.compareShapefiles(basefile, outfile, atol=0.001)
+
 
 class test_shapefileToDataFrame(object):
     def setup(self):
@@ -276,6 +279,7 @@ class test__write_cellinp(object):
         self.triangle_output = 'pygridtools/tests/result_files/cell_triangle.inp'
         self.known_triangle_output = 'pygridtools/tests/baseline_files/cell_triangle.inp'
 
+    @nt.raises(NotImplementedError)
     def test_basic(self):
         iotools._write_cellinp(self.grid, self.basic_output)
         testing.compareTextFiles(
@@ -283,6 +287,7 @@ class test__write_cellinp(object):
             self.known_basic_output
         )
 
+    @nt.raises(NotImplementedError)
     def test_chunked(self):
         iotools._write_cellinp(self.grid, self.chunked_output, maxcols=5)
         testing.compareTextFiles(
@@ -318,9 +323,9 @@ class test_gridextToShapefile(object):
     @nt.raises(ValueError)
     def test_bad_input_file(self):
         iotools.gridextToShapefile('junk', self.outputfile,
-                           self.template, river=self.river)
+                                   self.template, river=self.river)
 
     @nt.raises(ValueError)
     def test_bad_template_file(self):
         iotools.gridextToShapefile(self.gridextfile, self.outputfile,
-                           'junk', river=self.river)
+                                   'junk', river=self.river)

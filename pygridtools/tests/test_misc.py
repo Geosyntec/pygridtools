@@ -3,6 +3,7 @@ import os
 import nose.tools as nt
 import numpy as np
 import numpy.testing as nptest
+import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas
 import pygridgen
@@ -361,7 +362,9 @@ class test_GridDataFrame(object):
             template=self.template
         )
 
-        testing.compareShapefiles(self.point_output, self.point_baseline)
+        testing.compareShapefiles(
+            self.point_output, self.point_baseline, atol=0.1
+        )
 
     def test_writeVertsToShapefile_Polygon(self):
         self.gdf.writeVertsToShapefile(
@@ -370,7 +373,9 @@ class test_GridDataFrame(object):
             template=self.template
         )
 
-        testing.compareShapefiles(self.polygon_output, self.polygon_baseline)
+        testing.compareShapefiles(
+            self.polygon_output, self.polygon_baseline, atol=0.1
+        )
 
     def teardown(self):
         pass

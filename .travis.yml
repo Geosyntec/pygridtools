@@ -19,6 +19,7 @@ before_install:
   - ./miniconda.sh -b
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes conda
+  - cp testing/matplotlibrc .
 
 install:
 
@@ -35,7 +36,7 @@ install:
   # the first package to install (for every conda install command) otherwise
   # numpy may be automatically upgraded.
 
-  - conda install --yes matplotlib nose pandas csa nn gridutils gridgen
+  - conda install --yes matplotlib nose pandas csa nn gridutils gridgen fiona shapely pygridgen
 
 script:
   - nosetests --verbose

@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 import pandas
 import fiona
 
-import octant
-
 
 def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
                               sortcol=None, upperleftcol=None,
@@ -475,7 +473,7 @@ def writeGEFDCInputFiles(grid, bathy, outputdir, title):
 
 
 def _write_cellinp(bool_node_array, outfilename, triangle_cells=False,
-                   maxcols=125):
+                   maxcols=125, testing=False):
     '''
     Take an array defining the nodes as wet (1) or dry (0) and writes
     the cell.inp input file.
@@ -492,6 +490,9 @@ def _write_cellinp(bool_node_array, outfilename, triangle_cells=False,
         Toggles the definition if triangular cells. Very greedy.
         Probably easier to keep off and add them yourself.
     '''
+    if not testing:
+        raise NotImplementedError
+
     triangle_dict = {
         0: 3,
         1: 2,

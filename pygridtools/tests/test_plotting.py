@@ -1,9 +1,9 @@
 import numpy as np
+import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
-import octant
 
-from gridutils import plotting
-from common import testing
+from pygridtools import plotting
+import testing
 
 import nose.tools as nt
 import numpy.testing as nptest
@@ -42,20 +42,20 @@ class test_plotReachDF():
     def test_smoketest_withoutax(self):
         fig = plotting.plotReachDF(self.boundary)
         nt.assert_true(isinstance(fig, plt.Figure))
-        figfile = 'gridutils/tests/result_images/plotreach_withoutax.png'
+        figfile = 'pygridtools/tests/result_images/plotreach_withoutax.png'
         fig.savefig(figfile, dpi=150)
 
     def test_smoketest_withax(self):
         fig, ax = plt.subplots()
         fig_returned = plotting.plotReachDF(self.boundary, ax=ax)
         nt.assert_equal(fig, fig_returned)
-        figfile = 'gridutils/tests/result_images/plotreach_withax.png'
+        figfile = 'pygridtools/tests/result_images/plotreach_withax.png'
         fig.savefig(figfile, dpi=150)
 
     def test_smoketest_withflipped(self):
         fig, ax = plt.subplots()
         fig_returned = plotting.plotReachDF(self.boundary, ax=ax, flip=True)
-        figfile = 'gridutils/tests/result_images/plotreach_flip.png'
+        figfile = 'pygridtools/tests/result_images/plotreach_flip.png'
         fig.savefig(figfile, dpi=150)
 
     @nt.raises(AttributeError)
@@ -79,4 +79,4 @@ class test_plotPygridgen:
 
     def test_plotting_smoketest(self):
         fig, ax = plotting.plotPygridgen(self.grid)
-        fig.savefig("gridutils/tests/result_images/gridsmoke.png", dpi=150)
+        fig.savefig("pygridtools/tests/result_images/gridsmoke.png", dpi=150)

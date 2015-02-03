@@ -5,7 +5,7 @@ import numpy as np
 import numpy.testing as nptest
 import matplotlib.pyplot as plt
 import pandas
-import octant
+import pygridgen
 
 from gridutils import misc
 from common import testing
@@ -79,7 +79,7 @@ class test_makeGrid(object):
             **self.gridparams
         )
         nt.assert_equal(junk, None)
-        nt.assert_true(isinstance(grid, octant.grid.Gridgen))
+        nt.assert_true(isinstance(grid, pygridgen.Gridgen))
 
     def test_with_plot_without_fig_path(self):
         grid, fig = misc.makeGrid(
@@ -126,8 +126,8 @@ class test_makeGrid(object):
         )
         nt.assert_equal(junk, None)
         nt.assert_equal(grid, grid1)
-        nt.assert_true(isinstance(grid, octant.grid.Gridgen))
-        nt.assert_true(isinstance(grid1, octant.grid.Gridgen))
+        nt.assert_true(isinstance(grid, pygridgen.Gridgen))
+        nt.assert_true(isinstance(grid1, pygridgen.Gridgen))
         pass
 
 

@@ -10,9 +10,6 @@ import matplotlib.pyplot as plt
 import pandas
 import fiona
 
-import octant
-
-
 def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
                               sortcol=None, upperleftcol=None,
                               filterfxn=None):

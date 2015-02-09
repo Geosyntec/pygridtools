@@ -9,8 +9,8 @@ import fiona
 
 import pygridgen
 
-from . import plotting
-from . import iotools
+from . import viz
+from . import io
 
 
 def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
@@ -164,12 +164,12 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
     if outdir is None:
         outdir = '.'
 
-    iotools.writeGEFDCInputFiles(grid, newbathy, outdir, title)
+    io.writeGEFDCInputFiles(grid, newbathy, outdir, title)
 
     if plot:
         if verbose:
             print('plotting data and saving image')
-        fig, ax = plotting.plotPygridgen(grid, ax=ax)
+        fig, ax = viz.plotPygridgen(grid, ax=ax)
         ax.set_aspect('equal')
         if xlimits is not None:
             ax.set_xlim(xlimits)
@@ -419,10 +419,10 @@ class GridDataFrame(object):
         Y = self.verts['northing'].values
         elev = self.elev.values
         if geomtype == 'Point':
-            iotools.savePointShapefile(X, Y, template, outfile, 'w',
+            io.savePointShapefile(X, Y, template, outfile, 'w',
                                        river=river, reach=reach, elev=None)
         elif geomtype == 'Polygon':
-            iotools.saveGridShapefile(X, Y, template, outfile, 'w',
+            io.saveGridShapefile(X, Y, template, outfile, 'w',
                                       river=river, reach=reach, elev=None)
         else:
             raise ValueError('`geomtype {} is not supported'.format(geomtype))

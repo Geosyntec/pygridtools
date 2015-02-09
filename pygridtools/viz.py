@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from . import iotools
+from . import io
 
 def checkAx(ax):
     '''
@@ -40,7 +40,7 @@ def plotPygridgen(grid, ax=None):
     for ii in range(grid.nx-1):
         for jj in range(grid.ny-1):
             if isinstance(grid.x_vert, np.ndarray) or not np.any(grid.x_vert.mask[jj:jj+2, ii:ii+2]):
-                coords = iotools.makeQuadCoords(
+                coords = io.makeQuadCoords(
                     xarr=grid.x_vert[jj:jj+2, ii:ii+2],
                     yarr=grid.y_vert[jj:jj+2, ii:ii+2],
                 )

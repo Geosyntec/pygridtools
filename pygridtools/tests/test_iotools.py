@@ -8,27 +8,27 @@ import matplotlib.pyplot as plt
 import pandas
 import fiona
 
-from pygridtools import iotools
+from pygridtools import io
 import testing
 
 
 class test_loadBoundaryFromShapefile(object):
     def setup(self):
         self.shapefile = 'pygridtools/tests/test_data/simple_boundary.shp'
-        self.known_df_columns = ['x', 'y', 'beta', 'upperleft', 
+        self.known_df_columns = ['x', 'y', 'beta', 'upperleft',
         					     'reach', 'order']
         self.known_points_in_boundary = 19
         self.test_reach = 1
         self.known_points_in_testreach = 10
 
     def test_nofilter(self):
-        df = iotools.loadBoundaryFromShapefile(self.shapefile)
+        df = io.loadBoundaryFromShapefile(self.shapefile)
         nt.assert_true(isinstance(df, pandas.DataFrame))
         nt.assert_list_equal(df.columns.tolist(), self.known_df_columns)
         nt.assert_equal(df.shape[0], self.known_points_in_boundary)
 
     def test_filter(self):
-        df = iotools.loadBoundaryFromShapefile(
+        df = io.loadBoundaryFromShapefile(
             self.shapefile,
             filterfxn=lambda r: r['properties']['reach'] == self.test_reach
         )
@@ -39,7 +39,7 @@ def test_dumpGridFile():
     grid = testing.makeSimpleGrid()
     outputfile = 'pygridtools/tests/result_files/grid.out'
     baselinefile = 'pygridtools/tests/baseline_files/grid.out'
-    iotools.dumpGridFiles(grid, 'pygridtools/tests/result_files/grid.out')
+    io.dumpGridFiles(grid, 'pygridtools/tests/result_files/grid.out')
 
     testing.compareTextFiles(outputfile, baselinefile)
 
@@ -65,23 +65,23 @@ class test_makeQuadCoords(object):
         ])
 
     def test_base(self):
-        coords = iotools.makeQuadCoords(self.xarr, self.yarr)
+        coords = io.makeQuadCoords(self.xarr, self.yarr)
         nptest.assert_array_equal(coords, self.known_base)
 
     def test_no_masked(self):
         xarr = np.ma.MaskedArray(self.xarr, mask=False)
         yarr = np.ma.MaskedArray(self.yarr, mask=False)
-        coords = iotools.makeQuadCoords(xarr, yarr)
+        coords = io.makeQuadCoords(xarr, yarr)
         nptest.assert_array_equal(coords, self.known_no_masked)
 
     def test_masked(self):
         xarr = np.ma.MaskedArray(self.xarr, mask=self.mask)
         yarr = np.ma.MaskedArray(self.yarr, mask=self.mask)
-        coords = iotools.makeQuadCoords(xarr, yarr)
+        coords = io.makeQuadCoords(xarr, yarr)
         nptest.assert_array_equal(coords, self.known_masked)
 
     def test_with_z(self):
-        coords = iotools.makeQuadCoords(self.xarr, self.yarr, zpnt=self.zpnt)
+        coords = io.makeQuadCoords(self.xarr, self.yarr, zpnt=self.zpnt)
         nptest.assert_array_equal(coords, self.known_with_z)
 
 
@@ -125,32 +125,32 @@ class test_makeRecord(object):
         }
 
     def test_point(self):
-        record = iotools.makeRecord(1, self.point, 'Point', self.props)
+        record = io.makeRecord(1, self.point, 'Point', self.props)
         nt.assert_dict_equal(record, self.known_point)
 
     def test_point_array(self):
-        record = iotools.makeRecord(1, self.point_array, 'Point', self.props)
+        record = io.makeRecord(1, self.point_array, 'Point', self.props)
         nt.assert_dict_equal(record, self.known_point)
 
     def test_line(self):
-        record = iotools.makeRecord(1, self.non_point, 'LineString', self.props)
+        record = io.makeRecord(1, self.non_point, 'LineString', self.props)
         nt.assert_dict_equal(record, self.known_line)
 
     def test_line_array(self):
-        record = iotools.makeRecord(1, self.non_point_array, 'LineString', self.props)
+        record = io.makeRecord(1, self.non_point_array, 'LineString', self.props)
         nt.assert_dict_equal(record, self.known_line)
 
     def test_polygon(self):
-        record = iotools.makeRecord(1, self.non_point, 'Polygon', self.props)
+        record = io.makeRecord(1, self.non_point, 'Polygon', self.props)
         nt.assert_dict_equal(record, self.known_polygon)
 
     def test_polygon_array(self):
-        record = iotools.makeRecord(1, self.non_point_array, 'Polygon', self.props)
+        record = io.makeRecord(1, self.non_point_array, 'Polygon', self.props)
         nt.assert_dict_equal(record, self.known_polygon)
 
     @nt.raises(ValueError)
     def test_bad_geom(self):
-        record = iotools.makeRecord(1, self.non_point_array, 'Circle', self.props)
+        record = io.makeRecord(1, self.non_point_array, 'Circle', self.props)
 
 
 class test_savePointShapefile(object):
@@ -165,17 +165,17 @@ class test_savePointShapefile(object):
 
     @nt.raises(ValueError)
     def test_bad_shapes(self):
-        iotools.savePointShapefile(self.x, self.y[:, :1], self.template, 'junk', 'w')
+        io.savePointShapefile(self.x, self.y[:, :1], self.template, 'junk', 'w')
 
     @nt.raises(ValueError)
     def test_bad_mode(self):
-        iotools.savePointShapefile(self.x, self.y, self.template, 'junk', 'r')
+        io.savePointShapefile(self.x, self.y, self.template, 'junk', 'r')
 
     def test_with_arrays(self):
         fname = 'array_point.shp'
         outfile = os.path.join(self.outputdir, fname)
         basefile = os.path.join(self.baselinedir, fname)
-        iotools.savePointShapefile(self.x, self.y, self.template, outfile,
+        io.savePointShapefile(self.x, self.y, self.template, outfile,
                                    'w', river=self.river)
 
         testing.compareShapefiles(outfile, basefile)
@@ -184,7 +184,7 @@ class test_savePointShapefile(object):
         fname = 'mask_point.shp'
         outfile = os.path.join(self.outputdir, fname)
         basefile = os.path.join(self.baselinedir, fname)
-        iotools.savePointShapefile(np.ma.MaskedArray(self.x, self.mask),
+        io.savePointShapefile(np.ma.MaskedArray(self.x, self.mask),
                                    np.ma.MaskedArray(self.y, self.mask),
                                    self.template, outfile, 'w', river=self.river)
 
@@ -203,7 +203,7 @@ class test_saveGridShapefile(object):
 
     @nt.raises(ValueError)
     def test_bad_mode(self):
-        iotools.saveGridShapefile(self.grid.x, self.grid.y,
+        io.saveGridShapefile(self.grid.x, self.grid.y,
                                   self.template, 'junk', 'r',
                                   elev=None)
 
@@ -211,7 +211,7 @@ class test_saveGridShapefile(object):
         fname = 'array_grid.shp'
         outfile = os.path.join(self.outputdir, fname)
         basefile = os.path.join(self.baselinedir, fname)
-        iotools.saveGridShapefile(self.grid.x, self.grid.y, self.template,
+        io.saveGridShapefile(self.grid.x, self.grid.y, self.template,
                                   outfile, 'w', river=self.river,
                                   elev=None)
 
@@ -236,7 +236,7 @@ def test_writeGEFDCInput():
 
     outputdir = 'pygridtools/tests/result_files'
     baselinedir = 'pygridtools/tests/baseline_files'
-    iotools.writeGEFDCInputFiles(grid, bathy, outputdir, 'test title')
+    io.writeGEFDCInputFiles(grid, bathy, outputdir, 'test title')
 
     testing.compareTextFiles(
         os.path.join(outputdir, bathyfile),
@@ -281,7 +281,7 @@ class test__write_cellinp(object):
 
     @nt.raises(NotImplementedError)
     def test_basic(self):
-        iotools._write_cellinp(self.grid, self.basic_output)
+        io._write_cellinp(self.grid, self.basic_output)
         testing.compareTextFiles(
             self.basic_output,
             self.known_basic_output
@@ -289,7 +289,7 @@ class test__write_cellinp(object):
 
     @nt.raises(NotImplementedError)
     def test_chunked(self):
-        iotools._write_cellinp(self.grid, self.chunked_output, maxcols=5)
+        io._write_cellinp(self.grid, self.chunked_output, maxcols=5)
         testing.compareTextFiles(
             self.chunked_output,
             self.known_chunked_output
@@ -297,7 +297,7 @@ class test__write_cellinp(object):
 
     @nt.raises(NotImplementedError)
     def test_with_triangles(self):
-        iotools._write_cellinp(self.grid, self.triangle_output, triangle_cells=True)
+        io._write_cellinp(self.grid, self.triangle_output, triangle_cells=True)
         testing.compareTextFiles(
             self.triangle_output,
             self.known_triangle_output
@@ -314,7 +314,7 @@ class test_gridextToShapefile(object):
         self.reach = 1
 
     def test_basic(self):
-        iotools.gridextToShapefile(self.gridextfile, self.outputfile,
+        io.gridextToShapefile(self.gridextfile, self.outputfile,
                                    self.template, river=self.river)
 
         testing.compareShapefiles(self.outputfile, self.baselinefile)
@@ -322,10 +322,10 @@ class test_gridextToShapefile(object):
 
     @nt.raises(ValueError)
     def test_bad_input_file(self):
-        iotools.gridextToShapefile('junk', self.outputfile,
+        io.gridextToShapefile('junk', self.outputfile,
                                    self.template, river=self.river)
 
     @nt.raises(ValueError)
     def test_bad_template_file(self):
-        iotools.gridextToShapefile(self.gridextfile, self.outputfile,
+        io.gridextToShapefile(self.gridextfile, self.outputfile,
                                    'junk', river=self.river)

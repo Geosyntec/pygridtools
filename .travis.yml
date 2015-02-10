@@ -36,7 +36,7 @@ install:
   # the first package to install (for every conda install command) otherwise
   # numpy may be automatically upgraded.
 
-  - conda install --yes matplotlib nose pandas csa nn gridutils gridgen fiona shapely pygridgen
+  - conda install --yes seaborn bokeh fiona shapely nose csa nn gridutils gridgen pygridgen
 
 script:
   - nosetests --verbose

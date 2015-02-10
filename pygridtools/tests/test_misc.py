@@ -1,15 +1,20 @@
 import os
 
-import nose.tools as nt
+
 import numpy as np
-import numpy.testing as nptest
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas
 import pygridgen
 
+import nose.tools as nt
+import numpy.testing as nptest
+import pandas.util.testing as pdtest
+
 from pygridtools import misc
 import testing
+
+np.set_printoptions(linewidth=150, nanstr='-')
 
 
 class test_interpolateBathymetry(object):
@@ -19,14 +24,14 @@ class test_interpolateBathymetry(object):
 
         self.known_real_elev = np.ma.MaskedArray(
             data= [
-                [100.15, 100.19, -999.99, -999.99, -999.99, -999.99],
-                [100.20, 100.25,  100.64,  100.73,  100.85,  100.94],
-                [100.25, 100.30,  100.35,  100.39,  100.44,  100.50],
-                [100.30, 100.35,  100.39,  100.44,  100.49,  100.55],
-                [100.34, 100.40, -999.99, -999.99, -999.99, -999.99],
-                [100.39, 100.45, -999.99, -999.99, -999.99, -999.99],
-                [100.44, 100.49, -999.99, -999.99, -999.99, -999.99],
-                [100.50, 100.54, -999.99, -999.99, -999.99, -999.99]
+                [100.15, 100.2 , -999.99, -999.99, -999.99, -999.99],
+                [100.2 , 100.25,  100.65,  100.74,  100.83,  100.95],
+                [100.25, 100.3 ,  100.35,  100.4 ,  100.45,  100.5 ],
+                [100.3 , 100.35,  100.4 ,  100.45,  100.5 ,  100.55],
+                [100.35, 100.4 , -999.99, -999.99, -999.99, -999.99],
+                [100.4 , 100.45, -999.99, -999.99, -999.99, -999.99],
+                [100.45, 100.5 , -999.99, -999.99, -999.99, -999.99],
+                [100.5 , 100.55, -999.99, -999.99, -999.99, -999.99]
             ],
             mask=[
                 [False, False,  True,  True,  True,  True],
@@ -228,6 +233,415 @@ class test_makeGrid(object):
             pass
 
 
+class test_padded_stack(object):
+
+    def setup(self):
+        from numpy import nan
+        self.g0 = np.array([
+            [13.7, 13.8],
+            [14.7, 14.8],
+            [15.7, 15.8],
+            [16.7, 16.8],
+            [17.7, 17.8],
+        ])
+
+        self.g1 = np.array([
+            [ 6.6,  6.7,  6.8],
+            [ 7.6,  7.7,  7.8],
+            [ 8.6,  8.7,  8.8],
+            [ 9.6,  9.7,  9.8],
+            [10.6, 10.7, 10.8],
+            [11.6, 11.7, 11.8],
+            [12.6, 12.7, 12.8],
+        ])
+
+        self.g2 = np.array([
+            [7.9, 7.10, 7.11, 7.12, 7.13],
+            [8.9, 8.10, 8.11, 8.12, 8.13],
+            [9.9, 9.10, 9.11, 9.12, 9.13],
+        ])
+
+        self.g3 = np.array([
+            [1.4, 1.5, 1.6, 1.7, 1.8],
+            [2.4, 2.5, 2.6, 2.7, 2.8],
+            [3.4, 3.5, 3.6, 3.7, 3.8],
+            [4.4, 4.5, 4.6, 4.7, 4.8],
+            [5.4, 5.5, 5.6, 5.7, 5.8],
+        ])
+
+        self.g4 = np.array([
+            [0.0, 0.1, 0.2, 0.3],
+            [1.0, 1.1, 1.2, 1.3],
+            [2.0, 2.1, 2.2, 2.3],
+            [3.0, 3.1, 3.2, 3.3],
+        ])
+
+        self.g5 = np.array([
+            [7.14, 7.15, 7.16],
+            [8.14, 8.15, 8.16],
+        ])
+
+        self.expected_g1_2_left = np.array([
+            [nan,  nan,  nan,  nan,  nan,  6.6,  6.7,  6.8],
+            [7.9, 7.10, 7.11, 7.12, 7.13,  7.6,  7.7,  7.8],
+            [8.9, 8.10, 8.11, 8.12, 8.13,  8.6,  8.7,  8.8],
+            [9.9, 9.10, 9.11, 9.12, 9.13,  9.6,  9.7,  9.8],
+            [nan,  nan,  nan,  nan,  nan, 10.6, 10.7, 10.8],
+            [nan,  nan,  nan,  nan,  nan, 11.6, 11.7, 11.8],
+            [nan,  nan,  nan,  nan,  nan, 12.6, 12.7, 12.8],
+        ])
+
+        self.expected_g1_2_right = np.array([
+            [ 6.6,  6.7,  6.8, nan,  nan,  nan,  nan,  nan],
+            [ 7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13],
+            [ 8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13],
+            [ 9.6,  9.7,  9.8, 9.9, 9.10, 9.11, 9.12, 9.13],
+            [10.6, 10.7, 10.8, nan,  nan,  nan,  nan,  nan],
+            [11.6, 11.7, 11.8, nan,  nan,  nan,  nan,  nan],
+            [12.6, 12.7, 12.8, nan,  nan,  nan,  nan,  nan],
+        ])
+
+        self.expected_g0_1 = np.array([
+            [ nan,  6.6,  6.7,  6.8],
+            [ nan,  7.6,  7.7,  7.8],
+            [ nan,  8.6,  8.7,  8.8],
+            [ nan,  9.6,  9.7,  9.8],
+            [ nan, 10.6, 10.7, 10.8],
+            [ nan, 11.6, 11.7, 11.8],
+            [ nan, 12.6, 12.7, 12.8],
+            [13.7, 13.8, nan,  nan],
+            [14.7, 14.8, nan,  nan],
+            [15.7, 15.8, nan,  nan],
+            [16.7, 16.8, nan,  nan],
+            [17.7, 17.8, nan,  nan],
+        ])
+
+        self.expected_g0_1_2 = np.array([
+            [ 6.6,  6.7,  6.8, nan,  nan,  nan,  nan,  nan],
+            [ 7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13],
+            [ 8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13],
+            [ 9.6,  9.7,  9.8, 9.9, 9.10, 9.11, 9.12, 9.13],
+            [10.6, 10.7, 10.8, nan,  nan,  nan,  nan,  nan],
+            [11.6, 11.7, 11.8, nan,  nan,  nan,  nan,  nan],
+            [12.6, 12.7, 12.8, nan,  nan,  nan,  nan,  nan],
+            [ nan, 13.7, 13.8, nan,  nan,  nan,  nan,  nan],
+            [ nan, 14.7, 14.8, nan,  nan,  nan,  nan,  nan],
+            [ nan, 15.7, 15.8, nan,  nan,  nan,  nan,  nan],
+            [ nan, 16.7, 16.8, nan,  nan,  nan,  nan,  nan],
+            [ nan, 17.7, 17.8, nan,  nan,  nan,  nan,  nan],
+        ])
+
+        self.expected_g1_3 = np.array([
+            [ nan,  nan,  1.4, 1.5, 1.6, 1.7, 1.8],
+            [ nan,  nan,  2.4, 2.5, 2.6, 2.7, 2.8],
+            [ nan,  nan,  3.4, 3.5, 3.6, 3.7, 3.8],
+            [ nan,  nan,  4.4, 4.5, 4.6, 4.7, 4.8],
+            [ nan,  nan,  5.4, 5.5, 5.6, 5.7, 5.8],
+            [ 6.6,  6.7,  6.8, nan, nan, nan, nan],
+            [ 7.6,  7.7,  7.8, nan, nan, nan, nan],
+            [ 8.6,  8.7,  8.8, nan, nan, nan, nan],
+            [ 9.6,  9.7,  9.8, nan, nan, nan, nan],
+            [10.6, 10.7, 10.8, nan, nan, nan, nan],
+            [11.6, 11.7, 11.8, nan, nan, nan, nan],
+            [12.6, 12.7, 12.8, nan, nan, nan, nan],
+        ])
+
+        self.expected_g3_4 = np.array([
+            [0.0, 0.1, 0.2, 0.3, nan, nan, nan, nan, nan],
+            [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8],
+            [2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8],
+            [3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8],
+            [nan, nan, nan, nan, 4.4, 4.5, 4.6, 4.7, 4.8],
+            [nan, nan, nan, nan, 5.4, 5.5, 5.6, 5.7, 5.8],
+        ])
+
+        self.expected_all_gs = np.array([
+            [0.0, 0.1, 0.2, 0.3, nan, nan,  nan,  nan,  nan, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [1.0, 1.1, 1.2, 1.3, 1.4, 1.5,  1.6,  1.7,  1.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [2.0, 2.1, 2.2, 2.3, 2.4, 2.5,  2.6,  2.7,  2.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [3.0, 3.1, 3.2, 3.3, 3.4, 3.5,  3.6,  3.7,  3.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, 4.4, 4.5,  4.6,  4.7,  4.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, 5.4, 5.5,  5.6,  5.7,  5.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan,  6.6,  6.7,  6.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan,  7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13, 7.14, 7.15, 7.16],
+            [nan, nan, nan, nan, nan, nan,  8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13, 8.14, 8.15, 8.16],
+            [nan, nan, nan, nan, nan, nan,  9.6,  9.7,  9.8, 9.9, 9.10, 9.11, 9.12, 9.13,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan, 10.6, 10.7, 10.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan, 11.6, 11.7, 11.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan, 12.6, 12.7, 12.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan,  nan, 13.7, 13.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan,  nan, 14.7, 14.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan,  nan, 15.7, 15.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan,  nan, 16.7, 16.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+            [nan, nan, nan, nan, nan, nan,  nan, 17.7, 17.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
+        ])
+
+    def test_vertical_merge_above(self):
+        g_merged = misc.padded_stack(self.g1, self.g3, how='v', where='-', shift=2)
+        nptest.assert_array_equal(g_merged, self.expected_g1_3)
+
+    def test_vertical_merge_below(self):
+        g_merged = misc.padded_stack(self.g3, self.g1, how='v', where='+', shift=-2)
+        nptest.assert_array_equal(g_merged, self.expected_g1_3)
+
+    def test_horizontal_merge_left(self):
+        g_merged = misc.padded_stack(self.g1, self.g2, how='h', where='-', shift=1)
+        nptest.assert_array_equal(g_merged, self.expected_g1_2_left)
+
+    def test_horizontal_merge_right(self):
+        g_merged = misc.padded_stack(self.g1, self.g2, how='h', where='+', shift=1)
+        nptest.assert_array_equal(g_merged, self.expected_g1_2_right)
+
+    def test_vert_merge_0and1(self):
+        merged = misc.padded_stack(self.g0, self.g1, how='v', where='-', shift=1)
+        nptest.assert_array_equal(merged, self.expected_g0_1)
+
+    def test_vert_merge_0and1and2(self):
+        step1 = misc.padded_stack(self.g0, self.g1, how='v', where='-', shift=-1)
+        step2 = misc.padded_stack(step1, self.g2, how='h', where='+', shift=1)
+        nptest.assert_array_equal(step2, self.expected_g0_1_2)
+
+    def test_big_grid_lowerleft_to_upperright(self):
+        step1 = misc.padded_stack(self.g4, self.g3, how='h', where='+', shift=1)
+        step2 = misc.padded_stack(step1, self.g1, how='v', where='+', shift=6)
+        step3 = misc.padded_stack(step2, self.g2, how='h', where='+', shift=7)
+        step4 = misc.padded_stack(step3, self.g5, how='h', where='+', shift=7)
+        step5 = misc.padded_stack(step4, self.g0, how='v', where='+', shift=7)
+
+        nptest.assert_array_equal(step5, self.expected_all_gs)
+
+    def test_big_grid_upperright_to_lowerleft(self):
+        step1 = misc.padded_stack(self.g0, self.g1, how='v', where='-', shift=-1)
+        step2 = misc.padded_stack(step1, self.g2, how='h', where='+', shift=1)
+        step3 = misc.padded_stack(step2, self.g3, how='v', where='-', shift=-2)
+        step4 = misc.padded_stack(step3, self.g4, how='h', where='-', shift=-1)
+        step5 = misc.padded_stack(step4, self.g5, how='h', where='+', shift=7)
+
+        nptest.assert_array_equal(step5, self.expected_all_gs)
+
+
+class test__NodeSet(object):
+    def setup(self):
+        from numpy import nan
+        self.A = misc._NodeSet(np.arange(12).reshape(4, 3) * 1.0)
+        self.B = misc._NodeSet(np.arange(8).reshape(2, 4) * 1.0)
+        self.C = misc._NodeSet(np.arange(18).reshape(3, 6) * 1.0)
+
+        self.known_flipped_A_nodes = np.array([
+            [ 2.,  1.,  0.],
+            [ 5.,  4.,  3.],
+            [ 8.,  7.,  6.],
+            [11., 10.,  9.]
+        ])
+
+
+        self.known_transposed_transformed_A_nodes = np.array([
+            [2., 5., 8., 11.],
+            [1., 4., 7., 10.],
+            [0., 3., 6.,  9.],
+        ])
+
+        self.known_AB_vplus_0 = np.array([
+            [ 0.,   1.,   2., nan],
+            [ 3.,   4.,   5., nan],
+            [ 6.,   7.,   8., nan],
+            [ 9.,  10.,  11., nan],
+            [ 0.,   1.,   2.,  3.],
+            [ 4.,   5.,   6.,  7.]
+        ])
+
+        self.known_AB_vminus_0 = np.array([
+            [ 0.,   1.,   2.,  3.],
+            [ 4.,   5.,   6.,  7.],
+            [ 0.,   1.,   2., nan],
+            [ 3.,   4.,   5., nan],
+            [ 6.,   7.,   8., nan],
+            [ 9.,  10.,  11., nan]
+        ])
+
+        self.known_AB_vplus_2 = np.array([
+            [ 0.,   1.,   2., nan,   nan, nan],
+            [ 3.,   4.,   5., nan,   nan, nan],
+            [ 6.,   7.,   8., nan,   nan, nan],
+            [ 9.,  10.,  11., nan,   nan, nan],
+            [nan,  nan,   0.,   1.,   2.,  3.],
+            [nan,  nan,   4.,   5.,   6.,  7.]
+        ])
+
+        self.known_AB_vminus_2 = np.array([
+            [nan, nan,  0.,  1.,  2.,  3.],
+            [nan, nan,  4.,  5.,  6.,  7.],
+            [ 0.,  1.,  2., nan, nan, nan],
+            [ 3.,  4.,  5., nan, nan, nan],
+            [ 6.,  7.,  8., nan, nan, nan],
+            [ 9., 10., 11., nan, nan, nan]
+        ])
+
+        self.known_AB_vplus_neg1 = np.array([
+            [nan, 0., 1.,   2.],
+            [nan, 3., 4.,   5.],
+            [nan, 6., 7.,   8.],
+            [nan, 9., 10., 11.],
+            [ 0., 1., 2.,   3.],
+            [ 4., 5., 6.,   7.]
+        ])
+
+        self.known_AB_vminus_neg1 = np.array([
+            [ 0., 1., 2.,   3.],
+            [ 4., 5., 6.,   7.],
+            [nan, 0., 1.,   2.],
+            [nan, 3., 4.,   5.],
+            [nan, 6., 7.,   8.],
+            [nan, 9., 10., 11.]
+        ])
+
+        self.known_AB_hplus_0 = np.array([
+            [0.,  1.,  2.,  0.,  1.,  2.,  3.],
+            [3.,  4.,  5.,  4.,  5.,  6.,  7.],
+            [6.,  7.,  8., nan, nan, nan, nan],
+            [9., 10., 11., nan, nan, nan, nan]
+        ])
+
+        self.known_AB_hminus_0 = np.array([
+            [ 0.,  1.,  2.,  3., 0.,  1.,  2.],
+            [ 4.,  5.,  6.,  7., 3.,  4.,  5.],
+            [nan, nan, nan, nan, 6.,  7.,  8.],
+            [nan, nan, nan, nan, 9., 10., 11.]
+        ])
+
+        self.known_AB_hplus_2 = np.array([
+            [0.,  1.,  2., nan, nan, nan, nan],
+            [3.,  4.,  5., nan, nan, nan, nan],
+            [6.,  7.,  8.,  0.,  1.,  2.,  3.],
+            [9., 10., 11.,  4.,  5.,  6.,  7.]
+        ])
+
+        self.known_AB_hminus_2 = np.array([
+            [nan, nan, nan, nan, 0.,  1.,  2.],
+            [nan, nan, nan, nan, 3.,  4.,  5.],
+            [ 0.,  1.,  2.,  3., 6.,  7.,  8.],
+            [ 4.,  5.,  6.,  7., 9., 10., 11.]
+        ])
+
+        self.known_AB_hplus_neg1 = np.array([
+            [nan, nan, nan,  0.,  1.,  2.,  3.],
+            [ 0.,  1.,  2.,  4.,  5.,  6.,  7.],
+            [ 3.,  4.,  5., nan, nan, nan, nan],
+            [ 6.,  7.,  8., nan, nan, nan, nan],
+            [ 9., 10., 11., nan, nan, nan, nan]
+        ])
+
+        self.known_AB_hminus_neg1 = np.array([
+            [ 0.,  1.,  2.,  3., nan, nan, nan],
+            [ 4.,  5.,  6.,  7.,  0.,  1.,  2.],
+            [nan, nan, nan, nan,  3.,  4.,  5.],
+            [nan, nan, nan, nan,  6.,  7.,  8.],
+            [nan, nan, nan, nan,  9., 10., 11.]
+        ])
+
+
+    def test_nodes_and_setter(self):
+        set_val = np.arange(16).reshape(4, 4) * 1
+        self.A.nodes = set_val
+        nptest.assert_array_equal(set_val, self.A.nodes)
+
+    def test_transform(self):
+        nptest.assert_array_equal(
+            self.known_flipped_A_nodes,
+            self.A.transform(np.fliplr).nodes
+        )
+
+    def test_transpose(self):
+        nptest.assert_array_equal(
+            self.A.nodes.T,
+            self.A.transpose().nodes
+        )
+
+    def test_transpose_transform(self):
+        nptest.assert_array_equal(
+            self.known_transposed_transformed_A_nodes,
+            self.A.transpose().transform(np.flipud).nodes
+        )
+
+    def test_transform_transpose(self):
+        nptest.assert_array_equal(
+            self.known_transposed_transformed_A_nodes,
+            self.A.transpose().transform(np.flipud).nodes
+        )
+
+    def test_merge_vplus_0(self):
+        nptest.assert_array_equal(
+            self.known_AB_vplus_0,
+            self.A.merge(self.B, how='v', where='+', shift=0).nodes,
+        )
+
+    def test_merge_vminus_0(self):
+        nptest.assert_array_equal(
+            self.known_AB_vminus_0,
+            self.A.merge(self.B, how='v', where='-', shift=0).nodes,
+        )
+
+    def test_merge_vplus_2(self):
+        nptest.assert_array_equal(
+            self.known_AB_vplus_2,
+            self.A.merge(self.B, how='v', where='+', shift=2).nodes,
+        )
+
+    def test_merge_vminus_2(self):
+        nptest.assert_array_equal(
+            self.known_AB_vminus_2,
+            self.A.merge(self.B, how='v', where='-', shift=2).nodes,
+        )
+
+    def test_merge_vplus_neg1(self):
+        nptest.assert_array_equal(
+            self.known_AB_vplus_neg1,
+            self.A.merge(self.B, how='v', where='+', shift=-1).nodes,
+        )
+
+    def test_merge_vminus_neg1(self):
+        nptest.assert_array_equal(
+            self.known_AB_vminus_neg1,
+            self.A.merge(self.B, how='v', where='-', shift=-1).nodes,
+        )
+
+    def test_merge_hplus_0(self):
+        nptest.assert_array_equal(
+            self.known_AB_hplus_0,
+            self.A.merge(self.B, how='h', where='+', shift=0).nodes,
+        )
+
+    def test_merge_hminus_0(self):
+        nptest.assert_array_equal(
+            self.known_AB_hminus_0,
+            self.A.merge(self.B, how='h', where='-', shift=0).nodes,
+        )
+
+    def test_merge_hplus_2(self):
+        nptest.assert_array_equal(
+            self.known_AB_hplus_2,
+            self.A.merge(self.B, how='h', where='+', shift=2).nodes,
+        )
+
+    def test_merge_hminus_2(self):
+        nptest.assert_array_equal(
+            self.known_AB_hminus_2,
+            self.A.merge(self.B, how='h', where='-', shift=2).nodes,
+        )
+
+    def test_merge_hplus_neg1(self):
+        nptest.assert_array_equal(
+            self.known_AB_hplus_neg1,
+            self.A.merge(self.B, how='h', where='+', shift=-1).nodes,
+        )
+
+    def test_merge_hminus_neg1(self):
+        nptest.assert_array_equal(
+            self.known_AB_hminus_neg1,
+            self.A.merge(self.B, how='h', where='-', shift=-1).nodes,
+        )
+
+
 class test__proccess_array(object):
     def setup(self):
         np.random.seed(0)
@@ -316,13 +730,13 @@ class test__grid_attr_to_df(object):
         pass
 
 
-class test_GridDataFrame(object):
+class test_Grid(object):
     def setup(self):
         self.grid = testing.makeSimpleGrid()
-        self.gdf = misc.GridDataFrame(self.grid)
-        self.other_gdf = misc.GridDataFrame(self.grid)
+        self.gdf = testing.makeSimpleGrid(as_gridgen=False)
+        self.other_gdf = testing.makeSimpleGrid(as_gridgen=False)
         self.top_col_level = ['northing', 'easting']
-        self.df_attrs = ['u', 'v', 'centers', 'psi', 'verts']
+        self.df_attrs = ['u', 'v', 'centers', 'psi', 'nodes']
         self.template = 'pygridtools/tests/test_data/schema_template.shp'
         self.point_baseline = 'pygridtools/tests/baseline_files/gdf_point.shp'
         self.point_output = 'pygridtools/tests/result_files/gdf_point.shp'
@@ -335,7 +749,8 @@ class test_GridDataFrame(object):
 
     def test_other_attr(self):
         nt.assert_equal(False, self.gdf.transpose)
-        nt.assert_equal(self.grid, self.gdf.grid)
+        nt.assert_equal(None, self.gdf.transform)
+        #nt.assert_equal(self.grid, self.gdf.grid)
         nt.assert_list_equal(self.gdf.merged_grids, [])
 
     def test_col_levels(self):
@@ -355,8 +770,8 @@ class test_GridDataFrame(object):
 
         testing.compareTextFiles(outputfile, baselinefile)
 
-    def test_writeVertsToShapefile_Point(self):
-        self.gdf.writeVertsToShapefile(
+    def test_writeToShapefile_Point(self):
+        self.gdf.writeToShapefile(
             self.point_output,
             geomtype='Point',
             template=self.template
@@ -366,8 +781,8 @@ class test_GridDataFrame(object):
             self.point_output, self.point_baseline, atol=0.1
         )
 
-    def test_writeVertsToShapefile_Polygon(self):
-        self.gdf.writeVertsToShapefile(
+    def test_writeToShapefile_Polygon(self):
+        self.gdf.writeToShapefile(
             self.polygon_output,
             geomtype='Polygon',
             template=self.template
@@ -515,28 +930,28 @@ class test_mergePoints(object):
 
     def test_vertical_merge_above(self):
         df_merged = misc.mergePoints(self.df1, self.df3, how='j', where='-', offset=-2)
-        nptest.assert_array_equal(df_merged.values, self.expected_df1and3.values)
+        pdtest.assert_frame_equal(df_merged, self.expected_df1and3)
 
     def test_vertical_merge_below(self):
         df_merged = misc.mergePoints(self.df3, self.df1, how='j', where='+', offset=2)
-        nptest.assert_array_equal(df_merged.values, self.expected_df1and3.values)
+        pdtest.assert_frame_equal(df_merged, self.expected_df1and3)
 
     def test_horizontal_merge_left(self):
         df_merged = misc.mergePoints(self.df2, self.df1, how='i', where='-', offset=-1)
-        nptest.assert_array_equal(df_merged.values, self.expected_df1and2.values)
+        pdtest.assert_frame_equal(df_merged, self.expected_df1and2)
 
     def test_horizontal_merge_right(self):
         df_merged = misc.mergePoints(self.df1, self.df2, how='i', where='+', offset=1)
-        nptest.assert_array_equal(df_merged.values, self.expected_df1and2.values)
+        pdtest.assert_frame_equal(df_merged, self.expected_df1and2)
 
     def test_vert_merge_0and1(self):
         merged = misc.mergePoints(self.df0, self.df1, how='j', where='-', offset=-1)
-        nptest.assert_array_equal(merged.values, self.expected_df0and1.values)
+        pdtest.assert_frame_equal(merged, self.expected_df0and1)
 
     def test_vert_merge_0and1and2(self):
         step1 = misc.mergePoints(self.df0, self.df1, how='j', where='-', offset=-1)
         step2 = misc.mergePoints(step1, self.df2, how='i', where='+', offset=1)
-        nptest.assert_array_equal(step2.values, self.expected_df0and1and2.values)
+        pdtest.assert_frame_equal(step2, self.expected_df0and1and2)
 
     def test_big_grid_lowerleft_to_upperright(self):
         step1 = misc.mergePoints(self.df4, self.df3, how='i', where='+', offset=1)
@@ -545,7 +960,7 @@ class test_mergePoints(object):
         step4 = misc.mergePoints(step3, self.df5, how='i', where='+', offset=7)
         step5 = misc.mergePoints(step4, self.df0, how='j', where='+', offset=7)
 
-        nptest.assert_array_equal(step5.values, self.expected_all_dfs.values)
+        pdtest.assert_frame_equal(step5, self.expected_all_dfs)
 
     def test_big_grid_upperright_to_lowerleft(self):
         step1 = misc.mergePoints(self.df0, self.df1, how='j', where='-', offset=-1)
@@ -554,7 +969,7 @@ class test_mergePoints(object):
         step4 = misc.mergePoints(step3, self.df4, how='i', where='-', offset=-1)
         step5 = misc.mergePoints(step4, self.df5, how='i', where='+', offset=7)
 
-        nptest.assert_array_equal(step5.values, self.expected_all_dfs.values)
+        pdtest.assert_frame_equal(step5, self.expected_all_dfs)
 
 
 class test__add_second_col_level(object):

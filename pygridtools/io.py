@@ -436,6 +436,9 @@ def readGridShapefile(shapefile, icol='ii', jcol='jj', expand=1, othercols=None)
     if isinstance(expand, int):
         factor = expand
     data = []
+    if othercols is None:
+        othercols = []
+
     with fiona.open(shapefile) as shp:
         for record in shp:
             geomtype = record['geometry']['type']

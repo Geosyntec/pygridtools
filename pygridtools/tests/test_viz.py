@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
+import seaborn
 
 from pygridtools import viz
 import testing
@@ -39,28 +40,23 @@ class test_plotReachDF():
         self.boundary = testing.makeSimpleBoundary()
         plt.close('all')
 
+    def teardown(self):
+        plt.close('all')
+
     def test_smoketest_withoutax(self):
-        fig = viz.plotReachDF(self.boundary)
-        nt.assert_true(isinstance(fig, plt.Figure))
+        fig = viz.plotReachDF(self.boundary, 'x', 'y', 'reach')
+        nt.assert_true(isinstance(fig, seaborn.FacetGrid))
         figfile = 'pygridtools/tests/result_images/plotreach_withoutax.png'
         fig.savefig(figfile, dpi=150)
 
-    def test_smoketest_withax(self):
-        fig, ax = plt.subplots()
-        fig_returned = viz.plotReachDF(self.boundary, ax=ax)
-        nt.assert_equal(fig, fig_returned)
-        figfile = 'pygridtools/tests/result_images/plotreach_withax.png'
-        fig.savefig(figfile, dpi=150)
-
     def test_smoketest_withflipped(self):
-        fig, ax = plt.subplots()
-        fig_returned = viz.plotReachDF(self.boundary, ax=ax, flip=True)
+        fig = viz.plotReachDF(self.boundary, 'x', 'y', 'reach', flip=True)
         figfile = 'pygridtools/tests/result_images/plotreach_flip.png'
         fig.savefig(figfile, dpi=150)
 
-    @nt.raises(AttributeError)
+    @nt.raises(ValueError)
     def test_badinput(self):
-        viz.plotReachDF(self.boundary.values, flip=True)
+        viz.plotReachDF(self.boundary.values, 'x', 'y', 'reach', flip=True)
 
 
 class test_plotPygridgen:

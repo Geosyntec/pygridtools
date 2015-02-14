@@ -3,7 +3,6 @@ import pdb
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.delaunay as mdelaunay
 import pandas
 import fiona
 
@@ -39,6 +38,7 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
     This operates on the grid object in place.
 
     '''
+    import matplotlib.delaunay as mdelaunay
 
     if bathy is None:
         print('  generating fake bathymetry data')
@@ -85,7 +85,7 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
 
 def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
              plot=True, xlimits=None, ax=None, figpath=None,
-             outdir=None, title=None, verbose=False, **gridparams):
+             outdir=None, title=None, verbose=False, **gparams):
     '''
     Generate and (optionally) visualize a grid, and create input files
     for the GEDFC preprocessor (makes grid input files for GEFDC).
@@ -115,7 +115,7 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
     ax : optional `matplotlib.Axes object or None (default)
         Axes on which the grid will be drawn if `plot` = True. If
         ommitted as `plot` = True, a new Axes will be created.
-    **gridparams : optional kwargs
+    **gparams : optional kwargs
         Parameters to be passed to the pygridgen.grid.Gridgen constructor.
         Only used if `makegrid` = True and `coords` is not None.
         `ny` and `nx` are required. Other values are optional.
@@ -140,15 +140,14 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
     if grid is None:
         if makegrid:
             try:
-                nx = gridparams.pop('nx')
-                ny = gridparams.pop('ny')
+                nx = gparams.pop('nx')
+                ny = gparams.pop('ny')
             except KeyError:
                 raise ValueError('must provide `nx` and `ny` if '
                                  '`makegrid` = True')
             if verbose:
                 print('generating grid')
-            grid = pygridgen.grid.Gridgen(coords.x, coords.y, coords.beta,
-                                       (ny, nx), **gridparams)
+            grid = Grid(coords.x, coords.y, coords.beta, (ny, nx), **gparams)
         else:
             raise ValueError("must provide `grid` if `makegrid` = False")
     if verbose:
@@ -180,6 +179,183 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
         fig = None
 
     return grid, fig
+
+
+def padded_stack(a, b, how='vert', where='+', shift=0):
+    '''Merge 2-dimensional numpy arrays with different shapes
+
+    Parameters
+    ----------
+    a, b : numpy arrays
+        The arrays to be merged
+    how : optional string (default = 'vert')
+        The method through wich the arrays should be stacked. `'Vert'`
+        is analogous to `np.vstack`. `'Horiz'` maps to `np.hstack`.
+    where : optional string (default = '+')
+        The placement of the arrays relative to each other. Keeping in
+        mind that the origin of an array's index is in the upper-left
+        corner, `'+'` indicates that the second array will be placed
+        at higher index relative to the first array. Essentially:
+         - if how == 'vert'
+            - `'+'` -> `a` is above `b`
+            - `'-'` -> `a` is below `b`
+         - if how == 'horiz'
+            - `'+'` -> `a` is to the left of `b`
+            - `'-'` -> `a` is to the right of `b`
+        See the examples for more info.
+    shift : int (default = 0)
+        The number of indices the second array should be shifted in
+        axis other than the one being merged. In other words, vertically
+        stacked arrays can be shifted horizontally, and horizontally
+        stacked arrays can be shifted vertically.
+    [a|b]_transform : function, lambda, or None (default)
+        Individual transformations that will be applied to the arrays
+        *prior* to being merged. This can be numeric of even alter the
+        shapes (e.g., `np.flipud`, `np.transpose`)
+
+    Returns
+    -------
+    Stacked : numpy array
+        The merged and padded array
+
+    Examples
+    --------
+    >>> import pygridtools as pgt
+    >>> a = np.arange(12).reshape(4, 3) * 1.0
+    >>> b = np.arange(8).reshape(2, 4) * -1.0
+    >>> pgt.padded_stack(a, b, how='vert', where='+', shift=1)
+        array([[  0.,   1.,   2.,  nan,  nan],
+               [  3.,   4.,   5.,  nan,  nan],
+               [  6.,   7.,   8.,  nan,  nan],
+               [  9.,  10.,  11.,  nan,  nan],
+               [ nan,  -0.,  -1.,  -2.,  -3.],
+               [ nan,  -4.,  -5.,  -6.,  -7.]])
+
+    >>> pgt.padded_stack(a, b, how='h', where='-', shift=-2)
+        array([[ nan,  nan,  nan,  nan,   0.,   1.,   2.],
+               [ nan,  nan,  nan,  nan,   3.,   4.,   5.],
+               [ -0.,  -1.,  -2.,  -3.,   6.,   7.,   8.],
+               [ -4.,  -5.,  -6.,  -7.,   9.,  10.,  11.]]
+
+
+    '''
+    a = np.asarray(a)
+    b = np.asarray(b)
+
+    if where == '-':
+        stacked = padded_stack(b, a, shift=-1*shift, where='+', how=how)
+
+    elif where == '+':
+        if how.lower() in ('horizontal', 'horiz', 'h'):
+            stacked = padded_stack(a.T, b.T, shift=shift, where=where,
+                                   how='v').T
+
+        elif how.lower() in ('vertical', 'vert', 'v'):
+
+            a_pad_left = 0
+            a_pad_right = 0
+            b_pad_left = 0
+            b_pad_right = 0
+
+            diff_cols = a.shape[1] - (b.shape[1] + shift)
+
+            if shift > 0:
+                b_pad_left = shift
+            elif shift < 0:
+                a_pad_left = abs(shift)
+
+            if diff_cols > 0:
+                b_pad_right = diff_cols
+            else:
+                a_pad_right = abs(diff_cols)
+
+            v_pads = (0, 0)
+            x_pads = (v_pads, (a_pad_left, a_pad_right))
+            y_pads = (v_pads, (b_pad_left, b_pad_right))
+
+            mode = 'constant'
+            fill = (np.nan, np.nan)
+            stacked = np.vstack([
+                np.pad(a, x_pads, mode=mode, constant_values=fill),
+                np.pad(b, y_pads, mode=mode, constant_values=fill)
+            ])
+
+        else:
+            gen_msg = 'how must be either "horizontal" or "vertical"'
+            raise ValueError(gen_msg)
+
+    else:
+        raise ValueError('`where` must be either "+" or "-"')
+
+    return stacked
+
+
+class _NodeSet(object):
+    def __init__(self, nodes):
+        self._nodes = np.asarray(nodes)
+
+    @property
+    def nodes(self):
+        return self._nodes
+    @nodes.setter
+    def nodes(self, value):
+        self._nodes = np.asarray(value)
+
+    def transform(self, fxn, *args, **kwargs):
+        self.nodes = fxn(self.nodes, *args, **kwargs)
+        return self
+
+    def transpose(self):
+        return self.transform(np.transpose)
+
+    def merge(self, other, how='vert', where='+', shift=0):
+        return self.transform(padded_stack, other.nodes, how=how,
+                              where=where, shift=shift)
+
+
+class ModelGrid(object):
+    def __init__(self, nodes_x, nodes_y):
+        if not np.all(nodes_x.shape == nodes_y.shape):
+            raise ValueError('input arrays must have the same shape')
+        self._nodes_x = _NodeSet(nodes_x)
+        self._nodes_y = _NodeSet(nodes_y)
+
+    @property
+    def nodes_x(self):
+        return self._nodes_x
+    @nodes_x.setter
+    def nodes_x(self, value):
+        self._nodes_x = value
+
+    @property
+    def nodes_y(self):
+        return self._nodes_y
+    @nodes_y.setter
+    def nodes_y(self, value):
+        self._nodes_y = value
+
+    @property
+    def x(self):
+        return self.nodes_x.nodes
+
+    @property
+    def y(self):
+        return self.nodes_y.nodes
+
+    def transform(self, fxn, *args, **kwargs):
+        self.nodes_x = self.nodes_x.transform(fxn, *args, **kwargs)
+        self.nodes_y = self.nodes_y.transform(fxn, *args, **kwargs)
+        return self
+
+    def transpose(self):
+        return self.transform(np.transpose)
+
+    def merge(self, other, how='vert', where='+', shift=0):
+        self.nodes_x = self.nodes_x.merge(other.nodes_x, how=how,
+                                          where=where, shift=shift)
+        self.nodes_y = self.nodes_y.merge(other.nodes_y, how=how,
+                                          where=where, shift=shift)
+        return self
 
 
 def _add_second_col_level(levelval, olddf):
@@ -242,7 +418,7 @@ def _grid_attr_to_df(xattr, yattr, transpose, transform=None):
     return df
 
 
-class GridDataFrame(object):
+class Grid(pygridgen.Gridgen):
     '''
     Basic object that provides access to the attribures of a Gridgen
     object in a pandas.DataFrame format.
@@ -259,21 +435,21 @@ class GridDataFrame(object):
         function to flip the arrays to align the indices with previous
         or subsequent grids as needed. Recommend non-None values are
         numpy.fliplr or numpy.flipud (or a lambda to do both)
-        -------
-        |     |
-        |  L  |
-        |  O  |
-        |  N  |
-        |  G  |
-        |     |
-        |     ---------------------------
-        |            | WIDE (transpose) |
-        ---------------------------------
+        -----
+        |   |
+        | L |
+        | O |
+        | N |
+        | G |
+        |   |
+        |   ---------------------------
+        |          | WIDE (transpose) |
+        -------------------------------
 
     Attributes
     ----------
     u/v - northing/easting of the u and v velocity vectors for each cell
-    verts - northing/easting of cell verices (lower left corner)
+    nodes - northing/easting of cell verices (lower left corner)
     centers - northing/easting of cell centroids
     psi - northing/easting of ????
 
@@ -281,25 +457,47 @@ class GridDataFrame(object):
     -----
     `centers` come come the `grid.x_rho` and `grid.y_rho` attributes.
 
+        transform = kwargs.pop('transform', None)
+        transpose = kwargs.pop('transpose', None)
+        super(Grid, self).__init__(*args, **kwargs)
     '''
-    def __init__(self, grid, transpose=False, transform=None):
-        self.grid = grid
-        self.transpose = transpose
-        self.transform = transform
+
+    def __init__(self, *args, **kwargs):
+        # input props
+        self._transform = kwargs.pop('transform', None)
+        self._transpose = kwargs.pop('transpose', False)
+
+        # grid
+        super(Grid, self).__init__(*args, **kwargs)
+
         self.merged_grids = []
 
+        # remaining props
         self._u = None
         self._v = None
-        self._verts = None
+        self._nodes = None
         self._centers = None
         self._psi = None
-        self._elev = None
+
+    @property
+    def transform(self):
+        return self._transform
+    @transform.setter
+    def transform(self, value):
+        self._transform = value
+
+    @property
+    def transpose(self):
+        return self._transpose
+    @transpose.setter
+    def transpose(self, value):
+        self._transpose = value
 
     @property
     def u(self):
         if self._u is None:
             self._u = _grid_attr_to_df(
-                self.grid.x_u, self.grid.y_u, self.transpose, transform=self.transform
+                self.x_u, self.y_u, self.transpose, transform=self.transform
             )
         return self._u
     @u.setter
@@ -310,7 +508,7 @@ class GridDataFrame(object):
     def v(self):
         if self._v is None:
             self._v = _grid_attr_to_df(
-                self.grid.x_v, self.grid.y_v, self.transpose, transform=self.transform
+                self.x_v, self.y_v, self.transpose, transform=self.transform
             )
         return self._v
     @v.setter
@@ -318,21 +516,21 @@ class GridDataFrame(object):
         self._v = value
 
     @property
-    def verts(self):
-        if self._verts is None:
-            self._verts = _grid_attr_to_df(
-                self.grid.x, self.grid.y, self.transpose, transform=self.transform
+    def nodes(self):
+        if self._nodes is None:
+            self._nodes = _grid_attr_to_df(
+                self.x, self.y, self.transpose, transform=self.transform
             )
-        return self._verts
-    @verts.setter
-    def verts(self, value):
-        self._verts = value
+        return self._nodes
+    @nodes.setter
+    def nodes(self, value):
+        self._nodes = value
 
     @property
     def centers(self):
         if self._centers is None:
             self._centers = _grid_attr_to_df(
-                self.grid.x_rho, self.grid.y_rho, self.transpose, transform=self.transform
+                self.x_rho, self.y_rho, self.transpose, transform=self.transform
             )
         return self._centers
     @centers.setter
@@ -343,27 +541,39 @@ class GridDataFrame(object):
     def psi(self):
         if self._psi is None:
             self._psi = _grid_attr_to_df(
-                self.grid.x_psi, self.grid.y_psi, self.transpose, transform=self.transform
+                self.x_psi, self.y_psi, self.transpose, transform=self.transform
             )
         return self._psi
     @psi.setter
     def psi(self, value):
         self._psi = value
 
-    @property
-    def elev(self):
-        if self._elev is None and self.grid.elev is not None:
-            z = self.grid.elev
-            if self.transpose:
-                z = z.T
-            if self.transform is not None:
-                z = self.transform(z)
-            self._elev = pandas.DataFrame(z)
+    # @property
+    # def elev(self):
+    #     if self._elev is None and self.elev is not None:
+    #         z = self.elev
+    #         if self.transpose:
+    #             z = z.T
+    #         if self.transform is not None:
+    #             z = self.transform(z)
+    #         self._elev = pandas.DataFrame(z)
 
-        return self._elev
-    @elev.setter
-    def elev(self, value):
-        self._elev = value
+    #     return self._elev
+    # @elev.setter
+    # def elev(self, value):
+    #     self._elev = value
+    def clear_df_attributes(self):
+        self._u = None
+        self._v = None
+        self._nodes = None
+        self._centers = None
+        self._psi = None
+        #self.elev = None
+
+    # def generate_grid(cleardfs=True):
+    #     super(Grid, self).generate_grid()
+    #     # if cleardfs:
+    #     #     self._clear_df_attributes()
 
     def _merge_attr(self, attr, otherdf, how='j', where='+', offset=0):
 
@@ -391,7 +601,7 @@ class GridDataFrame(object):
         self.v = self._merge_attr('v', othergdf, how=how,
                                   where=where, offset=offset)
 
-        self.verts = self._merge_attr('verts', othergdf, how=how,
+        self.nodes = self._merge_attr('nodes', othergdf, how=how,
                                   where=where, offset=offset)
 
         self.centers = self._merge_attr('centers', othergdf, how=how,
@@ -399,31 +609,31 @@ class GridDataFrame(object):
 
         self.psi = self._merge_attr('psi', othergdf, how=how,
                                   where=where, offset=offset)
-        if self.elev is not None:
-            self.elev = mergePoints(self.elev, othergdf.elev, how=how,
-                                    where=where, offset=offset)
+        # if self.elev is not None:
+        #     self.elev = mergePoints(self.elev, othergdf.elev, how=how,
+        #                             where=where, offset=offset)
 
     def writeGridOut(self, outputfile):
-        verts = self.verts.stack(level='i', dropna=False)
+        nodes = self.nodes.stack(level='i', dropna=False)
         with open(outputfile, 'w') as out:
-            out.write('## {:d} x {:d}\n'.format(self.grid.nx, self.grid.ny))
-            verts.to_csv(out, sep=' ', na_rep='NaN', index=False,
+            out.write('## {:d} x {:d}\n'.format(self.nx, self.ny))
+            nodes.to_csv(out, sep=' ', na_rep='NaN', index=False,
                          header=False, float_format='%.3f')
 
-    def writeVertsToShapefile(self, outfile, geomtype='Point', template=None,
+    def writeToShapefile(self, outfile, geomtype='Point', template=None,
                               river=None, reach=0):
         if template is None:
             template = 'gis/template/schema_template.shp'
 
-        X = self.verts['easting'].values
-        Y = self.verts['northing'].values
-        elev = self.elev.values
+        X = self.nodes['easting'].values
+        Y = self.nodes['northing'].values
+        #elev = self.elev.values
         if geomtype == 'Point':
             io.savePointShapefile(X, Y, template, outfile, 'w',
-                                       river=river, reach=reach, elev=None)
+                                  river=river, reach=reach, elev=None)
         elif geomtype == 'Polygon':
             io.saveGridShapefile(X, Y, template, outfile, 'w',
-                                      river=river, reach=reach, elev=None)
+                                 river=river, reach=reach, elev=None)
         else:
             raise ValueError('`geomtype {} is not supported'.format(geomtype))
 
@@ -442,11 +652,7 @@ def mergePoints(ref_df, concat_df, how='j', where='+', offset=0):
 
 
     if how == 'j':
-        rename_columns = {}
-        for c in concat_df.columns:
-            rename_columns[c] = c + offset
-
-        offset_df = concat_df.rename(columns=rename_columns)
+        offset_df = concat_df.rename(columns=lambda c: c + offset)
 
         if where == '+':
             merged = pandas.concat([ref_df, offset_df])

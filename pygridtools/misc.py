@@ -41,7 +41,6 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
     import matplotlib.delaunay as mdelaunay
 
     if bathy is None:
-        print('  generating fake bathymetry data')
         elev = np.zeros(grid.x_rho.shape)
 
         if isinstance(grid.x_rho, np.ma.MaskedArray):
@@ -154,16 +153,6 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
         print('interpolating bathymetry')
     newbathy = interpolateBathymetry(bathydata, grid, xcol='x',
                                      ycol='y', zcol='z')
-
-    if verbose:
-        print('writing `gefdc` input files')
-    if title is None:
-        title = 'Grid of the Unnamed River'
-
-    if outdir is None:
-        outdir = '.'
-
-    io.writeGEFDCInputFiles(grid, newbathy, outdir, title)
 
     if plot:
         if verbose:
@@ -290,6 +279,12 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
     return stacked
 
 
+def _outputfile(outputdir, filename):
+    if outputdir is None:
+        outputdir = '.'
+    return os.path.join(outputdir, filename)
+
+
 class _NodeSet(object):
     def __init__(self, nodes):
         self._nodes = np.asarray(nodes)
@@ -319,9 +314,11 @@ class ModelGrid(object):
             raise ValueError('input arrays must have the same shape')
         self._nodes_x = _NodeSet(nodes_x)
         self._nodes_y = _NodeSet(nodes_y)
+        self._template = None
 
     @property
     def nodes_x(self):
+        '''_NodeSet object of x-coords'''
         return self._nodes_x
     @nodes_x.setter
     def nodes_x(self, value):
@@ -332,15 +329,59 @@ class ModelGrid(object):
         return self._nodes_y
     @nodes_y.setter
     def nodes_y(self, value):
+        '''_NodeSet object of y-coords'''
         self._nodes_y = value
 
     @property
     def x(self):
+        '''shortcut to x-coords of nodes'''
         return self.nodes_x.nodes
 
     @property
     def y(self):
+        '''shortcut to y-coords of nodes'''
         return self.nodes_y.nodes
+
+    @property
+    def icells(self):
+        '''rows'''
+        return self.x.shape[1]
+
+    @property
+    def jcells(self):
+        '''columns'''
+        return self.x.shape[0]
+
+    @property
+    def template(self):
+        '''template shapefile'''
+        return self._template
+    @template.setter
+    def template(self, value):
+        self._template = value
+
+    @property
+    def as_dataframe(self):
+        def make_cols(top_level):
+            columns = pandas.MultiIndex.from_product(
+                [[top_level], range(self.icells)],
+                names=['coord', 'i']
+            )
+            return columns
+
+        index = pandas.Index(range(self.jcells), name='j')
+
+        easting = pandas.DataFrame(
+            self.x, index=index, columns=make_cols('easting')
+        )
+
+        northing = pandas.DataFrame(
+            self.y, index=index, columns=make_cols('northing')
+        )
+        return easting.join(northing)
+
+    def as_coord_pairs(self):
+        return np.array(zip(self.x.flatten(), self.y.flatten()))
 
     def transform(self, fxn, *args, **kwargs):
         self.nodes_x = self.nodes_x.transform(fxn, *args, **kwargs)
@@ -350,12 +391,113 @@ class ModelGrid(object):
     def transpose(self):
         return self.transform(np.transpose)
 
+    def fliplr(self):
+        '''flips the columns'''
+        return self.transform(np.fliplr)
+
+    def flipud(self):
+        '''flips the rows'''
+        return self.transform(np.flipud)
+
     def merge(self, other, how='vert', where='+', shift=0):
+        '''Merge with another grid
+
+        Parameters
+        ----------
+        other : ModelGrid
+            The other ModelGrid object.
+        '''
         self.nodes_x = self.nodes_x.merge(other.nodes_x, how=how,
                                           where=where, shift=shift)
         self.nodes_y = self.nodes_y.merge(other.nodes_y, how=how,
                                           where=where, shift=shift)
         return self
+
+    def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
+                              bathyrows=0, title='test'):
+        outfile = _outputfile(outputdir, filename)
+
+        gefdc = io._write_gefdc_control_file(
+            outfile,
+            title,
+            self.icells + 2,
+            self.jcells + 2,
+            bathyrows
+        )
+        return gefdc
+
+    def writeGEFDCCellFile(self, outputdir=None, filename='cell.inp',
+                           usetriangles=False, maxcols=125):
+        outfile = _outputfile(outputdir, filename)
+
+        cells = io._write_cellinp(
+            ~np.isnan(self.x),
+            outfile,
+            triangle_cells=usetriangles,
+            maxcols=maxcols,
+            testing=True
+        )
+        return cells
+
+    def writeGEFDCGridFile(self, outputdir=None, filename='grid.out'):
+        outfile = _outputfile(outputdir, filename)
+        df = io._write_gridout_file(self.x, self.y, outfile)
+        return df
+
+    def writeGEFDCGridextFile(self, outputdir, shift=2, filename='gridext.inp'):
+        outfile = _outputfile(outputdir, filename)
+        df = self.as_dataframe.stack(level='i', dropna=True).reset_index()
+        df['i'] += shift
+        df['j'] += shift
+        io._write_gridext_file(df, outfile)
+        return df
+
+    def _plot_nodes(self, boundary=None, engine='mpl', ax=None, **kwargs):
+        if engine == 'mpl':
+            return viz._plot_nodes_mpl(self.x, self.y, boundary=boundary,
+                                       ax=ax, **kwargs)
+        elif engine == 'bokeh':
+            return viz._plot_nodes_bokeh(self.x, self.y, boundary=boundary,
+                                         **kwargs)
+
+    def _plot_cells(self, boundary=None, engine='mpl', ax=None, **kwargs):
+        if engine == 'mpl':
+            return viz._plot_cells_mpl(self.x, self.y, boundary=boundary,
+                                       ax=ax, **kwargs)
+        elif engine == 'bokeh':
+            return viz._plot_cells_bokeh(self.x, self.y, boundary=boundary,
+                                         **kwargs)
+
+    def to_shapefile(self, outputfile, template=None, geom='Point',
+                     mode='w', river=None, reach=0, elev=None):
+        if template is None:
+            template = self.template
+
+        if geom.lower() == 'point':
+            io.savePointShapefile(self.x, self.y, template, outputfile,
+                                  mode=mode, river=river, reach=reach,
+                                  elev=elev)
+        elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
+            io.saveGridShapefile(self.x, self.y, template, outputfile,
+                                 mode=mode, river=river, reach=reach,
+                                 elev=elev)
+        else:
+            raise ValueError("geom must be either 'Point' or 'Polygon'")
+
+    @staticmethod
+    def from_dataframes(df_x, df_y, icol='i'):
+        nodes_x = df_x.unstack(level='i')
+        nodes_y = df_y.unstack(level='i')
+        return ModelGrid(nodes_x, nodes_y)
+
+    @staticmethod
+    def from_shapefile(shapefile, icol='ii', jcol='jj'):
+        df = io.readGridShapefile(shapefile, icol=icol, jcol=jcol)
+        return ModelGrid.from_dataframes(df['easting'], df['northing'])
+
+    @staticmethod
+    def from_Gridgen(gridgen):
+        return ModelGrid(gridgen.x, gridgen.y)
 
 
 def _add_second_col_level(levelval, olddf):
@@ -464,6 +606,7 @@ class Grid(pygridgen.Gridgen):
 
     def __init__(self, *args, **kwargs):
         # input props
+
         self._transform = kwargs.pop('transform', None)
         self._transpose = kwargs.pop('transpose', False)
 

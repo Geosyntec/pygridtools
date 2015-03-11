@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import pandas
 import seaborn
 
-from bokeh.sampledata import us_counties, unemployment
 from bokeh import plotting
 from bokeh.models import HoverTool
 

@@ -4,7 +4,7 @@ import pandas
 import fiona
 import pygridgen
 
-from pygridtools.misc import Grid
+#from pygridtools.misc import Grid
 
 import nose.tools as nt
 import numpy.testing as nptest
@@ -17,7 +17,7 @@ def makeSimpleBoundary():
     return pandas.DataFrame({'x': xbry, 'y': ybry, 'beta': beta, 'reach': 'reach'})
 
 
-def makeSimpleGrid(as_gridgen=True):
+def makeSimpleGrid():
     '''
     Makes a basic grid for testing purposes
     '''
@@ -26,12 +26,8 @@ def makeSimpleGrid(as_gridgen=True):
     ny = 9
     nx = 7
     ul_idx = 0
-    if as_gridgen:
-        grid = pygridgen.Gridgen(boundary.x, boundary.y, boundary.beta,
-                                (ny, nx), ul_idx=ul_idx)
-    else:
-        grid = Grid(boundary.x, boundary.y, boundary.beta, (ny, nx),
-                    ul_idx=ul_idx)
+    grid = pygridgen.Gridgen(boundary.x, boundary.y, boundary.beta,
+                            (ny, nx), ul_idx=ul_idx)
 
     return grid
 
@@ -75,7 +71,36 @@ def compareShapefiles(baselinefile, outputfile, atol=0.001):
         nt.assert_dict_equal(rr['properties'], br['properties'])
         nt.assert_equal(rr['geometry']['type'], br['geometry']['type'])
         nptest.assert_allclose(
-            rr['geometry']['coordinates'], 
+            rr['geometry']['coordinates'],
             br['geometry']['coordinates'],
             atol=atol
         )
+
+
+def make_nodes():
+    from numpy import nan
+    x = np.array([
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+    ])
+
+    y = np.array([
+        [0.0, 0.0, 0.0, nan, nan, nan, nan],
+        [0.5, 0.5, 0.5, nan, nan, nan, nan],
+        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+        [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
+        [2.5, 2.5, 2.5, nan, nan, nan, nan],
+        [3.0, 3.0, 3.0, nan, nan, nan, nan],
+        [3.5, 3.5, 3.5, nan, nan, nan, nan],
+        [4.0, 4.0, 4.0, nan, nan, nan, nan],
+    ])
+
+    return np.ma.masked_invalid(x, 0), np.ma.masked_invalid(y, 0)

@@ -3,7 +3,6 @@ import os
 import nose.tools as nt
 import numpy as np
 import numpy.testing as nptest
-import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas
 import fiona
@@ -227,28 +226,6 @@ class test_shapefileToDataFrame(object):
         raise NotImplementedError
 
 
-def test_writeGEFDCInput():
-    grid = testing.makeSimpleGrid()
-    bathy = testing.makeSimpleBathy()
-
-    bathyfile = 'depdat.inp'
-    gefdcfile = 'gefdc.inp'
-
-    outputdir = 'pygridtools/tests/result_files'
-    baselinedir = 'pygridtools/tests/baseline_files'
-    io.writeGEFDCInputFiles(grid, bathy, outputdir, 'test title')
-
-    testing.compareTextFiles(
-        os.path.join(outputdir, bathyfile),
-        os.path.join(baselinedir, bathyfile)
-    )
-
-    testing.compareTextFiles(
-        os.path.join(outputdir, gefdcfile),
-        os.path.join(baselinedir, gefdcfile)
-    )
-
-
 class test__write_cellinp(object):
     def setup(self):
         self.grid  = np.array([
@@ -302,6 +279,12 @@ class test__write_cellinp(object):
             self.triangle_output,
             self.known_triangle_output
         )
+
+
+class test__write_gefdc_control_file(object):
+    def setup(self):
+        self.title
+        self.max_i
 
 
 class test_gridextToShapefile(object):

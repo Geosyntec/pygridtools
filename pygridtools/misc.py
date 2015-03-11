@@ -41,7 +41,6 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
     import matplotlib.delaunay as mdelaunay
 
     if bathy is None:
-        print('  generating fake bathymetry data')
         elev = np.zeros(grid.x_rho.shape)
 
         if isinstance(grid.x_rho, np.ma.MaskedArray):
@@ -147,23 +146,14 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
                                  '`makegrid` = True')
             if verbose:
                 print('generating grid')
-            grid = Grid(coords.x, coords.y, coords.beta, (ny, nx), **gparams)
+            grid = pygridgen.Gridgen(coords.x, coords.y, coords.beta,
+                                     (ny, nx), **gparams)
         else:
             raise ValueError("must provide `grid` if `makegrid` = False")
     if verbose:
         print('interpolating bathymetry')
     newbathy = interpolateBathymetry(bathydata, grid, xcol='x',
                                      ycol='y', zcol='z')
-
-    if verbose:
-        print('writing `gefdc` input files')
-    if title is None:
-        title = 'Grid of the Unnamed River'
-
-    if outdir is None:
-        outdir = '.'
-
-    io.writeGEFDCInputFiles(grid, newbathy, outdir, title)
 
     if plot:
         if verbose:
@@ -290,6 +280,12 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
     return stacked
 
 
+def _outputfile(outputdir, filename):
+    if outputdir is None:
+        outputdir = '.'
+    return os.path.join(outputdir, filename)
+
+
 class _NodeSet(object):
     def __init__(self, nodes):
         self._nodes = np.asarray(nodes)
@@ -317,11 +313,14 @@ class ModelGrid(object):
     def __init__(self, nodes_x, nodes_y):
         if not np.all(nodes_x.shape == nodes_y.shape):
             raise ValueError('input arrays must have the same shape')
+
         self._nodes_x = _NodeSet(nodes_x)
         self._nodes_y = _NodeSet(nodes_y)
+        self._template = None
 
     @property
     def nodes_x(self):
+        '''_NodeSet object of x-coords'''
         return self._nodes_x
     @nodes_x.setter
     def nodes_x(self, value):
@@ -332,15 +331,58 @@ class ModelGrid(object):
         return self._nodes_y
     @nodes_y.setter
     def nodes_y(self, value):
+        '''_NodeSet object of y-coords'''
         self._nodes_y = value
 
     @property
     def x(self):
+        '''shortcut to x-coords of nodes'''
         return self.nodes_x.nodes
 
     @property
     def y(self):
+        '''shortcut to y-coords of nodes'''
         return self.nodes_y.nodes
+
+    @property
+    def icells(self):
+        '''rows'''
+        return self.x.shape[1]
+
+    @property
+    def jcells(self):
+        '''columns'''
+        return self.x.shape[0]
+
+    @property
+    def template(self):
+        '''template shapefile'''
+        return self._template
+    @template.setter
+    def template(self, value):
+        self._template = value
+
+    def as_dataframe(self):
+        def make_cols(top_level):
+            columns = pandas.MultiIndex.from_product(
+                [[top_level], range(self.icells)],
+                names=['coord', 'i']
+            )
+            return columns
+
+        index = pandas.Index(range(self.jcells), name='j')
+
+        easting = pandas.DataFrame(
+            self.x, index=index, columns=make_cols('easting')
+        )
+
+        northing = pandas.DataFrame(
+            self.y, index=index, columns=make_cols('northing')
+        )
+        return easting.join(northing)
+
+    def as_coord_pairs(self):
+        return np.array(zip(self.x.flatten(), self.y.flatten()))
 
     def transform(self, fxn, *args, **kwargs):
         self.nodes_x = self.nodes_x.transform(fxn, *args, **kwargs)
@@ -350,321 +392,108 @@ class ModelGrid(object):
     def transpose(self):
         return self.transform(np.transpose)
 
+    def fliplr(self):
+        '''reverses the columns'''
+        return self.transform(np.fliplr)
+
+    def flipud(self):
+        '''reverses the rows'''
+        return self.transform(np.flipud)
+
     def merge(self, other, how='vert', where='+', shift=0):
+        '''Merge with another grid
+
+        Parameters
+        ----------
+        other : ModelGrid
+            The other ModelGrid object.
+        '''
         self.nodes_x = self.nodes_x.merge(other.nodes_x, how=how,
                                           where=where, shift=shift)
         self.nodes_y = self.nodes_y.merge(other.nodes_y, how=how,
                                           where=where, shift=shift)
         return self
 
+    def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
+                              bathyrows=0, title='test'):
+        outfile = _outputfile(outputdir, filename)
 
-def _add_second_col_level(levelval, olddf):
-    '''
-    Takes a simple index on a dataframe's columns and adds a new level
-    with a single value.
-    E.g., df.columns = ['res', 'qual'] -> [('Infl' ,'res'), ('Infl', 'qual')]
-    '''
-    if isinstance(olddf.columns, pandas.MultiIndex):
-        raise ValueError('Dataframe already has MultiIndex on columns')
-
-    colarray = [[levelval]*len(olddf.columns), olddf.columns]
-    colindex = pandas.MultiIndex.from_arrays(colarray)
-    newdf = olddf.copy()
-    newdf.columns = colindex
-    return newdf
-
-
-def _process_array(arr, transpose, transform=None):
-    '''
-    Helper function pull out data from masked arrays and to
-    transpose + flip upside down (needed when stitching a wide
-    grid to a long one).
-    '''
-    if isinstance(arr, np.ma.MaskedArray):
-        arr = arr.data
-
-    if transpose:
-        arr = arr.T
-
-    if transform is not None:
-        arr = transform(arr)
-
-    return arr
-
-
-def _grid_attr_to_df(xattr, yattr, transpose, transform=None):
-    '''
-    Helper function to pull convert numpy.ndarray attributes of Gridgen
-    objects into pandas.DataFrames with i/j indices.
-    '''
-    if xattr.shape[0] != yattr.shape[0] or xattr.shape[1] != yattr.shape[1]:
-        raise ValueError('shapes are not equivalent')
-
-    xattr = _process_array(xattr, transpose, transform=transform)
-    yattr = _process_array(yattr, transpose, transform=transform)
-
-    data = []
-    cols = ['j', 'i', 'northing', 'easting']
-    for jj in range(xattr.shape[0]):
-        for ii in range(xattr.shape[1]):
-            data.append({
-                'j': jj,
-                'i': ii,
-                'easting': xattr[jj, ii],
-                'northing': yattr[jj, ii]
-            })
-
-    df = pandas.DataFrame(data).set_index(['j', 'i']).unstack(level='i')
-    return df
-
-
-class Grid(pygridgen.Gridgen):
-    '''
-    Basic object that provides access to the attribures of a Gridgen
-    object in a pandas.DataFrame format.
-
-    Parameters
-    ----------
-    grid : pygridgen.grid.Gridgen objects
-        The dang grid, jeez.
-    transpose : optional bool (default = False)
-        Toggles whether the code will transpose and flip upside-down
-        a the grid. Useful for when a wide grid will be stitched on to
-        the end of a long grid (or vise versa).
-    transform : function, lambda expression, or None (default)
-        function to flip the arrays to align the indices with previous
-        or subsequent grids as needed. Recommend non-None values are
-        numpy.fliplr or numpy.flipud (or a lambda to do both)
-        -----
-        |   |
-        | L |
-        | O |
-        | N |
-        | G |
-        |   |
-        |   ---------------------------
-        |          | WIDE (transpose) |
-        -------------------------------
-
-    Attributes
-    ----------
-    u/v - northing/easting of the u and v velocity vectors for each cell
-    nodes - northing/easting of cell verices (lower left corner)
-    centers - northing/easting of cell centroids
-    psi - northing/easting of ????
-
-    Notes
-    -----
-    `centers` come come the `grid.x_rho` and `grid.y_rho` attributes.
-
-        transform = kwargs.pop('transform', None)
-        transpose = kwargs.pop('transpose', None)
-        super(Grid, self).__init__(*args, **kwargs)
-    '''
-
-    def __init__(self, *args, **kwargs):
-        # input props
-        self._transform = kwargs.pop('transform', None)
-        self._transpose = kwargs.pop('transpose', False)
-
-        # grid
-        super(Grid, self).__init__(*args, **kwargs)
-
-        self.merged_grids = []
-
-        # remaining props
-        self._u = None
-        self._v = None
-        self._nodes = None
-        self._centers = None
-        self._psi = None
-
-    @property
-    def transform(self):
-        return self._transform
-    @transform.setter
-    def transform(self, value):
-        self._transform = value
-
-    @property
-    def transpose(self):
-        return self._transpose
-    @transpose.setter
-    def transpose(self, value):
-        self._transpose = value
-
-    @property
-    def u(self):
-        if self._u is None:
-            self._u = _grid_attr_to_df(
-                self.x_u, self.y_u, self.transpose, transform=self.transform
-            )
-        return self._u
-    @u.setter
-    def u(self, value):
-        self._u = value
-
-    @property
-    def v(self):
-        if self._v is None:
-            self._v = _grid_attr_to_df(
-                self.x_v, self.y_v, self.transpose, transform=self.transform
-            )
-        return self._v
-    @v.setter
-    def v(self, value):
-        self._v = value
-
-    @property
-    def nodes(self):
-        if self._nodes is None:
-            self._nodes = _grid_attr_to_df(
-                self.x, self.y, self.transpose, transform=self.transform
-            )
-        return self._nodes
-    @nodes.setter
-    def nodes(self, value):
-        self._nodes = value
-
-    @property
-    def centers(self):
-        if self._centers is None:
-            self._centers = _grid_attr_to_df(
-                self.x_rho, self.y_rho, self.transpose, transform=self.transform
-            )
-        return self._centers
-    @centers.setter
-    def centers(self, value):
-        self._centers = value
-
-    @property
-    def psi(self):
-        if self._psi is None:
-            self._psi = _grid_attr_to_df(
-                self.x_psi, self.y_psi, self.transpose, transform=self.transform
-            )
-        return self._psi
-    @psi.setter
-    def psi(self, value):
-        self._psi = value
-
-    # @property
-    # def elev(self):
-    #     if self._elev is None and self.elev is not None:
-    #         z = self.elev
-    #         if self.transpose:
-    #             z = z.T
-    #         if self.transform is not None:
-    #             z = self.transform(z)
-    #         self._elev = pandas.DataFrame(z)
-
-    #     return self._elev
-    # @elev.setter
-    # def elev(self, value):
-    #     self._elev = value
-    def clear_df_attributes(self):
-        self._u = None
-        self._v = None
-        self._nodes = None
-        self._centers = None
-        self._psi = None
-        #self.elev = None
-
-    # def generate_grid(cleardfs=True):
-    #     super(Grid, self).generate_grid()
-    #     # if cleardfs:
-    #     #     self._clear_df_attributes()
-
-    def _merge_attr(self, attr, otherdf, how='j', where='+', offset=0):
-
-        easting = mergePoints(
-            getattr(self, attr).xs('easting', level=0, axis=1, drop_level=True),
-            getattr(otherdf, attr).xs('easting', level=0, axis=1, drop_level=True),
-            how=how, where=where, offset=offset
+        gefdc = io._write_gefdc_control_file(
+            outfile,
+            title,
+            self.icells + 2,
+            self.jcells + 2,
+            bathyrows
         )
+        return gefdc
 
-        northing = mergePoints(
-            getattr(self, attr).xs('northing', level=0, axis=1, drop_level=True),
-            getattr(otherdf, attr).xs('northing', level=0, axis=1, drop_level=True),
-            how=how, where=where, offset=offset
+    def writeGEFDCCellFile(self, outputdir=None, filename='cell.inp',
+                           usetriangles=False, maxcols=125):
+        outfile = _outputfile(outputdir, filename)
+
+        cells = io._write_cellinp(
+            ~np.isnan(self.x),
+            outfile,
+            triangle_cells=usetriangles,
+            maxcols=maxcols,
+            testing=True
         )
+        return cells
 
-        easting = _add_second_col_level('easting', easting)
-        northing = _add_second_col_level('northing', northing)
-        return easting.join(northing)
+    def writeGEFDCGridFile(self, outputdir=None, filename='grid.out'):
+        outfile = _outputfile(outputdir, filename)
+        df = io._write_gridout_file(self.x, self.y, outfile)
+        return df
 
-    def mergeGrid(self, othergdf, how='j', where='+', offset=0):
-        self.merged_grids.append(othergdf)
-        self.u = self._merge_attr('u', othergdf, how=how,
-                                  where=where, offset=offset)
+    def writeGEFDCGridextFile(self, outputdir, shift=2, filename='gridext.inp'):
+        outfile = _outputfile(outputdir, filename)
+        df = self.as_dataframe.stack(level='i', dropna=True).reset_index()
+        df['i'] += shift
+        df['j'] += shift
+        io._write_gridext_file(df, outfile)
+        return df
 
-        self.v = self._merge_attr('v', othergdf, how=how,
-                                  where=where, offset=offset)
+    def _plot_nodes(self, boundary=None, engine='mpl', ax=None, **kwargs):
+        raise NotImplementedError
+        if engine == 'mpl':
+            return viz._plot_nodes_mpl(self.x, self.y, boundary=boundary,
+                                       ax=ax, **kwargs)
+        elif engine == 'bokeh':
+            return viz._plot_nodes_bokeh(self.x, self.y, boundary=boundary,
+                                         **kwargs)
 
-        self.nodes = self._merge_attr('nodes', othergdf, how=how,
-                                  where=where, offset=offset)
+    def plotCells(self, boundary=None, engine='mpl', ax=None, **kwargs):
+        return viz.plotCells(self.x, self.y, name=name, engine=engine)
 
-        self.centers = self._merge_attr('centers', othergdf, how=how,
-                                  where=where, offset=offset)
-
-        self.psi = self._merge_attr('psi', othergdf, how=how,
-                                  where=where, offset=offset)
-        # if self.elev is not None:
-        #     self.elev = mergePoints(self.elev, othergdf.elev, how=how,
-        #                             where=where, offset=offset)
-
-    def writeGridOut(self, outputfile):
-        nodes = self.nodes.stack(level='i', dropna=False)
-        with open(outputfile, 'w') as out:
-            out.write('## {:d} x {:d}\n'.format(self.nx, self.ny))
-            nodes.to_csv(out, sep=' ', na_rep='NaN', index=False,
-                         header=False, float_format='%.3f')
-
-    def writeToShapefile(self, outfile, geomtype='Point', template=None,
-                              river=None, reach=0):
+    def to_shapefile(self, outputfile, template=None, geom='Point',
+                     mode='w', river=None, reach=0, elev=None):
         if template is None:
-            template = 'gis/template/schema_template.shp'
+            template = self.template
 
-        X = self.nodes['easting'].values
-        Y = self.nodes['northing'].values
-        #elev = self.elev.values
-        if geomtype == 'Point':
-            io.savePointShapefile(X, Y, template, outfile, 'w',
-                                  river=river, reach=reach, elev=None)
-        elif geomtype == 'Polygon':
-            io.saveGridShapefile(X, Y, template, outfile, 'w',
-                                 river=river, reach=reach, elev=None)
+        if geom.lower() == 'point':
+            io.savePointShapefile(self.x, self.y, template, outputfile,
+                                  mode=mode, river=river, reach=reach,
+                                  elev=elev)
+        elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
+            io.saveGridShapefile(self.x, self.y, template, outputfile,
+                                 mode=mode, river=river, reach=reach,
+                                 elev=elev)
         else:
-            raise ValueError('`geomtype {} is not supported'.format(geomtype))
+            raise ValueError("geom must be either 'Point' or 'Polygon'")
 
+    @staticmethod
+    def from_dataframes(df_x, df_y, icol='i'):
+        nodes_x = df_x.unstack(level='i')
+        nodes_y = df_y.unstack(level='i')
+        return ModelGrid(nodes_x, nodes_y)
 
-def mergePoints(ref_df, concat_df, how='j', where='+', offset=0):
+    @staticmethod
+    def from_shapefile(shapefile, icol='ii', jcol='jj'):
+        df = io.readGridShapefile(shapefile, icol=icol, jcol=jcol)
+        return ModelGrid.from_dataframes(df['easting'], df['northing'])
 
-    errormsg_how = "how must be either i or j"
-    errormsg_where = "where must be either + or -"
-    valid_values_how = ['j', 'i']
-    valid_values_where = ['-', '+']
-    if how not in valid_values_how:
-        raise ValueError(errormsg_how)
+    @staticmethod
+    def from_Gridgen(gridgen):
+        return ModelGrid(gridgen.x, gridgen.y)
 
-    if where not in valid_values_where:
-        raise ValueError(errormsg_where)
-
-
-    if how == 'j':
-        offset_df = concat_df.rename(columns=lambda c: c + offset)
-
-        if where == '+':
-            merged = pandas.concat([ref_df, offset_df])
-
-        else:
-            merged = pandas.concat([offset_df, ref_df])
-
-    else:
-        merged = mergePoints(
-            ref_df.T, concat_df.T, how='j', where=where, offset=offset
-        )
-        merged = merged.T
-
-    return merged.reset_index(drop=True).T.reset_index(drop=True).T
 

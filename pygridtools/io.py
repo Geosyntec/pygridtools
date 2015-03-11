@@ -432,9 +432,9 @@ def readPointShapefile(*arg, **kwargs):
     return readGridShapefile(*args, **kwargs)
 
 
-def readGridShapefile(shapefile, icol='ii', jcol='jj', expand=1, othercols=None):
-    if isinstance(expand, int):
-        factor = expand
+def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
+                      expand=1):
+
     data = []
     if othercols is None:
         othercols = []
@@ -459,24 +459,12 @@ def readGridShapefile(shapefile, icol='ii', jcol='jj', expand=1, othercols=None)
             data.append(dfrow)
 
     df = pandas.DataFrame(data).set_index(['j', 'i'])
-    # df = df.reindex(index=pandas.MultiIndex.from_product([
-    #     df.index.get_level_values('j').unique(),
-    #     df.index.get_level_values('i').unique(),
-    # ], names=['j', 'i']))
     df.sort(inplace=True)
     return df
 
 
-def writeGEFDCInputFiles(grid, bathy, outputdir, title):
-
-    bathyfile = os.path.join(outputdir, 'depdat.inp')
-    bathy.to_csv(bathyfile, sep=' ', header=False, index=False,
-                 float_format='%0.1f')
-    _write_gefdc_control_file(outputdir, title, grid.nx+2, grid.ny+2, bathy.shape[0])
-
-
 def _write_cellinp(bool_node_array, outfilename, triangle_cells=False,
-                   maxcols=125, testing=False):
+                  maxcols=125, testing=False):
     '''
     Take an array defining the nodes as wet (1) or dry (0) and writes
     the cell.inp input file.
@@ -548,8 +536,6 @@ def _write_cellinp(bool_node_array, outfilename, triangle_cells=False,
                 for bjj, bii in zip(bj, bi):
                     cells[cj+bjj-1, ci+bii-1] = 9
 
-    cells = np.flipud(cells)
-
     nrows = cells.shape[0]
     ncols = cells.shape[1]
 
@@ -568,6 +554,8 @@ def _write_cellinp(bool_node_array, outfilename, triangle_cells=False,
     else:
         final_cells = cells.copy()
 
+    final_cells = np.flipud(final_cells)
+
     columns = np.arange(1, 126, dtype=int)
     colstr = [list('{:04d}'.format(c)) for c in columns]
     hundreds = ''.join([c[1] for c in colstr])
@@ -582,58 +570,88 @@ def _write_cellinp(bool_node_array, outfilename, triangle_cells=False,
         outfile.write('C    {}\n'.format(tens[:ncols]))
         outfile.write('C    {}\n'.format(ones[:ncols]))
         for n, row in enumerate(final_cells):
-            row_number = nrows * np.ceil(n/nrows) - n + 1
+            row_number = nrows - n
             row_strings = row.astype(str)
             cell_text = ''.join(row_strings.tolist())
-            row_text = '{0: 3d}  {1:s}\n'.format(int(row_number), cell_text)
+            row_text = '{0:3d}  {1:s}\n'.format(int(row_number), cell_text)
 
             outfile.write(row_text)
+
 
     return cells
 
 
-def _write_gefdc_control_file(outputdir, title, max_i, max_j, bathyrows):
-    gefdcfile = os.path.join(outputdir, 'gefdc.inp')
-    gefdc = '''
-C1  TITLE
-C1  (LIMITED TO 80 CHARACTERS)
-    '{0}'
-C2  INTEGER INPUT
-C2  NTYPE   NBPP    IMIN    IMAX    JMIN    JMAX    IC   JC
-    0       0       1       {1}     1       {2}     {1}  {2}
-C3  GRAPHICS GRID INFORMATION
-C3  ISGG    IGM     JGM     DXCG    DYCG    NWTGG
-    0       0       0       0.      0.      1
-C4  CARTESIAN AND GRAPHICS GRID COORDINATE DATA
-C4  CDLON1  CDLON2  CDLON3  CDLAT1  CDLAT2  CDLAT3
-    0.      0.      0.      0.      0.      0.
-C5  INTEGER INPUT
-C5  ITRXM   ITRHM   ITRKM   ITRGM   NDEPSM  NDEPSMF DEPMIN  DDATADJ
-    200     200     200     200     4000    0       0       0
-C6  REAL INPUT
-C6  RPX     RPK     RPH     RSQXM   RSQKM   RSQKIM  RSQHM   RSQHIM  RSQHJM
-    1.8     1.8     1.8     1.E-12  1.E-12  1.E-12  1.E-12  1.E-12  1.E-12
-C7  COORDINATE SHIFT PARAMETERS
-C7  XSHIFT  YSHIFT  HSCALE  RKJDKI  ANGORO
-    0.      0.      1.      1.      5.0
-C8  INTERPOLATION SWITCHES
-C8  ISIRKI  JSIRKI  ISIHIHJ JSIHIHJ
-    1       0       0       0
-C9  NTYPE = 7 SPECIFIED INPUT
-C9  IB      IE      JB      JE      N7RLX   NXYIT   ITN7M   IJSMD   ISMD    JSMD    RP7     SERRMAX
-C10 NTYPE = 7 SPECIFIED INPUT
-C10 X       Y       IN ORDER    (IB,JB) (IE,JB) (IE,JE) (IB,JE)
-C11 DEPTH INTERPOLATION SWITCHES
-C11 ISIDEP  NDEPDAT CDEP    RADM    ISIDPTYP    SURFELEV    ISVEG   NVEGDAT NVEGTYP
-    1       {3:d}     2       0.5     1           0.0         0       0       0
-C12 LAST BOUNDARY POINT INFORMATION
-C12 ILT     JLT     X(ILT,JLT)      Y(ILT,JLT)
-    0       0       0.0             0.0
-C13 I   J       X(I,J)          Y(I,J)
-'''.format(title, max_i, max_j, bathyrows)
+def _write_gefdc_control_file(outfile, title, max_i, max_j, bathyrows):
+    gefdc = (
+    "C1  TITLE\n"
+    "C1  (LIMITED TO 80 CHARACTERS)\n"
+    "    '{0}'\n"
+    "C2  INTEGER INPUT\n"
+    "C2  NTYPE   NBPP    IMIN    IMAX    JMIN    JMAX    IC   JC\n"
+    "    0       0       1       {1}     1       {2}     {1}  {2}\n"
+    "C3  GRAPHICS GRID INFORMATION\n"
+    "C3  ISGG    IGM     JGM     DXCG    DYCG    NWTGG\n"
+    "    0       0       0       0.      0.      1\n"
+    "C4  CARTESIAN AND GRAPHICS GRID COORDINATE DATA\n"
+    "C4  CDLON1  CDLON2  CDLON3  CDLAT1  CDLAT2  CDLAT3\n"
+    "    0.      0.      0.      0.      0.      0.\n"
+    "C5  INTEGER INPUT\n"
+    "C5  ITRXM   ITRHM   ITRKM   ITRGM   NDEPSM  NDEPSMF DEPMIN  DDATADJ\n"
+    "    200     200     200     200     4000    0       0       0\n"
+    "C6  REAL INPUT\n"
+    "C6  RPX     RPK     RPH     RSQXM   RSQKM   RSQKIM  RSQHM   RSQHIM  RSQHJM\n"
+    "    1.8     1.8     1.8     1.E-12  1.E-12  1.E-12  1.E-12  1.E-12  1.E-12\n"
+    "C7  COORDINATE SHIFT PARAMETERS\n"
+    "C7  XSHIFT  YSHIFT  HSCALE  RKJDKI  ANGORO\n"
+    "    0.      0.      1.      1.      5.0\n"
+    "C8  INTERPOLATION SWITCHES\n"
+    "C8  ISIRKI  JSIRKI  ISIHIHJ JSIHIHJ\n"
+    "    1       0       0       0\n"
+    "C9  NTYPE = 7 SPECIFIED INPUT\n"
+    "C9  IB      IE      JB      JE      N7RLX   NXYIT   ITN7M   IJSMD   ISMD    JSMD    RP7     SERRMAX\n"
+    "C10 NTYPE = 7 SPECIFIED INPUT\n"
+    "C10 X       Y       IN ORDER    (IB,JB) (IE,JB) (IE,JE) (IB,JE)\n"
+    "C11 DEPTH INTERPOLATION SWITCHES\n"
+    "C11 ISIDEP  NDEPDAT CDEP    RADM    ISIDPTYP    SURFELEV    ISVEG   NVEGDAT NVEGTYP\n"
+    "    1       {3:d}     2       0.5     1           0.0         0       0       0\n"
+    "C12 LAST BOUNDARY POINT INFORMATION\n"
+    "C12 ILT     JLT     X(ILT,JLT)      Y(ILT,JLT)\n"
+    "    0       0       0.0             0.0\n"
+    "C13 I   J       X(I,J)          Y(I,J)\n"
+    ).format(title, max_i, max_j, bathyrows)
 
-    with open(gefdcfile, 'w') as f:
+    with open(outfile, 'w') as f:
         f.write(gefdc)
+
+    return gefdc
+
+
+def _write_gridout_file(xcoords, ycoords, outfile):
+    if xcoords.shape != ycoords.shape:
+        raise ValueError('input dimensions must be equivalent')
+
+    ny, nx = xcoords.shape
+    df = pandas.DataFrame({
+        'x': xcoords.flatten(),
+        'y': ycoords.flatten()
+    })
+
+    with open(outfile, 'w') as f:
+        f.write('## {:d} x {:d}\n'.format(nx, ny))
+        df.to_csv(f, sep=' ', na_rep='NaN', index=False,
+                  header=False, float_format='%.3f')
+
+    return df
+
+
+def _write_gridext_file(tidydf, outfile, icol='i', jcol='j',
+                        xcol='easting', ycol='northing'):
+    # make sure cols are in the right order
+    df = tidydf[[icol, jcol, xcol, ycol]]
+
+    with open(outfile, 'w') as f:
+        df.to_csv(f, sep = ' ', index=False, header=False,
+           float_format=None)
 
 
 def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):

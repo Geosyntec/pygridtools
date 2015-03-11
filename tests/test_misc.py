@@ -96,7 +96,7 @@ class test_makeGrid(object):
             **self.gridparams
         )
         nt.assert_true(isinstance(fig, plt.Figure))
-        fig.savefig('pygridtools/tests/result_images/grid_basic.png', dpi=150)
+        fig.savefig('tests/result_images/grid_basic.png', dpi=150)
 
     def test_with_plot_with_xlimits_autosaved(self):
         grid, fig = misc.makeGrid(
@@ -105,7 +105,7 @@ class test_makeGrid(object):
             plot=True,
             makegrid=True,
             xlimits=[0, 20],
-            figpath='pygridtools/tests/result_images/grid_autosaved_xlims.png',
+            figpath='tests/result_images/grid_autosaved_xlims.png',
             **self.gridparams
         )
         nt.assert_true(isinstance(fig, plt.Figure))
@@ -187,7 +187,7 @@ class test_makeGrid(object):
             bathydata=self.bathy,
             plot=False,
             makegrid=True,
-            outdir='pygridtools/tests/result_files/extra',
+            outdir='tests/result_files/extra',
             title='Extra Test Title',
             **self.gridparams
         )
@@ -195,8 +195,8 @@ class test_makeGrid(object):
         bathyfile = 'depdat.inp'
         gefdcfile = 'gefdc.inp'
 
-        outputdir = 'pygridtools/tests/result_files/extra'
-        baselinedir = 'pygridtools/tests/baseline_files/extra'
+        outputdir = 'tests/result_files/extra'
+        baselinedir = 'tests/baseline_files/extra'
 
         testing.compareTextFiles(
             os.path.join(outputdir, bathyfile),
@@ -209,7 +209,7 @@ class test_makeGrid(object):
             bathydata=self.bathy,
             plot=False,
             makegrid=True,
-            outdir='pygridtools/tests/result_files/extra',
+            outdir='tests/result_files/extra',
             title='Extra Test Title',
             **self.gridparams
         )
@@ -217,8 +217,8 @@ class test_makeGrid(object):
         bathyfile = 'depdat.inp'
         gefdcfile = 'gefdc.inp'
 
-        outputdir = 'pygridtools/tests/result_files/extra'
-        baselinedir = 'pygridtools/tests/baseline_files/extra'
+        outputdir = 'tests/result_files/extra'
+        baselinedir = 'tests/baseline_files/extra'
         testing.compareTextFiles(
             os.path.join(outputdir, gefdcfile),
             os.path.join(baselinedir, gefdcfile)

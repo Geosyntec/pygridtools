@@ -13,7 +13,7 @@ import testing
 
 class test_loadBoundaryFromShapefile(object):
     def setup(self):
-        self.shapefile = 'pygridtools/tests/test_data/simple_boundary.shp'
+        self.shapefile = 'tests/test_data/simple_boundary.shp'
         self.known_df_columns = ['x', 'y', 'beta', 'upperleft',
         					     'reach', 'order']
         self.known_points_in_boundary = 19
@@ -36,9 +36,9 @@ class test_loadBoundaryFromShapefile(object):
 
 def test_dumpGridFile():
     grid = testing.makeSimpleGrid()
-    outputfile = 'pygridtools/tests/result_files/grid.out'
-    baselinefile = 'pygridtools/tests/baseline_files/grid.out'
-    io.dumpGridFiles(grid, 'pygridtools/tests/result_files/grid.out')
+    outputfile = 'tests/result_files/grid.out'
+    baselinefile = 'tests/baseline_files/grid.out'
+    io.dumpGridFiles(grid, 'tests/result_files/grid.out')
 
     testing.compareTextFiles(outputfile, baselinefile)
 
@@ -157,9 +157,9 @@ class test_savePointShapefile(object):
         self.x = np.array([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
         self.y = np.array([[4, 4, 4], [5, 5, 5], [6, 6, 6], [7, 7, 7]])
         self.mask = np.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]])
-        self.template = 'pygridtools/tests/test_data/schema_template.shp'
-        self.outputdir = 'pygridtools/tests/result_files'
-        self.baselinedir = 'pygridtools/tests/baseline_files'
+        self.template = 'tests/test_data/schema_template.shp'
+        self.outputdir = 'tests/result_files'
+        self.baselinedir = 'tests/baseline_files'
         self.river = 'test'
 
     @nt.raises(ValueError)
@@ -194,9 +194,9 @@ class test_saveGridShapefile(object):
     def setup(self):
         self.grid = testing.makeSimpleGrid()
         self.mask = np.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]])
-        self.template = 'pygridtools/tests/test_data/schema_template.shp'
-        self.outputdir = 'pygridtools/tests/result_files'
-        self.baselinedir = 'pygridtools/tests/baseline_files'
+        self.template = 'tests/test_data/schema_template.shp'
+        self.outputdir = 'tests/result_files'
+        self.baselinedir = 'tests/baseline_files'
         self.river = 'test'
         self.maxDiff=None
 
@@ -249,12 +249,12 @@ class test__write_cellinp(object):
             [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
         ])
-        self.basic_output = 'pygridtools/tests/result_files/cell_basic.inp'
-        self.known_basic_output = 'pygridtools/tests/baseline_files/cell_basic.inp'
-        self.chunked_output = 'pygridtools/tests/result_files/cell_chunked.inp'
-        self.known_chunked_output = 'pygridtools/tests/baseline_files/cell_chunked.inp'
-        self.triangle_output = 'pygridtools/tests/result_files/cell_triangle.inp'
-        self.known_triangle_output = 'pygridtools/tests/baseline_files/cell_triangle.inp'
+        self.basic_output = 'tests/result_files/cell_basic.inp'
+        self.known_basic_output = 'tests/baseline_files/cell_basic.inp'
+        self.chunked_output = 'tests/result_files/cell_chunked.inp'
+        self.known_chunked_output = 'tests/baseline_files/cell_chunked.inp'
+        self.triangle_output = 'tests/result_files/cell_triangle.inp'
+        self.known_triangle_output = 'tests/baseline_files/cell_triangle.inp'
 
     @nt.raises(NotImplementedError)
     def test_basic(self):
@@ -289,10 +289,10 @@ class test__write_gefdc_control_file(object):
 
 class test_gridextToShapefile(object):
     def setup(self):
-        self.gridextfile = 'pygridtools/tests/test_data/gridext.inp'
-        self.template = 'pygridtools/tests/test_data/schema_template.shp'
-        self.outputfile = 'pygridtools/tests/result_files/gridext.shp'
-        self.baselinefile = 'pygridtools/tests/baseline_files/gridext.shp'
+        self.gridextfile = 'tests/test_data/gridext.inp'
+        self.template = 'tests/test_data/schema_template.shp'
+        self.outputfile = 'tests/result_files/gridext.shp'
+        self.baselinefile = 'tests/baseline_files/gridext.shp'
         self.river = 'test'
         self.reach = 1
 

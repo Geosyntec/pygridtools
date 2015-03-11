@@ -75,7 +75,7 @@ def compareShapefiles(baselinefile, outputfile, atol=0.001):
         nt.assert_dict_equal(rr['properties'], br['properties'])
         nt.assert_equal(rr['geometry']['type'], br['geometry']['type'])
         nptest.assert_allclose(
-            rr['geometry']['coordinates'], 
+            rr['geometry']['coordinates'],
             br['geometry']['coordinates'],
             atol=atol
         )

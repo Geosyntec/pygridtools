@@ -4,7 +4,7 @@ import pandas
 import fiona
 import pygridgen
 
-from pygridtools.misc import Grid
+#from pygridtools.misc import Grid
 
 import nose.tools as nt
 import numpy.testing as nptest
@@ -17,7 +17,7 @@ def makeSimpleBoundary():
     return pandas.DataFrame({'x': xbry, 'y': ybry, 'beta': beta, 'reach': 'reach'})
 
 
-def makeSimpleGrid(as_gridgen=True):
+def makeSimpleGrid():
     '''
     Makes a basic grid for testing purposes
     '''
@@ -26,12 +26,8 @@ def makeSimpleGrid(as_gridgen=True):
     ny = 9
     nx = 7
     ul_idx = 0
-    if as_gridgen:
-        grid = pygridgen.Gridgen(boundary.x, boundary.y, boundary.beta,
-                                (ny, nx), ul_idx=ul_idx)
-    else:
-        grid = Grid(boundary.x, boundary.y, boundary.beta, (ny, nx),
-                    ul_idx=ul_idx)
+    grid = pygridgen.Gridgen(boundary.x, boundary.y, boundary.beta,
+                            (ny, nx), ul_idx=ul_idx)
 
     return grid
 

@@ -3,7 +3,6 @@ import os
 import nose.tools as nt
 import numpy as np
 import numpy.testing as nptest
-import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas
 import fiona

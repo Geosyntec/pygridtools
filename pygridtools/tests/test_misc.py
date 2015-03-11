@@ -420,6 +420,20 @@ class test_padded_stack(object):
         nptest.assert_array_equal(step5, self.expected_all_gs)
 
 
+class test__outputfile(object):
+    def test_basic(self):
+        nt.assert_equal(
+            misc._outputfile('this', 'that.txt'),
+            os.path.join('this', 'that.txt')
+        )
+
+    def test_withNone(self):
+        nt.assert_equal(
+            misc._outputfile(None, 'that.txt'),
+            os.path.join('.', 'that.txt')
+        )
+
+
 class test__NodeSet(object):
     def setup(self):
         from numpy import nan
@@ -641,6 +655,110 @@ class test__NodeSet(object):
             self.A.merge(self.B, how='h', where='-', shift=-1).nodes,
         )
 
+
+class test_ModelGrid(object):
+    def setup(self):
+        self.x, self.y = testing.make_nodes()
+        self.g1 = misc.ModelGrid(self.x[:, :3], self.y[:, :3])
+        self.g2 = misc.ModelGrid(self.x[2:5, 3:], self.y[2:5, 3:])
+
+        self.known_rows = 9
+        self.known_cols = 3
+        self.known_df = pandas.DataFrame({
+            ('easting', 0): {
+                0: 1.0, 1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0,
+                5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0
+            }, ('easting', 1): {
+                0: 1.5, 1: 1.5, 2: 1.5, 3: 1.5, 4: 1.5,
+                5: 1.5, 6: 1.5, 7: 1.5, 8: 1.5
+            }, ('easting', 2): {
+                0: 2.0, 1: 2.0, 2: 2.0, 3: 2.0, 4: 2.0,
+                5: 2.0, 6: 2.0, 7: 2.0, 8: 2.0
+            }, ('northing', 0): {
+                0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
+                5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0
+            }, ('northing', 1): {
+                0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
+                5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0
+            }, ('northing', 2): {
+                0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
+                5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0}
+            })
+        self.known_coord_pairs = np.array([
+            [ 1. ,  0. ], [ 1.5,  0. ], [ 2. ,  0. ], [ 1. ,  0.5],
+            [ 1.5,  0.5], [ 2. ,  0.5], [ 1. ,  1. ], [ 1.5,  1. ],
+            [ 2. ,  1. ], [ 1. ,  1.5], [ 1.5,  1.5], [ 2. ,  1.5],
+            [ 1. ,  2. ], [ 1.5,  2. ], [ 2. ,  2. ], [ 1. ,  2.5],
+            [ 1.5,  2.5], [ 2. ,  2.5], [ 1. ,  3. ], [ 1.5,  3. ],
+            [ 2. ,  3. ], [ 1. ,  3.5], [ 1.5,  3.5], [ 2. ,  3.5],
+            [ 1. ,  4. ], [ 1.5,  4. ], [ 2. ,  4. ]
+        ])
+
+    def test_nodes_x(self):
+        nt.assert_true(hasattr(self.g1, 'nodes_x'))
+        nt.assert_true(isinstance(self.g1.nodes_x, misc._NodeSet))
+
+    def test_nodes_y(self):
+        nt.assert_true(hasattr(self.g1, 'nodes_y'))
+        nt.assert_true(isinstance(self.g1.nodes_y, misc._NodeSet))
+
+    def test_icells(self):
+        nt.assert_equal(
+            self.g1.icells,
+            self.known_cols
+        )
+
+    def test_jcells(self):
+        nt.assert_equal(
+            self.g1.jcells,
+            self.known_rows
+        )
+
+    def test_template(self):
+        nt.assert_equal(self.g1.template, None)
+
+        template_value = 'junk'
+        self.g1.template = template_value
+        nt.assert_equal(self.g1.template, template_value)
+
+    def test_as_dataframe(self):
+        pdtest.assert_frame_equal(
+            self.g1.as_dataframe(),
+            self.known_df,
+            check_names=False
+        )
+
+        pdtest.assert_index_equal(
+            self.g1.as_dataframe().columns,
+            self.known_df.columns,
+        )
+
+    def test_as_coord_pairs(self):
+        nptest.assert_array_equal(
+            self.g1.as_coord_pairs(),
+            self.known_coord_pairs
+        )
+
+    def test_transform(self):
+        gx = self.g1.x.copy() * 10
+        g = self.g1.transform(lambda x: x * 10)
+        nptest.assert_array_equal(g.x, gx)
+
+    def test_fliplr(self):
+        gx = np.fliplr(self.g1.x.copy())
+        g = self.g1.fliplr()
+        nptest.assert_array_equal(g.x, gx)
+
+    def test_flipud(self):
+        gx = np.flipud(self.g1.x.copy())
+        g = self.g1.flipud()
+        nptest.assert_array_equal(g.x, gx)
+
+    def test_merge(self):
+        g3 = self.g1.merge(self.g2, how='horiz', where='+', shift=2)
+        g4 = misc.ModelGrid(self.x, self.y)
+
+        nptest.assert_array_equal(g3.x, g4.x)
 
 class test__proccess_array(object):
     def setup(self):

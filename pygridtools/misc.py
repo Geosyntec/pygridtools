@@ -146,7 +146,8 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
                                  '`makegrid` = True')
             if verbose:
                 print('generating grid')
-            grid = Grid(coords.x, coords.y, coords.beta, (ny, nx), **gparams)
+            grid = pygridgen.Gridgen(coords.x, coords.y, coords.beta,
+                                     (ny, nx), **gparams)
         else:
             raise ValueError("must provide `grid` if `makegrid` = False")
     if verbose:
@@ -312,6 +313,7 @@ class ModelGrid(object):
     def __init__(self, nodes_x, nodes_y):
         if not np.all(nodes_x.shape == nodes_y.shape):
             raise ValueError('input arrays must have the same shape')
+
         self._nodes_x = _NodeSet(nodes_x)
         self._nodes_y = _NodeSet(nodes_y)
         self._template = None
@@ -360,7 +362,6 @@ class ModelGrid(object):
     def template(self, value):
         self._template = value
 
-    @property
     def as_dataframe(self):
         def make_cols(top_level):
             columns = pandas.MultiIndex.from_product(
@@ -392,11 +393,11 @@ class ModelGrid(object):
         return self.transform(np.transpose)
 
     def fliplr(self):
-        '''flips the columns'''
+        '''reverses the columns'''
         return self.transform(np.fliplr)
 
     def flipud(self):
-        '''flips the rows'''
+        '''reverses the rows'''
         return self.transform(np.flipud)
 
     def merge(self, other, how='vert', where='+', shift=0):
@@ -453,6 +454,7 @@ class ModelGrid(object):
         return df
 
     def _plot_nodes(self, boundary=None, engine='mpl', ax=None, **kwargs):
+        raise NotImplementedError
         if engine == 'mpl':
             return viz._plot_nodes_mpl(self.x, self.y, boundary=boundary,
                                        ax=ax, **kwargs)
@@ -460,13 +462,8 @@ class ModelGrid(object):
             return viz._plot_nodes_bokeh(self.x, self.y, boundary=boundary,
                                          **kwargs)
 
-    def _plot_cells(self, boundary=None, engine='mpl', ax=None, **kwargs):
-        if engine == 'mpl':
-            return viz._plot_cells_mpl(self.x, self.y, boundary=boundary,
-                                       ax=ax, **kwargs)
-        elif engine == 'bokeh':
-            return viz._plot_cells_bokeh(self.x, self.y, boundary=boundary,
-                                         **kwargs)
+    def plotCells(self, boundary=None, engine='mpl', ax=None, **kwargs):
+        return viz.plotCells(self.x, self.y, name=name, engine=engine)
 
     def to_shapefile(self, outputfile, template=None, geom='Point',
                      mode='w', river=None, reach=0, elev=None):

@@ -79,3 +79,32 @@ def compareShapefiles(baselinefile, outputfile, atol=0.001):
             br['geometry']['coordinates'],
             atol=atol
         )
+
+
+def make_nodes():
+    from numpy import nan
+    x = np.array([
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+    ])
+
+    y = np.array([
+        [0.0, 0.0, 0.0, nan, nan, nan, nan],
+        [0.5, 0.5, 0.5, nan, nan, nan, nan],
+        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+        [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
+        [2.5, 2.5, 2.5, nan, nan, nan, nan],
+        [3.0, 3.0, 3.0, nan, nan, nan, nan],
+        [3.5, 3.5, 3.5, nan, nan, nan, nan],
+        [4.0, 4.0, 4.0, nan, nan, nan, nan],
+    ])
+
+    return np.ma.masked_invalid(x, 0), np.ma.masked_invalid(y, 0)

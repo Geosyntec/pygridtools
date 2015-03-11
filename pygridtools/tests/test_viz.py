@@ -75,52 +75,24 @@ class test_plotPygridgen(object):
         fig, ax = viz.plotPygridgen(self.grid)
         fig.savefig("pygridtools/tests/result_images/gridsmoke.png", dpi=150)
 
-@nt.nottest
-def make_nodes():
-    x = np.array([
-        [1.0, 1.5, 2.0, -10, -10, -10, -10],
-        [1.0, 1.5, 2.0, -10, -10, -10, -10],
-        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
-        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
-        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
-        [1.0, 1.5, 2.0, -10, -10, -10, -10],
-        [1.0, 1.5, 2.0, -10, -10, -10, -10],
-        [1.0, 1.5, 2.0, -10, -10, -10, -10],
-        [1.0, 1.5, 2.0, -10, -10, -10, -10],
-    ])
-
-    y = np.array([
-        [0.0, 0.0, 0.0, -10, -10, -10, -10],
-        [0.5, 0.5, 0.5, -10, -10, -10, -10],
-        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-        [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
-        [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
-        [2.5, 2.5, 2.5, -10, -10, -10, -10],
-        [3.0, 3.0, 3.0, -10, -10, -10, -10],
-        [3.5, 3.5, 3.5, -10, -10, -10, -10],
-        [4.0, 4.0, 4.0, -10, -10, -10, -10],
-    ])
-
-    return np.ma.masked_less(x, 0), np.ma.masked_less(y, 0)
-
 
 def test__plot_cells_bokeh():
-    x, y = make_nodes()
+    x, y = testing.make_nodes()
     p = viz._plot_cells_bokeh(x, y)
 
 
 def test__plot_cell_mpl():
-    x, y = make_nodes()
+    x, y = testing.make_nodes()
     fig = viz._plot_cells_mpl(x, y)
     nt.assert_true(isinstance(fig, plt.Figure))
 
 
 def test_plotCells_bokeh():
-    x, y = make_nodes()
+    x, y = testing.make_nodes()
     p = viz.plotCells(x, y, engine='bokeh')
 
 
 def test_plotCells_mpl():
-    x, y = make_nodes()
+    x, y = testing.make_nodes()
     p = viz.plotCells(x, y, engine='mpl')
 

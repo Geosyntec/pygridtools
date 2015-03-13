@@ -51,17 +51,16 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
           - beta (turning parameter)
           - order (for sorting)
           - reach
-          -upperleft
+          - upperleft
 
     '''
 
     # load and filter the data
-    shp = fiona.open(shapefile, 'r')
-    if filterfxn is None:
-        reach_bry = filter(lambda x: True, shp)
-    else:
-        reach_bry = filter(filterfxn, shp)
-    shp.close()
+    with fiona.open(shapefile, 'r') as shp:
+        if filterfxn is None:
+            reach_bry = filter(lambda x: True, shp)
+        else:
+            reach_bry = filter(filterfxn, shp)
 
     def _get_col_val(rec, col, default=None):
         if col is not None:
@@ -70,7 +69,6 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
             val = default
 
         return val
-
 
     # stuff the data into a dataframe
     data = []
@@ -88,6 +86,54 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
     # return just the right columns and sort the data
     cols = ['x', 'y', 'beta', 'upperleft', 'reach', 'order']
     return df[cols].sort(columns='order')
+
+
+def loadPolygonFromShapefile(shapefile, filterfxn=None, squeeze=True):
+    '''
+    Load polygons (e.g., water bodies, islands) from a shapefile
+
+    Parameters
+    ----------
+    shapefile : string
+        Path to the shapefile containaing boundary points.
+    filterfxn : function or lambda expression or None (default)
+        Pulls out relevant points from the boundary shapefile. Defaults
+        to `True` to consider everything.
+    squeeze : optional bool (default = True)
+        Set to True to return an array if only 1 record is present.
+        Otherwise, a list of arrays will be returned.
+
+    Returns
+    -------
+    boundary : array or list of arrays
+        N x 2 array of the coordinates of the boundary.
+
+    Notes
+    -----
+    Multipart geometries are not supported. If a multipart geometry is
+    present in a record, only the first part will be loaded.
+
+    Z-coordinates are also not supported. Only x-y coordinates will be
+    loaded.
+
+    '''
+
+    # load and filter the data
+    with fiona.open(shapefile, 'r') as shp:
+        if filterfxn is None:
+            polygons = filter(lambda x: True, shp)
+        else:
+            polygons = filter(filterfxn, shp)
+
+    data = []
+    for record in polygons:
+        data.append(np.array(record['geometry']['coordinates'])[0, :, :2])
+
+    if len(data) == 1 and squeeze:
+        data = data[0]
+
+    return data
+
 
 
 def dumpGridFiles(grid, filename):

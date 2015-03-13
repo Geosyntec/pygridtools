@@ -287,8 +287,8 @@ def _outputfile(outputdir, filename):
 
 
 class _NodeSet(object):
-    def __init__(self, nodes):
-        self._nodes = np.asarray(nodes)
+    def __init__(self, array):
+        self._nodes = np.asarray(array)
 
     @property
     def nodes(self):
@@ -296,6 +296,10 @@ class _NodeSet(object):
     @nodes.setter
     def nodes(self, value):
         self._nodes = np.asarray(value)
+
+    @property
+    def shape(self):
+        return self.nodes.shape
 
     def transform(self, fxn, *args, **kwargs):
         self.nodes = fxn(self.nodes, *args, **kwargs)
@@ -310,12 +314,12 @@ class _NodeSet(object):
 
 
 class ModelGrid(object):
-    def __init__(self, nodes_x, nodes_y):
-        if not np.all(nodes_x.shape == nodes_y.shape):
+    def __init__(self, array_x, array_y):
+        if not np.all(array_x.shape == array_y.shape):
             raise ValueError('input arrays must have the same shape')
 
-        self._nodes_x = _NodeSet(nodes_x)
-        self._nodes_y = _NodeSet(nodes_y)
+        self._nodes_x = _NodeSet(array_x)
+        self._nodes_y = _NodeSet(array_y)
         self._template = None
 
     @property
@@ -333,6 +337,10 @@ class ModelGrid(object):
     def nodes_y(self, value):
         '''_NodeSet object of y-coords'''
         self._nodes_y = value
+
+    @property
+    def shape(self):
+        return self.nodes_x.shape
 
     @property
     def x(self):
@@ -447,7 +455,7 @@ class ModelGrid(object):
 
     def writeGEFDCGridextFile(self, outputdir, shift=2, filename='gridext.inp'):
         outfile = _outputfile(outputdir, filename)
-        df = self.as_dataframe.stack(level='i', dropna=True).reset_index()
+        df = self.as_dataframe().stack(level='i', dropna=True).reset_index()
         df['i'] += shift
         df['j'] += shift
         io._write_gridext_file(df, outfile)
@@ -463,7 +471,7 @@ class ModelGrid(object):
                                          **kwargs)
 
     def plotCells(self, boundary=None, engine='mpl', ax=None, **kwargs):
-        return viz.plotCells(self.x, self.y, name=name, engine=engine)
+        return viz.plotCells(self.x, self.y, engine=engine, **kwargs)
 
     def to_shapefile(self, outputfile, template=None, geom='Point',
                      mode='w', river=None, reach=0, elev=None):

@@ -49,12 +49,15 @@ def plotPygridgen(grid, ax=None):
     cm = plt.cm.coolwarm
     cm.set_bad('k')
 
+    xx = np.ma.masked_invalid(grid.x_vert)
+    yy = np.ma.masked_invalid(grid.y_vert)
+    mask = grid.mask
     for ii in range(grid.nx-1):
         for jj in range(grid.ny-1):
-            if isinstance(grid.x_vert, np.ndarray) or not np.any(grid.x_vert.mask[jj:jj+2, ii:ii+2]):
+            if not (np.any(xx.mask[jj:jj+2, ii:ii+2]) or mask[jj, ii]):
                 coords = io.makeQuadCoords(
-                    xarr=grid.x_vert[jj:jj+2, ii:ii+2],
-                    yarr=grid.y_vert[jj:jj+2, ii:ii+2],
+                    xarr=xx[jj:jj+2, ii:ii+2],
+                    yarr=yy[jj:jj+2, ii:ii+2],
                 )
                 if hasattr(grid, 'elev'):
                     N = plt.Normalize(vmin=grid.elev.min(), vmax=grid.elev.max())

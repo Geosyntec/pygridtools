@@ -38,6 +38,19 @@ def _check_elev_or_mask(X, other, array_name=None, offset=1, failNone=False):
             return other
 
 
+def _check_for_same_masks(X, Y):
+    X = np.ma.masked_invalid(X)
+    Y = np.ma.masked_invalid(Y)
+
+    if X.shape != Y.shape:
+        raise ValueError('X, Y are not the same shape')
+
+    if not np.all(X.mask == Y.mask):
+        raise ValueError('X, Y masks are not the same')
+    else:
+        return X, Y
+
+
 def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
                               sortcol=None, upperleftcol=None,
                               filterfxn=None):
@@ -304,14 +317,11 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
 
     '''
 
-    X = np.ma.masked_invalid(X)
-    Y = np.ma.masked_invalid(Y)
-
     # check that the `mode` is a valid value
     mode = _check_mode(mode)
 
-    # check X, Y shapes
-    Y = _check_elev_or_mask(X, Y, 'Y', offset=0)
+    # check that X and Y are have the same shape, NaN cells
+    X, Y = _check_for_same_masks(X, Y)
 
     # check elev shape
     elev = _check_elev_or_mask(X, elev, 'elev', offset=0)
@@ -335,7 +345,7 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
         for ii in range(X.shape[1]):
             for jj in range(X.shape[0]):
                 # check that nothing is masked (outside of the river)
-                if not np.isnan(X[jj, ii]) and not np.isnan(Y[jj, ii]):
+                if not (X.mask[jj, ii]):
                     row += 1
 
                     # build the coords
@@ -388,6 +398,10 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
     None
 
     '''
+
+    # check that `mode` is valid
+    mode = _check_mode(mode)
+
     # check X, Y shapes
     Y = _check_elev_or_mask(X, Y, 'Y', offset=0)
 
@@ -401,8 +415,6 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
     Y = np.ma.masked_invalid(Y)
     ny, nx = X.shape
 
-    # check that `mode` is valid
-    mode = _check_mode(mode)
 
     # load the template
     with fiona.open(template, 'r') as src:

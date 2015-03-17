@@ -22,6 +22,7 @@ class test__check_mode(object):
     def test_lower(self):
         nt.assert_equal(io._check_mode('w'), 'w')
 
+
 class test__check_elev_or_mask(object):
     def setup(self):
         self.mainshape = (8, 7)
@@ -47,6 +48,45 @@ class test__check_elev_or_mask(object):
     def test_nooffset(self):
         other = io._check_elev_or_mask(self.X, self.Y, offset=0)
         nptest.assert_array_equal(other, self.Y)
+
+
+class test__check_for_same_masks(object):
+    def setup(self):
+        from numpy import nan
+        self.X = np.array([
+            1, 2, 3, nan, nan,   7,
+            1, 2, 3, nan, nan,   7,
+            1, 2, 3, nan, nan, nan,
+            1, 2, 3, nan, nan, nan,
+            1, 2, 3, nan, nan,   7,
+        ])
+
+        self.Y1 = np.array([
+            1, 2, 3, nan, nan,   7,
+            1, 2, 3, nan, nan,   7,
+            1, 2, 3, nan, nan, nan,
+            1, 2, 3, nan, nan, nan,
+            1, 2, 3, nan, nan,   7,
+        ])
+
+        self.Y2 = np.array([
+            1, 2, 3, nan, nan,   7,
+            1, 2, 3, nan, nan, nan,
+            1, 2, 3, nan, nan, nan,
+            1, 2, 3, nan, nan, nan,
+            1, 2, 3, nan, nan,   7,
+        ])
+
+    @nt.raises(ValueError)
+    def test_error(self):
+        io._check_for_same_masks(self.X, self.Y2)
+
+    def test_baseline(self):
+        x, y = io._check_for_same_masks(self.X, self.Y1)
+        nptest.assert_array_equal(self.X, x.data)
+        nptest.assert_array_equal(self.Y1, y.data)
+
+
 
 class test_loadBoundaryFromShapefile(object):
     def setup(self):
@@ -191,9 +231,24 @@ class test_makeRecord(object):
 
 class test_savePointShapefile(object):
     def setup(self):
-        self.x = np.array([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
-        self.y = np.array([[4, 4, 4], [5, 5, 5], [6, 6, 6], [7, 7, 7]])
-        self.mask = np.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]])
+        self.x = np.array([
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3]
+        ])
+        self.y = np.array([
+            [4, 4, 4],
+            [5, 5, 5],
+            [6, 6, 6],
+            [7, 7, 7]
+        ])
+        self.mask = np.array([
+            [1, 0, 0],
+            [1, 0, 0],
+            [1, 0, 0],
+            [1, 0, 0]
+        ])
         self.template = 'tests/test_data/schema_template.shp'
         self.outputdir = 'tests/result_files'
         self.baselinedir = 'tests/baseline_files'
@@ -212,7 +267,7 @@ class test_savePointShapefile(object):
         outfile = os.path.join(self.outputdir, fname)
         basefile = os.path.join(self.baselinedir, fname)
         io.savePointShapefile(self.x, self.y, self.template, outfile,
-                                   'w', river=self.river)
+                              'w', river=self.river)
 
         testing.compareShapefiles(outfile, basefile)
 
@@ -221,8 +276,8 @@ class test_savePointShapefile(object):
         outfile = os.path.join(self.outputdir, fname)
         basefile = os.path.join(self.baselinedir, fname)
         io.savePointShapefile(np.ma.MaskedArray(self.x, self.mask),
-                                   np.ma.MaskedArray(self.y, self.mask),
-                                   self.template, outfile, 'w', river=self.river)
+                              np.ma.MaskedArray(self.y, self.mask),
+                              self.template, outfile, 'w', river=self.river)
 
         testing.compareShapefiles(outfile, basefile)
 
@@ -230,7 +285,16 @@ class test_savePointShapefile(object):
 class test_saveGridShapefile(object):
     def setup(self):
         self.grid = testing.makeSimpleGrid()
-        self.mask = np.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]])
+        self.mask = np.array([
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+        ])
         self.template = 'tests/test_data/schema_template.shp'
         self.outputdir = 'tests/result_files'
         self.baselinedir = 'tests/baseline_files'
@@ -239,17 +303,17 @@ class test_saveGridShapefile(object):
 
     @nt.raises(ValueError)
     def test_bad_mode(self):
-        io.saveGridShapefile(self.grid.x, self.grid.y,
-                                  self.template, 'junk', 'r',
-                                  elev=None)
+        outfile = os.path.join(self.outputdir, 'junk.shp')
+        io.saveGridShapefile(self.grid.x, self.grid.y, self.mask,
+                             self.template, outfile, mode='junk')
 
     def test_with_arrays(self):
         fname = 'array_grid.shp'
         outfile = os.path.join(self.outputdir, fname)
         basefile = os.path.join(self.baselinedir, fname)
-        io.saveGridShapefile(self.grid.x, self.grid.y, self.template,
-                                  outfile, 'w', river=self.river,
-                                  elev=None)
+        io.saveGridShapefile(self.grid.x, self.grid.y, self.mask,
+                             self.template, outfile, 'w', river=self.river,
+                             elev=None)
 
         testing.compareShapefiles(basefile, outfile, atol=0.001)
 
@@ -335,7 +399,7 @@ class test_gridextToShapefile(object):
 
     def test_basic(self):
         io.gridextToShapefile(self.gridextfile, self.outputfile,
-                                   self.template, river=self.river)
+                              self.template, river=self.river)
 
         testing.compareShapefiles(self.outputfile, self.baselinefile)
 
@@ -343,9 +407,9 @@ class test_gridextToShapefile(object):
     @nt.raises(ValueError)
     def test_bad_input_file(self):
         io.gridextToShapefile('junk', self.outputfile,
-                                   self.template, river=self.river)
+                              self.template, river=self.river)
 
     @nt.raises(ValueError)
     def test_bad_template_file(self):
         io.gridextToShapefile(self.gridextfile, self.outputfile,
-                                   'junk', river=self.river)
+                              '/junkie/mcjunk.shp', river=self.river)

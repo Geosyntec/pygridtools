@@ -138,7 +138,7 @@ def _plot_cells_bokeh(nodes_x, nodes_y, name='test'):
     return p
 
 
-def _plot_cells_mpl(nodes_x, nodes_y, name='test', ax=None):
+def _plot_cells_mpl(nodes_x, nodes_y, mask=None, name='test', ax=None):
     fig, ax = checkAx(ax)
 
     if not nodes_x.shape == nodes_y.shape:
@@ -153,12 +153,17 @@ def _plot_cells_mpl(nodes_x, nodes_y, name='test', ax=None):
     if ax.is_last_row():
         ax.set_xlabel('$nx = {}$'.format(nx), size=14)
 
+    xx = np.ma.masked_invalid(nodes_x)
+    yy = np.ma.masked_invalid(nodes_y)
+    if mask is None:
+        mask = np.zeros(nodes_x.shape)
+
     for ii in range(nx - 1):
         for jj in range(ny - 1):
-            if not np.any(nodes_x.mask[jj:jj+2, ii:ii+2]):
+            if not np.any(xx.mask[jj:jj+2, ii:ii+2]) or mask[jj, ii]:
                 coords = io.makeQuadCoords(
-                    xarr=nodes_x[jj:jj+2, ii:ii+2],
-                    yarr=nodes_y[jj:jj+2, ii:ii+2],
+                    xarr=xx[jj:jj+2, ii:ii+2],
+                    yarr=yy[jj:jj+2, ii:ii+2],
                 )
 
                 if coords is not None:

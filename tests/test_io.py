@@ -11,6 +11,43 @@ from pygridtools import io
 import testing
 
 
+class test__check_mode(object):
+    @nt.raises(ValueError)
+    def test_errors(self):
+        io._check_mode('z')
+
+    def test_upper(self):
+        nt.assert_equal(io._check_mode('A'), 'a')
+
+    def test_lower(self):
+        nt.assert_equal(io._check_mode('w'), 'w')
+
+class test__check_elev_or_mask(object):
+    def setup(self):
+        self.mainshape = (8, 7)
+        self.offset = 2
+        self.offsetshape = tuple([s - self.offset for s in self.mainshape])
+        self.X = np.zeros(self.mainshape)
+        self.Y = np.zeros(self.mainshape)
+        self.Yoffset = np.zeros(self.offsetshape)
+
+    @nt.raises(ValueError)
+    def test_failNone(self):
+        io._check_elev_or_mask(self.X, None, failNone=True)
+
+    @nt.raises(ValueError)
+    def test_bad_shape(self):
+        io._check_elev_or_mask(self.X, self.Yoffset)
+
+    def test_offset(self):
+        other = io._check_elev_or_mask(self.X, self.Yoffset,
+                                       offset=self.offset)
+        nptest.assert_array_equal(other, self.Yoffset)
+
+    def test_nooffset(self):
+        other = io._check_elev_or_mask(self.X, self.Y, offset=0)
+        nptest.assert_array_equal(other, self.Y)
+
 class test_loadBoundaryFromShapefile(object):
     def setup(self):
         self.shapefile = 'tests/test_data/simple_boundary.shp'

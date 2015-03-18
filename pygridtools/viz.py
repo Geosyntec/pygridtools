@@ -46,35 +46,12 @@ def plotPygridgen(grid, ax=None):
     if ax.is_last_row():
         ax.set_xlabel('$nx = {}$'.format(grid.nx), size=14)
 
-    cm = plt.cm.coolwarm
-    cm.set_bad('k')
-
-    xx = np.ma.masked_invalid(grid.x_vert)
-    yy = np.ma.masked_invalid(grid.y_vert)
-    mask = grid.mask
-    for ii in range(grid.nx-1):
-        for jj in range(grid.ny-1):
-            if not (np.any(xx.mask[jj:jj+2, ii:ii+2]) or mask[jj, ii]):
-                coords = io.makeQuadCoords(
-                    xarr=xx[jj:jj+2, ii:ii+2],
-                    yarr=yy[jj:jj+2, ii:ii+2],
-                )
-                if hasattr(grid, 'elev'):
-                    N = plt.Normalize(vmin=grid.elev.min(), vmax=grid.elev.max())
-                    facecolor = cm(N(grid.elev[jj,ii]))
-                else:
-                    facecolor = 'cornflowerblue'
-
-                if coords is not None:
-                    rect = plt.Polygon(coords, edgecolor='k', linewidth=0.25, zorder=0,
-                                       facecolor=facecolor, alpha=0.5)
-                    ax.add_artist(rect)
-
+    fig = plotCells(grid.x, grid.y, ax=ax, engine='mpl')
     return fig, ax
 
 
 def plotCells(nodes_x, nodes_y, name='test', engine='bokeh',
-              ax=None):
+              mask=None, ax=None):
     nodes_x = np.ma.asarray(nodes_x)
     nodes_y = np.ma.asarray(nodes_y)
     if not np.all(nodes_x.shape == nodes_y.shape):
@@ -88,7 +65,7 @@ def plotCells(nodes_x, nodes_y, name='test', engine='bokeh',
         return p
 
     elif engine.lower() in ('mpl', 'matplotlib', 'sns', 'seaborn'):
-        fig = _plot_cells_mpl(nodes_x, nodes_y, name=name, ax=ax)
+        fig = _plot_cells_mpl(nodes_x, nodes_y, ax=ax, mask=mask)
         return fig
 
     else:
@@ -138,37 +115,49 @@ def _plot_cells_bokeh(nodes_x, nodes_y, name='test'):
     return p
 
 
-def _plot_cells_mpl(nodes_x, nodes_y, mask=None, name='test', ax=None):
+def _plot_cells_mpl(nodes_x, nodes_y, mask=None, ax=None):
     fig, ax = checkAx(ax)
 
-    if not nodes_x.shape == nodes_y.shape:
-        raise ValueError()
-
-    ny = nodes_x.shape[0]
-    nx = nodes_y.shape[1]
-
-    if ax.is_first_col():
-        ax.set_ylabel('$ny = {}$'.format(ny), size=14)
-
-    if ax.is_last_row():
-        ax.set_xlabel('$nx = {}$'.format(nx), size=14)
-
-    xx = np.ma.masked_invalid(nodes_x)
-    yy = np.ma.masked_invalid(nodes_y)
+    rows, cols = nodes_x.shape
     if mask is None:
         mask = np.zeros(nodes_x.shape)
 
-    for ii in range(nx - 1):
-        for jj in range(ny - 1):
-            if not np.any(xx.mask[jj:jj+2, ii:ii+2]) or mask[jj, ii]:
+    for jj in range(rows - 1):
+        for ii in range(cols - 1):
+            if mask[jj, ii]:
+                coords = None
+
+            else:
                 coords = io.makeQuadCoords(
-                    xarr=xx[jj:jj+2, ii:ii+2],
-                    yarr=yy[jj:jj+2, ii:ii+2],
+                    nodes_x[jj:jj+2, ii:ii+2],
+                    nodes_y[jj:jj+2, ii:ii+2],
                 )
 
-                if coords is not None:
-                    rect = plt.Polygon(coords, edgecolor='k', linewidth=0.25,
-                                       zorder=0, facecolor='0.75', alpha=0.5)
-                    ax.add_artist(rect)
+            if coords is not None:
+                rect = plt.Polygon(coords, edgecolor='0.125', linewidth=0.75,
+                                   zorder=0, facecolor='0.875')
+                ax.add_artist(rect)
 
     return fig
+
+
+def plotBoundaries(river=None, islands=None, engine='mpl', ax=None):
+    fig, ax = checkAx(ax)
+    if engine == 'mpl':
+        _plot_boundaries_mpl(river, islands, ax=ax)
+        ax.set_aspect('equal')
+        return fig, ax
+
+    elif engine == 'bokeh':
+        raise NotImplementedError("bokeh engine not ready yet")
+
+    else:
+        raise ValueError("only 'mpl' and 'bokeh' plotting engines available")
+
+
+def _plot_boundaries_mpl(river=None, islands=None, ax=None):
+    if river is not None:
+        ax.plot(river[:, 0], river[:, 1], '-')
+
+    for island in islands:
+        ax.plot(island[:, 0], island[:, 1], '-')

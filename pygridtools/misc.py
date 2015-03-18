@@ -550,7 +550,7 @@ class ModelGrid(object):
 
     def as_coord_pairs(self, usemask=False, which='nodes'):
         x, y = self._get_x_y(which, usemask=usemask)
-        return np.array(zip(x.flatten(), y.flatten()))
+        return np.array(list(zip(x.flatten(), y.flatten())))
 
     def to_shapefile(self, outputfile, usemask=True, which='nodes',
                      river=None, reach=0, elev=None, template=None,

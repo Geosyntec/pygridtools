@@ -3,12 +3,14 @@
 source = pygritools
 branch = True
 include = pygridtools/*.py
-omit = tests/*
+omit =
+    tests/* 
+    pygridtools/*scraps*
 
 [report]
 include = pygridtools/*.py
-omit = 
-    tests/* 
+omit =
+    tests/*
     pygridtools/*scraps*
 ignore_errors = True
 

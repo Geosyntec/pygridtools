@@ -478,7 +478,6 @@ class ModelGrid(object):
         else:
             return mask
 
-
     def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
                               bathyrows=0, title='test'):
         outfile = _outputfile(outputdir, filename)
@@ -530,32 +529,40 @@ class ModelGrid(object):
     def plotCells(self, boundary=None, engine='mpl', ax=None, **kwargs):
         return viz.plotCells(self.xn, self.yn, engine=engine, **kwargs)
 
-    def as_dataframe(self, which='nodes'):
+    def as_dataframe(self, usemask=False, which='nodes'):
+
+        x, y = self._get_x_y(which, usemask=usemask)
+
         def make_cols(top_level):
             columns = pandas.MultiIndex.from_product(
-                [[top_level], range(self.icells + 1)],
+                [[top_level], range(x.shape[1])],
                 names=['coord', 'i']
             )
             return columns
 
-        x, y = self._get_x_y(which)
-
-        index = pandas.Index(range(self.jcells + 1), name='j')
+        index = pandas.Index(range(x.shape[0]), name='j')
         easting_cols = make_cols('easting')
         northing_cols = make_cols('northing')
 
         easting = pandas.DataFrame(x, index=index, columns=easting_cols)
-
         northing = pandas.DataFrame(y, index=index, columns=northing_cols)
         return easting.join(northing)
 
-    def as_coord_pairs(self, which='nodes'):
-        x, y = self._get_x_y(which)
+    def as_coord_pairs(self, usemask=False, which='nodes'):
+        x, y = self._get_x_y(which, usemask=usemask)
         return np.array(zip(x.flatten(), y.flatten()))
 
-    def to_shapefile(self, outputfile, which='nodes', template=None,
-                     geom='Point', mode='w', river=None, reach=0,
-                     elev=None):
+    def to_shapefile(self, outputfile, usemask=True, which='nodes',
+                     river=None, reach=0, elev=None, template=None,
+                     geom='Point', mode='w'):
+
+        if usemask:
+            if which == 'nodes':
+                raise NotImplementedError('`usemask` not implemented for nodes')
+            mask = self.cell_mask.copy()
+        else:
+            mask = None
+
         if template is None:
             template = self.template
 
@@ -567,19 +574,28 @@ class ModelGrid(object):
                                   elev=elev)
 
         elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
-            io.saveGridShapefile(self.xn, self.yn, template, outputfile,
-                                 mode=mode, river=river, reach=reach,
-                                 elev=elev)
+            io.saveGridShapefile(self.xn, self.yn, mask, template,
+                                 outputfile, mode=mode, river=river,
+                                 reach=reach, elev=elev)
         else:
             raise ValueError("geom must be either 'Point' or 'Polygon'")
 
-    def _get_x_y(self, which):
+    def _get_x_y(self, which, usemask=False):
+        if which == 'nodes' and usemask:
+            raise ValueError("can only mask cells, not nodes")
+
         if which.lower() == 'nodes':
-            return self.xn, self.yn
+            x, y = self.xn, self.yn
         elif which.lower() == 'cells':
-            return self.xc, self.yc
+            x, y = self.xc, self.yc
         else:
             raise ValueError('`which` must be either "nodes" or "cells"')
+
+        if usemask:
+            x = np.ma.masked_array(x, self.cell_mask)
+            y = np.ma.masked_array(y, self.cell_mask)
+
+        return x, y
 
     @staticmethod
     def from_dataframes(df_x, df_y, icol='i'):

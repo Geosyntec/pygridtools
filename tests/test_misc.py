@@ -2,7 +2,7 @@ import os
 
 
 import numpy as np
-import matplotlib; matplotlib.use('agg')
+from numpy import nan
 import matplotlib.pyplot as plt
 import pandas
 import pygridgen
@@ -696,14 +696,53 @@ class test_ModelGrid(object):
                 0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
                 5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0}
             })
+
+        self.known_masked_cell_df = pandas.DataFrame({
+            ('easting', 0): {
+                0: nan, 1: nan, 2: 1.25, 3: 1.25, 4: 1.25,
+                5: 1.25, 6: 1.25, 7: 1.25
+            }, ('easting', 1): {
+                0: nan, 1: nan, 2: 1.75, 3: 1.75, 4: 1.75,
+                5: 1.75, 6: 1.75, 7: 1.75
+            }, ('northing', 0): {
+                0: nan, 1: nan, 2: 1.25, 3: 1.75, 4: 2.25,
+                5: 2.75, 6: 3.25, 7: 3.75
+            }, ('northing', 1): {
+                0: nan, 1: nan, 2: 1.25, 3: 1.75, 4: 2.25,
+                5: 2.75, 6: 3.25, 7: 3.75
+            }
+        })
+
+
         self.known_coord_pairs = np.array([
-            [ 1. ,  0. ], [ 1.5,  0. ], [ 2. ,  0. ], [ 1. ,  0.5],
-            [ 1.5,  0.5], [ 2. ,  0.5], [ 1. ,  1. ], [ 1.5,  1. ],
-            [ 2. ,  1. ], [ 1. ,  1.5], [ 1.5,  1.5], [ 2. ,  1.5],
-            [ 1. ,  2. ], [ 1.5,  2. ], [ 2. ,  2. ], [ 1. ,  2.5],
-            [ 1.5,  2.5], [ 2. ,  2.5], [ 1. ,  3. ], [ 1.5,  3. ],
-            [ 2. ,  3. ], [ 1. ,  3.5], [ 1.5,  3.5], [ 2. ,  3.5],
-            [ 1. ,  4. ], [ 1.5,  4. ], [ 2. ,  4. ]
+            [1. , 0. ], [1.5, 0. ], [2. , 0. ], [1. , 0.5],
+            [1.5, 0.5], [2. , 0.5], [1. , 1. ], [1.5, 1. ],
+            [2. , 1. ], [1. , 1.5], [1.5, 1.5], [2. , 1.5],
+            [1. , 2. ], [1.5, 2. ], [2. , 2. ], [1. , 2.5],
+            [1.5, 2.5], [2. , 2.5], [1. , 3. ], [1.5, 3. ],
+            [2. , 3. ], [1. , 3.5], [1.5, 3.5], [2. , 3.5],
+            [1. , 4. ], [1.5, 4. ], [2. , 4. ]
+        ])
+
+        self.known_mask = np.array([
+            [True,  True ], [True,  True ],
+            [False, False], [False, False],
+            [False, False], [False, False],
+            [False, False], [False, False],
+        ])
+
+        self.known_node_pairs_masked = np.array([
+            [ nan,  nan], [ nan,  nan], [ nan,  nan], [ nan,  nan],
+            [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
+            [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
+            [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
+        ])
+
+        self.known_node_pairs = np.array([
+            [1.25, 0.25], [1.75, 0.25], [1.25, 0.75], [1.75, 0.75],
+            [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
+            [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
+            [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
         ])
 
     def test_nodes_x(self):
@@ -777,9 +816,9 @@ class test_ModelGrid(object):
         self.g1.template = template_value
         nt.assert_equal(self.g1.template, template_value)
 
-    def test_as_dataframe(self):
+    def test_as_dataframe_nomask_nodes(self):
         pdtest.assert_frame_equal(
-            self.g1.as_dataframe(),
+            self.g1.as_dataframe(usemask=False, which='nodes'),
             self.known_df,
             check_names=False
         )
@@ -789,10 +828,41 @@ class test_ModelGrid(object):
             self.known_df.columns,
         )
 
-    def test_as_coord_pairs(self):
+    def test_as_coord_pairs_nomask_nodes(self):
         nptest.assert_array_equal(
-            self.g1.as_coord_pairs(),
+            self.g1.as_coord_pairs(usemask=False, which='nodes'),
             self.known_coord_pairs
+        )
+
+    @nt.raises(ValueError)
+    def test_as_dataframe_mask_nodes(self):
+        self.g1.as_dataframe(usemask=True, which='nodes')
+
+    @nt.raises(ValueError)
+    def test_as_coord_pairs_mask_nodes(self):
+        self.g1.as_coord_pairs(usemask=True, which='nodes')
+
+    def test_as_coord_pairs_nomask_cells(self):
+        nptest.assert_array_equal(
+            self.g1.as_coord_pairs(usemask=False, which='cells'),
+            self.known_node_pairs
+        )
+
+    def test_as_coord_pairs_mask_cells(self):
+        self.g1.cell_mask = self.known_mask
+        nptest.assert_array_equal(
+            self.g1.as_coord_pairs(usemask=True, which='cells'),
+            self.known_node_pairs_masked
+        )
+
+    def test_as_dataframe_mask_cells(self):
+        self.g1.cell_mask = self.known_mask
+        df = self.g1.as_dataframe(usemask=True, which='cells')
+        pdtest.assert_frame_equal(df, self.known_masked_cell_df,
+                                  check_names=False)
+
+        pdtest.assert_index_equal(
+            df.columns, self.known_masked_cell_df.columns,
         )
 
     def test_transform(self):

@@ -40,7 +40,7 @@ install:
   - pip install coveralls
 
 script:
-  - nosetests --verbose
+  - nosetests --with-coverage --cover-package=pygridtools --verbose
   
 after_success:
   - coveralls

@@ -2,13 +2,15 @@ language: python
 
 matrix:
   include:
-
-    # Here you can add or remove specific builds, and Python versions. You
-    # should currently be able to use Python 2.6, 2.7, or 3.3 or later. The
-    # NUMPY and SCIPY versions are set here as an example, but you can
-    # add/remove environment variables, and use them below during the install.
-
     - python: 2.7
+      env:
+        - COVERAGE=true
+    - python: 3.3
+      env:
+        - COVERAGE=false
+    - python: 3.4
+      env:
+        - COVERAGE=false
 
 before_install:
 
@@ -29,6 +31,7 @@ install:
   - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
   - source activate test
   - conda config --add channels phobson
+  - conda config --add channels JimInCO
 
   # Below, include the dependencies you want to install with conda, optionally
   # specifying versions used in the matrix above. If you split this into
@@ -36,11 +39,12 @@ install:
   # the first package to install (for every conda install command) otherwise
   # numpy may be automatically upgraded.
 
-  - conda install --yes seaborn bokeh fiona shapely nose csa nn gridutils gridgen pygridgen pip
+  - conda install --yes seaborn bokeh fiona nose
+  - conda install --yes pygridgen
   - pip install coveralls
 
 script:
   - nosetests --with-coverage --cover-package=pygridtools --verbose
-  
+
 after_success:
-  - coveralls
+  - if [ ${COVERAGE} = true ]; then coveralls fi

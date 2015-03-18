@@ -1,4 +1,5 @@
 import os
+import sys
 
 import nose.tools as nt
 import numpy as np
@@ -97,12 +98,14 @@ class test_loadBoundaryFromShapefile(object):
         self.test_reach = 1
         self.known_points_in_testreach = 10
 
+    @nptest.dec.skipif(sys.version_info[0] == 3)
     def test_nofilter(self):
         df = io.loadBoundaryFromShapefile(self.shapefile)
         nt.assert_true(isinstance(df, pandas.DataFrame))
         nt.assert_list_equal(df.columns.tolist(), self.known_df_columns)
         nt.assert_equal(df.shape[0], self.known_points_in_boundary)
 
+    @nptest.dec.skipif(sys.version_info[0] == 3)
     def test_filter(self):
         df = io.loadBoundaryFromShapefile(
             self.shapefile,
@@ -262,6 +265,7 @@ class test_savePointShapefile(object):
     def test_bad_mode(self):
         io.savePointShapefile(self.x, self.y, self.template, 'junk', 'r')
 
+    @nptest.dec.skipif(sys.version_info[0] == 3)
     def test_with_arrays(self):
         fname = 'array_point.shp'
         outfile = os.path.join(self.outputdir, fname)
@@ -271,6 +275,7 @@ class test_savePointShapefile(object):
 
         testing.compareShapefiles(outfile, basefile)
 
+    @nptest.dec.skipif(sys.version_info[0] == 3)
     def test_with_masks(self):
         fname = 'mask_point.shp'
         outfile = os.path.join(self.outputdir, fname)

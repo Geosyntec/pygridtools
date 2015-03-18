@@ -1,3 +1,3 @@
-from misc import *
-import io
-import viz
+from .misc import *
+from . import io
+from . import viz

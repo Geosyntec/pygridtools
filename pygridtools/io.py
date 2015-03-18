@@ -353,8 +353,8 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
 
                     # build the attributes
                     props = OrderedDict(
-                        id=row, river=river, reach=reach,
-                        ii=ii+2, jj=jj+2, elev=elev[jj,ii],
+                        id=int(row), river=river, reach=reach,
+                        ii=int(ii+2), jj=int(jj+2), elev=elev[jj,ii],
                         ii_jj='{:02d}_{:02d}'.format(ii+2, jj+2)
                     )
 

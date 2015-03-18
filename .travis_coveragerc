@@ -7,7 +7,9 @@ omit = tests/*
 
 [report]
 include = pygridtools/*.py
-omit = tests/*
+omit = 
+    tests/* 
+    pygridtools/scraps.py
 ignore_errors = True
 
 # Regexes for lines to exclude from consideration

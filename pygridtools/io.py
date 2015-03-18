@@ -11,6 +11,46 @@ import pandas
 import fiona
 
 
+def _check_mode(mode):
+    if mode.lower() not in ['a', 'w']:
+        raise ValueError('`mode` must be either "a" (append) or "w" (write)')
+
+    return mode.lower()
+
+
+def _check_elev_or_mask(X, other, array_name=None, offset=1, failNone=False):
+    if array_name is None:
+        array_name = 'other'
+
+    if other is None:
+        if failNone:
+            raise ValueError('`{}` cannot be `None`'.format(array_name))
+        else:
+            return np.zeros_like(X)
+    else:
+        if (
+                other.shape[0] != X.shape[0] - offset or
+                other.shape[1] != X.shape[1] - offset
+        ):
+            raise ValueError('`{}` not compatible with `X`'.format(array_name))
+
+        else:
+            return other
+
+
+def _check_for_same_masks(X, Y):
+    X = np.ma.masked_invalid(X)
+    Y = np.ma.masked_invalid(Y)
+
+    if X.shape != Y.shape:
+        raise ValueError('X, Y are not the same shape')
+
+    if not np.all(X.mask == Y.mask):
+        raise ValueError('X, Y masks are not the same')
+    else:
+        return X, Y
+
+
 def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
                               sortcol=None, upperleftcol=None,
                               filterfxn=None):
@@ -51,17 +91,16 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
           - beta (turning parameter)
           - order (for sorting)
           - reach
-          -upperleft
+          - upperleft
 
     '''
 
     # load and filter the data
-    shp = fiona.open(shapefile, 'r')
-    if filterfxn is None:
-        reach_bry = filter(lambda x: True, shp)
-    else:
-        reach_bry = filter(filterfxn, shp)
-    shp.close()
+    with fiona.open(shapefile, 'r') as shp:
+        if filterfxn is None:
+            reach_bry = filter(lambda x: True, shp)
+        else:
+            reach_bry = filter(filterfxn, shp)
 
     def _get_col_val(rec, col, default=None):
         if col is not None:
@@ -70,7 +109,6 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
             val = default
 
         return val
-
 
     # stuff the data into a dataframe
     data = []
@@ -88,6 +126,53 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
     # return just the right columns and sort the data
     cols = ['x', 'y', 'beta', 'upperleft', 'reach', 'order']
     return df[cols].sort(columns='order')
+
+
+def loadPolygonFromShapefile(shapefile, filterfxn=None, squeeze=True):
+    '''
+    Load polygons (e.g., water bodies, islands) from a shapefile
+
+    Parameters
+    ----------
+    shapefile : string
+        Path to the shapefile containaing boundary points.
+    filterfxn : function or lambda expression or None (default)
+        Pulls out relevant points from the boundary shapefile. Defaults
+        to `True` to consider everything.
+    squeeze : optional bool (default = True)
+        Set to True to return an array if only 1 record is present.
+        Otherwise, a list of arrays will be returned.
+
+    Returns
+    -------
+    boundary : array or list of arrays
+        N x 2 array of the coordinates of the boundary.
+
+    Notes
+    -----
+    Multipart geometries are not supported. If a multipart geometry is
+    present in a record, only the first part will be loaded.
+
+    Z-coordinates are also not supported. Only x-y coordinates will be
+    loaded.
+
+    '''
+
+    # load and filter the data
+    with fiona.open(shapefile, 'r') as shp:
+        if filterfxn is None:
+            polygons = filter(lambda x: True, shp)
+        else:
+            polygons = filter(filterfxn, shp)
+
+    data = []
+    for record in polygons:
+        data.append(np.array(record['geometry']['coordinates'])[0, :, :2])
+
+    if len(data) == 1 and squeeze:
+        data = data[0]
+
+    return data
 
 
 def dumpGridFiles(grid, filename):
@@ -200,7 +285,8 @@ def makeRecord(ID, coords, geomtype, props):
     return record
 
 
-def savePointShapefile(X, Y, template, outputfile, mode, river=None, reach=0, elev=None):
+def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
+                       reach=0, elev=None):
     '''
     Saves grid-related attributes of a pygridgen.Gridgen object to a
     shapefile with geomtype = 'Point'
@@ -213,7 +299,7 @@ def savePointShapefile(X, Y, template, outputfile, mode, river=None, reach=0, el
         Path to a template shapfiles with the desired schema.
     outputfile : string
         Path to the point shapefile to which the data will be written.
-    mode : string
+    mode : optional string (default = 'w')
         The mode with which `outputfile` will be written.
         (i.e., 'a' for append and 'w' for write)
     river : optional string (default = None)
@@ -230,24 +316,15 @@ def savePointShapefile(X, Y, template, outputfile, mode, river=None, reach=0, el
     None
 
     '''
-    # pull out just the data attributes if necessary
-    if isinstance(X, np.ma.MaskedArray):
-        X = X.data
-
-    if isinstance(Y, np.ma.MaskedArray):
-        Y = Y.data
 
     # check that the `mode` is a valid value
-    if mode not in ['a', 'w']:
-        raise ValueError('`mode` must be either "a" (append) or "w" (write)')
+    mode = _check_mode(mode)
 
-    if X.shape[0] != Y.shape[0] or X.shape[1] != Y.shape[1]:
-        raise ValueError('`X` and `Y` must have the same shape')
+    # check that X and Y are have the same shape, NaN cells
+    X, Y = _check_for_same_masks(X, Y)
 
-    if elev is None:
-        elev = np.zeros(X.shape)
-    elif elev.shape[0] != X.shape[0]  or elev.shape[1] != X.shape[1]:
-        raise ValueError('`elev` dimensions must be compatible `X` and `Y`')
+    # check elev shape
+    elev = _check_elev_or_mask(X, elev, 'elev', offset=0)
 
     # load the template
     with fiona.open(template, 'r') as src:
@@ -267,9 +344,8 @@ def savePointShapefile(X, Y, template, outputfile, mode, river=None, reach=0, el
         row = 0
         for ii in range(X.shape[1]):
             for jj in range(X.shape[0]):
-
-                # check that nothign is masked (outside of the river)
-                if not np.isnan(X[jj, ii]) and not np.isnan(Y[jj, ii]):
+                # check that nothing is masked (outside of the river)
+                if not (X.mask[jj, ii]):
                     row += 1
 
                     # build the coords
@@ -287,7 +363,8 @@ def savePointShapefile(X, Y, template, outputfile, mode, river=None, reach=0, el
                     out.write(record)
 
 
-def saveGridShapefile(X, Y, template, outputfile, mode, river=None, reach=0, elev=None):
+def saveGridShapefile(X, Y, mask, template, outputfile, mode,
+                      river=None, reach=0, elev=None):
     '''
     Saves a shapefile of quadrilaterals representing grid cells.
 
@@ -296,6 +373,10 @@ def saveGridShapefile(X, Y, template, outputfile, mode, river=None, reach=0, ele
     ----------
     X, Y : numpy (masked) arrays, same dimensions
         Attributes of the gridgen object representing the x- and y-coords.
+    mask : numpy array or None
+        Array describing which cells to mask (exclude) from the output.
+        Shape should be N-1 by M-1, where N and M are the dimensions of
+        `X` and `Y`.
     template : string
         Path to a template shapfiles with the desired schema.
     outputfile : string
@@ -309,41 +390,31 @@ def saveGridShapefile(X, Y, template, outputfile, mode, river=None, reach=0, ele
         The reach of the river to be listed in the shapefile's attribute
         table.
     elev : optional array or None (defauly)
-        The elevation of the grid cells. Array dimensions must be 1 less than
-        X and Y.
+        The elevation of the grid cells. Shape should be N-1 by M-1,
+        where N and M are the dimensions of `X` and `Y` (like `mask`).
 
     Returns
     -------
     None
 
-    Notes
-    -----
-    You need to have attached an `elev` attribute to the grid object that is
-    an array of the same shape as grid.x_rho and grid.y_rho (cell centers).
-    If no such attribute exists, 0 will be used as the elevation
     '''
-    if X.shape[0] != Y.shape[0] or X.shape[1] != Y.shape[1]:
-        raise ValueError('`X` and `Y` must have the same shape')
-
-
-    # make sure the vertices are in masked arrays
-    if isinstance(X, np.ndarray):
-        x_vert = np.ma.masked_invalid(X)
-        y_vert = np.ma.masked_invalid(Y)
-    else:
-        x_vert = X.copy()
-        y_vert = Y.copy()
-
-    ny, nx = x_vert.shape
-
-    if elev is None:
-        elev = np.ma.masked_invalid(np.zeros((ny, nx)))
-    elif elev.shape[0] != ny - 1 or elev.shape[1] != nx - 1:
-        raise ValueError('`elev` dimensions must be compatible `X` and `Y`')
 
     # check that `mode` is valid
-    if mode not in ['a', 'w']:
-        raise ValueError('`mode` must be either "a" (append) or "w" (write)')
+    mode = _check_mode(mode)
+
+    # check X, Y shapes
+    Y = _check_elev_or_mask(X, Y, 'Y', offset=0)
+
+    # check elev shape
+    elev = _check_elev_or_mask(X, elev, 'elev', offset=0)
+
+    # check the mask shape
+    mask = _check_elev_or_mask(X, mask, 'mask', offset=1)
+
+    X = np.ma.masked_invalid(X)
+    Y = np.ma.masked_invalid(Y)
+    ny, nx = X.shape
+
 
     # load the template
     with fiona.open(template, 'r') as src:
@@ -363,26 +434,20 @@ def saveGridShapefile(X, Y, template, outputfile, mode, river=None, reach=0, ele
         row = 0
         for ii in range(nx-1):
             for jj in range(ny-1):
-                if not np.any(x_vert.mask[jj:jj+2, ii:ii+2]):
+                if not (np.any(X.mask[jj:jj+2, ii:ii+2]) or mask[jj, ii]):
                     row += 1
-
-                    # pull out the elevation or assign default
-                    if elev is not None:
-                        elevation = elev[jj, ii]
-                    else:
-                        elevation = 0
-
+                    Z = elev[jj, ii]
                     # build the array or coordinates
                     coords = makeQuadCoords(
-                        xarr=x_vert[jj:jj+2, ii:ii+2],
-                        yarr=y_vert[jj:jj+2, ii:ii+2],
-                        zpnt=elevation
+                        xarr=X[jj:jj+2, ii:ii+2],
+                        yarr=Y[jj:jj+2, ii:ii+2],
+                        zpnt=Z
                     )
 
                     # build the attributes
                     props = OrderedDict(
                         id=row, river=river, reach=reach,
-                        ii=ii+2, jj=jj+2, elev=elevation,
+                        ii=ii+2, jj=jj+2, elev=Z,
                         ii_jj='{:02d}_{:02d}'.format(ii+2, jj+2)
                     )
 
@@ -426,10 +491,6 @@ def saveXYShapefile(tidydata, template, outputfile, mode='w',
         schema=src_schema
     ) as out:
         _ = tidydata.apply(lambda row: row2shp_record(row, out), axis=1)
-
-
-def readPointShapefile(*arg, **kwargs):
-    return readGridShapefile(*args, **kwargs)
 
 
 def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,

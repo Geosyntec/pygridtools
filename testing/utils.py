@@ -104,3 +104,30 @@ def make_nodes():
     ])
 
     return np.ma.masked_invalid(x, 0), np.ma.masked_invalid(y, 0)
+
+
+def make_cells():
+    from numpy import nan
+    x = np.array([
+        [1.25, 1.75,  nan,  nan,  nan,  nan,],
+        [1.25, 1.75,  nan,  nan,  nan,  nan,],
+        [1.25, 1.75, 2.25, 2.75, 3.25, 3.75,],
+        [1.25, 1.75, 2.25, 2.75, 3.25, 3.75,],
+        [1.25, 1.75,  nan,  nan,  nan,  nan,],
+        [1.25, 1.75,  nan,  nan,  nan,  nan,],
+        [1.25, 1.75,  nan,  nan,  nan,  nan,],
+        [1.25, 1.75,  nan,  nan,  nan,  nan,],
+    ])
+
+    y = np.array([
+        [0.25, 0.25,  nan,  nan,  nan,  nan,],
+        [0.75, 0.75,  nan,  nan,  nan,  nan,],
+        [1.25, 1.25, 1.25, 1.25, 1.25, 1.25,],
+        [1.75, 1.75, 1.75, 1.75, 1.75, 1.75,],
+        [2.25, 2.25,  nan,  nan,  nan,  nan,],
+        [2.75, 2.75,  nan,  nan,  nan,  nan,],
+        [3.25, 3.25,  nan,  nan,  nan,  nan,],
+        [3.75, 3.75,  nan,  nan,  nan,  nan,],
+    ])
+
+    return np.ma.masked_invalid(x, 0), np.ma.masked_invalid(y, 0)

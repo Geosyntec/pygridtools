@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/phobson/pygridtools.svg?branch=master)](https://travis-ci.org/phobson/pygridtools)
+[![Coverage Status](https://coveralls.io/repos/phobson/pygridtools/badge.svg)](https://coveralls.io/r/phobson/pygridtools)
 
 # pygridtools
 Miscellaneous utilities to accompany pygridgen

@@ -143,7 +143,6 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
         })
 
     else:
-        print('  using provided bathymetry data')
         bathy = bathy[['x', 'y', 'z']]
 
         # find where the bathy is inside our grid
@@ -157,13 +156,12 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
         gridbathy = bathy[grididx]
 
         # triangulate the grid
-        print('  triangulating the bathymetry')
         triangles = mdelaunay.Triangulation(gridbathy['x'], gridbathy['y'])
 
-        print('  extrapolating the bathymetry')
         try:
             extrapolate = triangles.nn_extrapolator(gridbathy['z'])
         except:
+            # pragma: no cover
             extrapolate = triangles.nn_extrapolator(gridbathy['z'][:-1])
 
         elev = np.ma.masked_invalid(extrapolate(grid.x_rho, grid.y_rho))

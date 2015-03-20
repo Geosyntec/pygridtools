@@ -12,7 +12,7 @@ def points_inside_poly(points, polyverts):
     return mpath.Path(polyverts).contains_points(points)
 
 
-def makeQuadCoords(xarr, yarr, zpnt=None):
+def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
     '''
     Makes an array for coordinates suitable for building quadrilateral
     geometries in shapfiles via fiona.
@@ -20,10 +20,13 @@ def makeQuadCoords(xarr, yarr, zpnt=None):
     Parameters
     ----------
     xarr, yarr : numpy arrays
-        Arrays (2x2) of x coordinates and y coordinates for each vertex of
-        the quadrilateral.
+        Arrays (2x2) of x coordinates and y coordinates for each vertex
+        of the quadrilateral.
     zpnt : optional float or None (default)
-        If provided, this elevation value will be assied to all four vertices
+        If provided, this elevation value will be assigned to all four
+        vertices.
+    triangles : optional bool (default = False)
+        If True, triangles will be returned
 
     Returns
     -------
@@ -31,18 +34,20 @@ def makeQuadCoords(xarr, yarr, zpnt=None):
         An array suitable for feeding into fiona as the geometry of a record.
 
     '''
+    def process_input(array):
+        flat = np.hstack([array[0,:], array[1,::-1]])
+        return flat[~np.isnan(flat)]
 
-    if not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0:
+    x = process_input(xarr)
+    y = process_input(yarr)
+    if (not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0
+            or (triangles and len(x) == 3)):
         if zpnt is None:
-            coords = np.vstack([
-                np.hstack([xarr[0,:], xarr[1,::-1]]),
-                np.hstack([yarr[0,:], yarr[1,::-1]])
-            ]).T
+            coords = np.vstack([x ,y]).T
         else:
-            xcoords = np.hstack([xarr[0,:], xarr[1,::-1]])
-            ycoords = np.hstack([yarr[0,:], yarr[1,::-1]])
-            zcoords = np.array([zpnt] * xcoords.shape[0])
-            coords = np.vstack([xcoords, ycoords, zcoords]).T
+            z = np.array([zpnt] * x.shape[0])
+            coords = np.vstack([x, y, z]).T
+
     else:
         coords = None
 

@@ -355,7 +355,7 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
                     row += 1
                     Z = elev[jj, ii]
                     # build the array or coordinates
-                    coords = misc.makeQuadCoords(
+                    coords = misc.makePolyCoords(
                         xarr=X[jj:jj+2, ii:ii+2],
                         yarr=Y[jj:jj+2, ii:ii+2],
                         zpnt=Z

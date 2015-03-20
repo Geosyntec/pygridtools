@@ -29,7 +29,7 @@ def test_points_inside_poly():
     )
 
 
-class test_makeQuadCoords(object):
+class test_makePolyCoords(object):
     def setup(self):
         x1 = 1
         x2 = 2
@@ -39,6 +39,8 @@ class test_makeQuadCoords(object):
 
         self.xarr = np.array([[x1, x2], [x1, x2]])
         self.yarr = np.array([[y1, y1], [y2, y2]])
+        self.x_tri = np.array([[x1, np.nan], [x1, x2]])
+        self.y_tri = np.array([[y1, np.nan], [y2, y2]])
         self.zpnt = z
         self.mask = np.array([[False, False], [True, True]])
 
@@ -48,26 +50,31 @@ class test_makeQuadCoords(object):
         self.known_with_z = np.array([
             [x1, y1, z], [x2, y1, z], [x2, y2, z], [x1, y2, z]
         ])
+        self.known_triangle = np.array([[x1, y1], [x2, y2], [x1, y2]])
 
     def test_base(self):
-        coords = misc.makeQuadCoords(self.xarr, self.yarr)
+        coords = misc.makePolyCoords(self.xarr, self.yarr)
         nptest.assert_array_equal(coords, self.known_base)
 
     def test_no_masked(self):
         xarr = np.ma.MaskedArray(self.xarr, mask=False)
         yarr = np.ma.MaskedArray(self.yarr, mask=False)
-        coords = misc.makeQuadCoords(xarr, yarr)
+        coords = misc.makePolyCoords(xarr, yarr)
         nptest.assert_array_equal(coords, self.known_no_masked)
 
     def test_masked(self):
         xarr = np.ma.MaskedArray(self.xarr, mask=self.mask)
         yarr = np.ma.MaskedArray(self.yarr, mask=self.mask)
-        coords = misc.makeQuadCoords(xarr, yarr)
+        coords = misc.makePolyCoords(xarr, yarr)
         nptest.assert_array_equal(coords, self.known_masked)
 
     def test_with_z(self):
-        coords = misc.makeQuadCoords(self.xarr, self.yarr, zpnt=self.zpnt)
+        coords = misc.makePolyCoords(self.xarr, self.yarr, zpnt=self.zpnt)
         nptest.assert_array_equal(coords, self.known_with_z)
+
+    def test_triangles(self):
+        coords = misc.makePolyCoords(self.x_tri, self.y_tri, triangles=True)
+        nptest.assert_array_equal(coords, self.known_triangle)
 
 
 class test_makeRecord(object):

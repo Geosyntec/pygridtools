@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import pandas
 import fiona
 
+from . import misc
+
 
 def _check_mode(mode):
     if mode.lower() not in ['a', 'w']:
@@ -200,91 +202,6 @@ def dumpGridFiles(grid, filename):
                   header=False, float_format='%.3f')
 
 
-def makeQuadCoords(xarr, yarr, zpnt=None):
-    '''
-    Makes an array for coordinates suitable for building quadrilateral
-    geometries in shapfiles via fiona.
-
-    Parameters
-    ----------
-    xarr, yarr : numpy arrays
-        Arrays (2x2) of x coordinates and y coordinates for each vertex of
-        the quadrilateral.
-    zpnt : optional float or None (default)
-        If provided, this elevation value will be assied to all four vertices
-
-    Returns
-    -------
-    coords : numpy array
-        An array suitable for feeding into fiona as the geometry of a record.
-
-    '''
-
-    if not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0:
-        if zpnt is None:
-            coords = np.vstack([
-                np.hstack([xarr[0,:], xarr[1,::-1]]),
-                np.hstack([yarr[0,:], yarr[1,::-1]])
-            ]).T
-        else:
-            xcoords = np.hstack([xarr[0,:], xarr[1,::-1]])
-            ycoords = np.hstack([yarr[0,:], yarr[1,::-1]])
-            zcoords = np.array([zpnt] * xcoords.shape[0])
-            coords = np.vstack([xcoords, ycoords, zcoords]).T
-    else:
-        coords = None
-
-    return coords
-
-
-def makeRecord(ID, coords, geomtype, props):
-    '''
-    Creates a records for the fiona package to append to a shapefile
-
-    Parameters
-    ----------
-    ID : int
-        The record ID number
-    coords : tuple or array-like
-        The x-y coordinates of the geometry. For Points, just a tuple. An
-        array or list of tuples for LineStrings or Polygons
-    geomtype : string
-        A valid GDAL/OGR geometry specification (e.g. LineString, Point,
-        Polygon)
-    props : dict or collections.OrderedDict
-        A dict-like object defining the attributes of the record
-
-    Returns
-    -------
-    record : dict
-        A nested dictionary suitable for the fiona package to append to a
-        shapefile
-
-    Notes
-    -----
-    This is ignore the mask of a MaskedArray. That might be bad.
-
-    '''
-    if not geomtype in ['Point', 'LineString', 'Polygon']:
-        raise ValueError('Geometry {} not suppered'.format(geomtype))
-
-    if isinstance(coords, np.ma.MaskedArray):
-        coords = coords.data
-
-    if isinstance(coords, np.ndarray):
-        coords = coords.tolist()
-
-    record = {
-    'id': ID,
-    'geometry': {
-        'coordinates': coords if geomtype == 'Point' else [coords],
-        'type': geomtype
-        },
-    'properties': props
-    }
-    return record
-
-
 def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
                        reach=0, elev=None):
     '''
@@ -359,7 +276,7 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
                     )
 
                     # append to the output file
-                    record = makeRecord(row, coords, 'Point', props)
+                    record = misc.makeRecord(row, coords, 'Point', props)
                     out.write(record)
 
 
@@ -438,7 +355,7 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
                     row += 1
                     Z = elev[jj, ii]
                     # build the array or coordinates
-                    coords = makeQuadCoords(
+                    coords = misc.makeQuadCoords(
                         xarr=X[jj:jj+2, ii:ii+2],
                         yarr=Y[jj:jj+2, ii:ii+2],
                         zpnt=Z
@@ -454,7 +371,7 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
                     # append to file is coordinates are not masked
                     # (masked = beyond the river boundary)
                     if coords is not None:
-                        record = makeRecord(row, coords, 'Polygon', props)
+                        record = misc.makeRecord(row, coords, 'Polygon', props)
                         out.write(record)
 
 
@@ -479,8 +396,8 @@ def saveXYShapefile(tidydata, template, outputfile, mode='w',
             ii=ii+2, jj=jj+2, elev=0,
             ii_jj='{:02d}_{:02d}'.format(ii+2, jj+2)
         )
-        # makeRecord(ID, coords, geomtype, props):
-        shpio.write(makeRecord(row.name, coords, 'Point', props))
+        # misc.makeRecord(ID, coords, geomtype, props):
+        shpio.write(misc.makeRecord(row.name, coords, 'Point', props))
         return 0
 
     # start writting or appending to the output
@@ -706,7 +623,7 @@ def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):
             ii=int(row.i), jj=int(row.j), elev=0,
             ii_jj='{:03d}_{:03d}'.format(int(row.i), int(row.j))
         )
-        record = makeRecord(int(row.name), coords, 'Point', props)
+        record = misc.makeRecord(int(row.name), coords, 'Point', props)
         try:
             outfile.write(record)
             return 1

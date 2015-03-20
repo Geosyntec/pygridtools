@@ -7,13 +7,94 @@ import matplotlib.path as mpath
 import pandas
 import fiona
 
-import pygridgen
-
-from . import viz
-
 
 def points_inside_poly(points, polyverts):
     return mpath.Path(polyverts).contains_points(points)
+
+
+def makeQuadCoords(xarr, yarr, zpnt=None):
+    '''
+    Makes an array for coordinates suitable for building quadrilateral
+    geometries in shapfiles via fiona.
+
+    Parameters
+    ----------
+    xarr, yarr : numpy arrays
+        Arrays (2x2) of x coordinates and y coordinates for each vertex of
+        the quadrilateral.
+    zpnt : optional float or None (default)
+        If provided, this elevation value will be assied to all four vertices
+
+    Returns
+    -------
+    coords : numpy array
+        An array suitable for feeding into fiona as the geometry of a record.
+
+    '''
+
+    if not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0:
+        if zpnt is None:
+            coords = np.vstack([
+                np.hstack([xarr[0,:], xarr[1,::-1]]),
+                np.hstack([yarr[0,:], yarr[1,::-1]])
+            ]).T
+        else:
+            xcoords = np.hstack([xarr[0,:], xarr[1,::-1]])
+            ycoords = np.hstack([yarr[0,:], yarr[1,::-1]])
+            zcoords = np.array([zpnt] * xcoords.shape[0])
+            coords = np.vstack([xcoords, ycoords, zcoords]).T
+    else:
+        coords = None
+
+    return coords
+
+
+def makeRecord(ID, coords, geomtype, props):
+    '''
+    Creates a records for the fiona package to append to a shapefile
+
+    Parameters
+    ----------
+    ID : int
+        The record ID number
+    coords : tuple or array-like
+        The x-y coordinates of the geometry. For Points, just a tuple. An
+        array or list of tuples for LineStrings or Polygons
+    geomtype : string
+        A valid GDAL/OGR geometry specification (e.g. LineString, Point,
+        Polygon)
+    props : dict or collections.OrderedDict
+        A dict-like object defining the attributes of the record
+
+    Returns
+    -------
+    record : dict
+        A nested dictionary suitable for the fiona package to append to a
+        shapefile
+
+    Notes
+    -----
+    This is ignore the mask of a MaskedArray. That might be bad.
+
+    '''
+    if not geomtype in ['Point', 'LineString', 'Polygon']:
+        raise ValueError('Geometry {} not suppered'.format(geomtype))
+
+    if isinstance(coords, np.ma.MaskedArray):
+        coords = coords.data
+
+    if isinstance(coords, np.ndarray):
+        coords = coords.tolist()
+
+    record = {
+    'id': ID,
+    'geometry': {
+        'coordinates': coords if geomtype == 'Point' else [coords],
+        'type': geomtype
+        },
+    'properties': props
+    }
+    return record
 
 
 def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
@@ -231,7 +312,7 @@ def make_gefdc_cells(node_mask, cell_mask=None, use_triangles=False):
 
     # I can't figure this out
     if use_triangles:
-        warnings.warn('triangle are experimental')
+        warnings.warn('triangles are experimental')
 
     # define the initial cells with everything labeled as a bank
     ny, nx = cell_mask.shape

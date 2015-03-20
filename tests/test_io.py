@@ -88,7 +88,6 @@ class test__check_for_same_masks(object):
         nptest.assert_array_equal(self.Y1, y.data)
 
 
-
 class test_loadBoundaryFromShapefile(object):
     def setup(self):
         self.shapefile = 'tests/test_data/simple_boundary.shp'
@@ -121,115 +120,6 @@ def test_dumpGridFile():
     io.dumpGridFiles(grid, 'tests/result_files/grid.out')
 
     testing.compareTextFiles(outputfile, baselinefile)
-
-
-class test_makeQuadCoords(object):
-    def setup(self):
-        x1 = 1
-        x2 = 2
-        y1 = 4
-        y2 = 3
-        z = 5
-
-        self.xarr = np.array([[x1, x2], [x1, x2]])
-        self.yarr = np.array([[y1, y1], [y2, y2]])
-        self.zpnt = z
-        self.mask = np.array([[False, False], [True, True]])
-
-        self.known_base = np.array([[x1, y1], [x2, y1], [x2, y2], [x1, y2]])
-        self.known_no_masked = self.known_base.copy()
-        self.known_masked = None
-        self.known_with_z = np.array([
-            [x1, y1, z], [x2, y1, z], [x2, y2, z], [x1, y2, z]
-        ])
-
-    def test_base(self):
-        coords = io.makeQuadCoords(self.xarr, self.yarr)
-        nptest.assert_array_equal(coords, self.known_base)
-
-    def test_no_masked(self):
-        xarr = np.ma.MaskedArray(self.xarr, mask=False)
-        yarr = np.ma.MaskedArray(self.yarr, mask=False)
-        coords = io.makeQuadCoords(xarr, yarr)
-        nptest.assert_array_equal(coords, self.known_no_masked)
-
-    def test_masked(self):
-        xarr = np.ma.MaskedArray(self.xarr, mask=self.mask)
-        yarr = np.ma.MaskedArray(self.yarr, mask=self.mask)
-        coords = io.makeQuadCoords(xarr, yarr)
-        nptest.assert_array_equal(coords, self.known_masked)
-
-    def test_with_z(self):
-        coords = io.makeQuadCoords(self.xarr, self.yarr, zpnt=self.zpnt)
-        nptest.assert_array_equal(coords, self.known_with_z)
-
-
-class test_makeRecord(object):
-    def setup(self):
-        self.point = [1, 2]
-        self.point_array = np.array(self.point)
-        self.non_point = [[1, 2], [5, 6], [5, 2]]
-        self.non_point_array = np.array(self.non_point)
-        self.mask = np.array([[1, 0], [0, 1], [1, 0]])
-        self.masked_coords = np.ma.MaskedArray(self.non_point_array,
-                                               mask=self.mask)
-
-        self.props = {'prop1': 'this string', 'prop2': 3.1415}
-
-        self.known_point = {
-            'geometry': {
-                'type': 'Point',
-                'coordinates': [1, 2]
-            },
-            'id': 1,
-            'properties': self.props
-        }
-
-        self.known_line = {
-            'geometry': {
-                'type': 'LineString',
-                'coordinates': [[[1, 2], [5, 6], [5, 2]]]
-            },
-            'id': 1,
-            'properties': self.props
-        }
-
-        self.known_polygon = {
-            'geometry': {
-                'type': 'Polygon',
-                'coordinates': [[[1, 2], [5, 6], [5, 2]]]
-            },
-            'id': 1,
-            'properties': self.props
-        }
-
-    def test_point(self):
-        record = io.makeRecord(1, self.point, 'Point', self.props)
-        nt.assert_dict_equal(record, self.known_point)
-
-    def test_point_array(self):
-        record = io.makeRecord(1, self.point_array, 'Point', self.props)
-        nt.assert_dict_equal(record, self.known_point)
-
-    def test_line(self):
-        record = io.makeRecord(1, self.non_point, 'LineString', self.props)
-        nt.assert_dict_equal(record, self.known_line)
-
-    def test_line_array(self):
-        record = io.makeRecord(1, self.non_point_array, 'LineString', self.props)
-        nt.assert_dict_equal(record, self.known_line)
-
-    def test_polygon(self):
-        record = io.makeRecord(1, self.non_point, 'Polygon', self.props)
-        nt.assert_dict_equal(record, self.known_polygon)
-
-    def test_polygon_array(self):
-        record = io.makeRecord(1, self.non_point_array, 'Polygon', self.props)
-        nt.assert_dict_equal(record, self.known_polygon)
-
-    @nt.raises(ValueError)
-    def test_bad_geom(self):
-        record = io.makeRecord(1, self.non_point_array, 'Circle', self.props)
 
 
 class test_savePointShapefile(object):

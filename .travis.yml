@@ -47,4 +47,4 @@ script:
   - nosetests --with-coverage --cover-package=pygridtools --verbose
 
 after_success:
-  - if [ ${COVERAGE} = true ]; then coveralls fi
+  - if [ ${COVERAGE} = true ]; then coveralls; fi

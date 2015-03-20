@@ -217,8 +217,8 @@ class ModelGrid(object):
         gefdc = io._write_gefdc_control_file(
             outfile,
             title,
-            self.inodes + 2,
-            self.jnodes + 2,
+            self.inodes + 1,
+            self.jnodes + 1,
             bathyrows
         )
         return gefdc

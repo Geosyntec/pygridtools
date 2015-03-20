@@ -332,7 +332,7 @@ class test_shapefileToDataFrame(object):
         raise NotImplementedError
 
 
-class test__write_cellinp(object):
+class base__write_cellinp(object):
     def setup(self):
         self.grid  = np.array([
             [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
@@ -380,7 +380,7 @@ class test__write_cellinp(object):
 
     @nt.raises(NotImplementedError)
     def test_with_triangles(self):
-        io._write_cellinp(self.grid, self.triangle_output, triangle_cells=True)
+        io._write_cellinp(self.grid, self.triangle_output)
         testing.compareTextFiles(
             self.triangle_output,
             self.known_triangle_output

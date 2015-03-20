@@ -524,98 +524,38 @@ def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
     return df
 
 
-def _write_cellinp(bool_node_array, outfilename, triangle_cells=False,
-                  maxcols=125, testing=False):
-    '''
-    Take an array defining the nodes as wet (1) or dry (0) and writes
-    the cell.inp input file.
+def _write_cellinp(cell_array, outputfile='cell.inp', maxcols=125, flip=True):
+    '''Writes the cell.inp input file from an array of cell definitions.
 
-    Input
-    -----
-    bool_node_array : numpy array of integers (0's and 1's)
-        Not really a boolean array per se. Just an 0 or 1 array defining
-        a node as wet or dry.
-    outfilename : string
+    Parameters
+    ----------
+    cell_array : numpy array
+        Integer array of the values written to ``outfile``.
+    outfilename : optional string (default = "cell.inp")
         Path *and* filename to the outputfile. Yes, you have to tell it
         to call the file cell.inp
-    triangle_cells : optional bool, default is False
-        Toggles the definition if triangular cells. Very greedy.
-        Probably easier to keep off and add them yourself.
+    maxcols : optional int (default = 125)
+        Number of columns at which cell.inp should be wrapped. ``gefdc``
+        requires this to be 125.
+    flip : optional bool (default = True)
+        Numpy arrays have their origin in the upper left corner, so in
+        a sense south is up and north is down. This means that arrays
+        need to be flipped before writing to "cell.inp". Unless you are
+        _absolutely_sure_ that your array has been flipped already,
+        leave this parameter as True.
+
+    Returns
+    -------
+    None
+
+    See also
+    --------
+    _make_gefdc_cells
+
     '''
-    if not testing:
-        raise NotImplementedError
 
-    triangle_dict = {
-        0: 3,
-        1: 2,
-        2: 4,
-        3: 1,
-    }
-
-    # I can't figure this out
-    if triangle_cells:
-        raise NotImplementedError('you should add triangular cells yourself')
-
-    # basic stuff, array shapes, etc
-    ny, nx = bool_node_array.shape
-    cells = np.zeros(np.array(bool_node_array.shape)+2, dtype=int)
-
-    # loop through each *node*
-    for j in range(0, ny):
-        for i in range(0, nx):
-            # pull out the 4 nodes defining the cell (call it a quad)
-            quad = bool_node_array[j:j+2, i:i+2]
-            n_wet = quad.sum()
-
-            # the first row of *cells* is alawys all 0's
-            if j == 0 and n_wet > 0:
-                cells[j, i+1] = 9
-
-            # if all 4 nodes are wet (=1), then the cell is 5
-            if n_wet == 4:
-                cells[j+1, i+1] = 5
-
-            # # if only 3  are wet, might be a triangle, but...
-            # elif quad.sum() in (3, 2, 1):
-            #     # this ignored since we already raised an error
-            #     if triangle_cells:
-            #         dry_node = np.argmin(quad.flatten())
-            #         cells[j+1, i+1] = triangle_dict[dry_node]
-            #     # and this always happens instead (make it a bank)
-            #     else:
-            #         cells[j+1, i+1] = 9
-
-            # # 2 wet cells mean it's a bank
-            # elif quad.sum() == 2 or quad.sum() == 1:
-            #     cells[j+1, i+1] = 9
-
-    for cj in range(1, cells.shape[0]-1):
-        for ci in range(1, cells.shape[1]-1):
-            if cells[cj, ci] == 5:
-                block = cells[cj-1:cj+2, ci-1:ci+2]
-                bj, bi = np.nonzero(block == 0)
-                for bjj, bii in zip(bj, bi):
-                    cells[cj+bjj-1, ci+bii-1] = 9
-
-    nrows = cells.shape[0]
-    ncols = cells.shape[1]
-
-    nchunks = np.ceil(ncols / maxcols)
-    if ncols > maxcols:
-        final_cells = np.zeros((nrows*nchunks, maxcols), dtype=int)
-        for n in np.arange(nchunks):
-            col_start = n * maxcols
-            col_stop = (n+1) * maxcols
-
-            row_start = n * nrows
-            row_stop = (n+1) * nrows
-
-            cells_to_move = cells[:, col_start:col_stop]
-            final_cells[row_start:row_stop, 0:cells_to_move.shape[1]] = cells_to_move
-    else:
-        final_cells = cells.copy()
-
-    final_cells = np.flipud(final_cells)
+    if flip:
+        cell_array = np.flipud(cell_array)
 
     columns = np.arange(1, 126, dtype=int)
     colstr = [list('{:04d}'.format(c)) for c in columns]
@@ -630,16 +570,13 @@ def _write_cellinp(bool_node_array, outfilename, triangle_cells=False,
         outfile.write('C    {}\n'.format(hundreds[:ncols]))
         outfile.write('C    {}\n'.format(tens[:ncols]))
         outfile.write('C    {}\n'.format(ones[:ncols]))
-        for n, row in enumerate(final_cells):
+        for n, row in enumerate(cell_array):
             row_number = nrows - n
             row_strings = row.astype(str)
             cell_text = ''.join(row_strings.tolist())
             row_text = '{0:3d}  {1:s}\n'.format(int(row_number), cell_text)
 
             outfile.write(row_text)
-
-
-    return cells
 
 
 def _write_gefdc_control_file(outfile, title, max_i, max_j, bathyrows):

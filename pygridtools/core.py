@@ -172,7 +172,9 @@ class ModelGrid(object):
                                           where=where, shift=shift)
         return self
 
-    def mask_cells_with_polygon(self, polyverts, inside=True, inplace=True):
+    def mask_cells_with_polygon(self, polyverts, use_cells=True,
+                                inside=True, triangles=False,
+                                min_nodes=3, inplace=True):
         polyverts = np.asarray(polyverts)
         if polyverts.ndim != 2:
             raise ValueError('polyverts must be a 2D array, or a '
@@ -184,21 +186,33 @@ class ModelGrid(object):
         if polyverts.shape[0] < 3:
             raise ValueError('polyverts must contain at least 3 points')
 
-        coords = self.as_coord_pairs(which='cells')
-        mask = points_inside_poly(coords, polyverts).reshape(self.cell_shape)
+        if use_cells:
+            cells = self.as_coord_pairs(which='cells')
+            cell_mask = misc.points_inside_poly(
+                cells, polyverts
+            ).reshape(self.cell_shape)
+        else:
+            nodes = self.as_coord_pairs(which='nodes')
+            _node_mask = misc.points_inside_poly(
+                nodes, polyverts
+            ).reshape(self.shape)
 
+            cell_mask = (
+                _node_mask[1:, 1:] + _node_mask[:-1, :-1] +
+                _node_mask[:-1, 1:] + _node_mask[1:, :-1]
+            ) < min_nodes,
         if not inside:
-            mask = ~mask
+            cell_mask = ~cell_mask
 
         if inplace:
-            self.cell_mask = np.bitwise_or(self.cell_mask, mask)
+            self.cell_mask = np.bitwise_or(self.cell_mask, cell_mask)
 
         else:
-            return mask
+            return cell_mask
 
     def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
                               bathyrows=0, title='test'):
-        outfile = _outputfile(outputdir, filename)
+        outfile = io._outputfile(outputdir, filename)
 
         gefdc = io._write_gefdc_control_file(
             outfile,
@@ -210,24 +224,24 @@ class ModelGrid(object):
         return gefdc
 
     def writeGEFDCCellFile(self, outputdir=None, filename='cell.inp',
-                           usetriangles=False, maxcols=125):
-        outfile = _outputfile(outputdir, filename)
+                           triangles=False, maxcols=125):
 
-        cells = io._write_cellinp(
-            ~np.isnan(self.xn),
-            outfile,
-            triangle_cells=usetriangles,
-            maxcols=maxcols,
+        cells = misc.make_gefdc_cells(
+            ~np.isnan(self.xn), self.cell_mask, triangles=triangles
         )
+        outfile = io._outputfile(outputdir, filename)
+
+        io._write_cellinp(cells, outputfile=outfile,
+                                  flip=True, maxcols=maxcols)
         return cells
 
     def writeGEFDCGridFile(self, outputdir=None, filename='grid.out'):
-        outfile = _outputfile(outputdir, filename)
+        outfile = io._outputfile(outputdir, filename)
         df = io._write_gridout_file(self.xn, self.yn, outfile)
         return df
 
     def writeGEFDCGridextFile(self, outputdir, shift=2, filename='gridext.inp'):
-        outfile = _outputfile(outputdir, filename)
+        outfile = io._outputfile(outputdir, filename)
         df = self.as_dataframe().stack(level='i', dropna=True).reset_index()
         df['i'] += shift
         df['j'] += shift
@@ -271,7 +285,7 @@ class ModelGrid(object):
 
     def to_shapefile(self, outputfile, usemask=True, which='nodes',
                      river=None, reach=0, elev=None, template=None,
-                     geom='Point', mode='w'):
+                     geom='Point', mode='w', triangles=False):
 
         if usemask:
             if which == 'nodes':
@@ -293,7 +307,8 @@ class ModelGrid(object):
         elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
             io.saveGridShapefile(self.xn, self.yn, mask, template,
                                  outputfile, mode=mode, river=river,
-                                 reach=reach, elev=elev)
+                                 reach=reach, elev=elev,
+                                 triangles=triangles)
         else:
             raise ValueError("geom must be either 'Point' or 'Polygon'")
 

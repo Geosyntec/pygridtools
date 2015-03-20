@@ -382,7 +382,7 @@ class test_padded_stack(object):
 class base_make_gefdc_cells(object):
     def test_output(self):
         cells = misc.make_gefdc_cells(self.nodes, cell_mask=self.mask,
-                                      use_triangles=self.triangles)
+                                      triangles=self.triangles)
         nptest.assert_array_equal(cells, self.known_cells)
 
 
@@ -400,10 +400,10 @@ class test_make_gedfc_cells_triangles(base_make_gefdc_cells):
 
         self.known_cells = np.array([
             [9, 9, 9, 9, 9, 9, 0, 0, 0],
-            [9, 4, 5, 5, 1, 9, 9, 9, 9],
-            [9, 5, 5, 5, 5, 5, 5, 5, 9],
-            [9, 5, 5, 5, 5, 5, 5, 5, 9],
             [9, 3, 5, 5, 2, 9, 9, 9, 9],
+            [9, 5, 5, 5, 5, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 5, 5, 9],
+            [9, 4, 5, 5, 1, 9, 9, 9, 9],
             [9, 9, 9, 9, 9, 9, 0, 0, 0],
         ])
 
@@ -518,17 +518,3 @@ class test_make_gefdc_cells_complex_nomask(base_make_gefdc_cells):
             [0, 0, 0, 9, 5, 5, 5, 9, 0, 0, 0, 0],
             [0, 0, 0, 9, 9, 9, 9, 9, 0, 0, 0, 0]
         ])
-
-
-class test__outputfile(object):
-    def test_basic(self):
-        nt.assert_equal(
-            misc._outputfile('this', 'that.txt'),
-            os.path.join('this', 'that.txt')
-        )
-
-    def test_withNone(self):
-        nt.assert_equal(
-            misc._outputfile(None, 'that.txt'),
-            os.path.join('.', 'that.txt')
-        )

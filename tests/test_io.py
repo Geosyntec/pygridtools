@@ -12,6 +12,21 @@ from pygridtools import io
 import testing
 
 
+class test__outputfile(object):
+    def test_basic(self):
+        nt.assert_equal(
+            io._outputfile('this', 'that.txt'),
+            os.path.join('this', 'that.txt')
+        )
+
+    def test_withNone(self):
+        nt.assert_equal(
+            io._outputfile(None, 'that.txt'),
+            os.path.join('.', 'that.txt')
+        )
+
+
+
 class test__check_mode(object):
     @nt.raises(ValueError)
     def test_errors(self):
@@ -222,58 +237,34 @@ class test_shapefileToDataFrame(object):
         raise NotImplementedError
 
 
-class base__write_cellinp(object):
+class test_write_cellinp(object):
     def setup(self):
-        self.grid  = np.array([
-            [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
-            [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
-            [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-            [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+        self.cells = np.array([
+            [9, 9, 9, 9, 9, 9, 0, 0, 0],
+            [9, 3, 5, 5, 2, 9, 9, 9, 9],
+            [9, 5, 5, 5, 5, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 5, 5, 9],
+            [9, 4, 5, 5, 1, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9, 0, 0, 0],
         ])
         self.basic_output = 'tests/result_files/cell_basic.inp'
         self.known_basic_output = 'tests/baseline_files/cell_basic.inp'
+
         self.chunked_output = 'tests/result_files/cell_chunked.inp'
         self.known_chunked_output = 'tests/baseline_files/cell_chunked.inp'
-        self.triangle_output = 'tests/result_files/cell_triangle.inp'
-        self.known_triangle_output = 'tests/baseline_files/cell_triangle.inp'
 
-    @nt.raises(NotImplementedError)
     def test_basic(self):
-        io._write_cellinp(self.grid, self.basic_output)
+        io._write_cellinp(self.cells, self.basic_output)
         testing.compareTextFiles(
             self.basic_output,
             self.known_basic_output
         )
 
-    @nt.raises(NotImplementedError)
     def test_chunked(self):
-        io._write_cellinp(self.grid, self.chunked_output, maxcols=5)
+        io._write_cellinp(self.cells, self.chunked_output, maxcols=5)
         testing.compareTextFiles(
             self.chunked_output,
             self.known_chunked_output
-        )
-
-    @nt.raises(NotImplementedError)
-    def test_with_triangles(self):
-        io._write_cellinp(self.grid, self.triangle_output)
-        testing.compareTextFiles(
-            self.triangle_output,
-            self.known_triangle_output
         )
 
 

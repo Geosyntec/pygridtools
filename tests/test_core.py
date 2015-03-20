@@ -530,7 +530,6 @@ class test_makeGrid(object):
         nt.assert_true(isinstance(grid1, pygridgen.Gridgen))
         pass
 
-
     @nt.raises(ValueError)
     def test_makegrid_no_nx(self):
         nx = self.gridparams.pop('nx')

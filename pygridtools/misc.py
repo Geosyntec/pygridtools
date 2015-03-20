@@ -172,7 +172,7 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
     return bathy
 
 
-def padded_stack(a, b, how='vert', where='+', shift=0):
+def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
     '''Merge 2-dimensional numpy arrays with different shapes
 
     Parameters
@@ -188,8 +188,8 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
         corner, `'+'` indicates that the second array will be placed
         at higher index relative to the first array. Essentially:
          - if how == 'vert'
-            - `'+'` -> `a` is above `b`
-            - `'-'` -> `a` is below `b`
+            - `'+'` -> `a` is above (higher index) `b`
+            - `'-'` -> `a` is below (lower index) `b`
          - if how == 'horiz'
             - `'+'` -> `a` is to the left of `b`
             - `'-'` -> `a` is to the right of `b`
@@ -199,10 +199,8 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
         axis other than the one being merged. In other words, vertically
         stacked arrays can be shifted horizontally, and horizontally
         stacked arrays can be shifted vertically.
-    [a|b]_transform : function, lambda, or None (default)
-        Individual transformations that will be applied to the arrays
-        *prior* to being merged. This can be numeric of even alter the
-        shapes (e.g., `np.flipud`, `np.transpose`)
+    padval : optional, same type as array (default = np.nan)
+        Value with which the arrays will be padded.
 
     Returns
     -------
@@ -265,7 +263,7 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
             y_pads = (v_pads, (b_pad_left, b_pad_right))
 
             mode = 'constant'
-            fill = (np.nan, np.nan)
+            fill = (padval, padval)
             stacked = np.vstack([
                 np.pad(a, x_pads, mode=mode, constant_values=fill),
                 np.pad(b, y_pads, mode=mode, constant_values=fill)
@@ -281,7 +279,7 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
     return stacked
 
 
-def make_gefdc_cells(node_mask, cell_mask=None, use_triangles=False):
+def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
     '''
     Take an array defining the nodes as wet (1) or dry (0) create the
     array of cell values needed for GEFDC
@@ -294,7 +292,7 @@ def make_gefdc_cells(node_mask, cell_mask=None, use_triangles=False):
     cell_mask : optional numpy bool array (N-1 x M-1) or None (default)
         Bool array specifying if a cell should be masked (e.g. due to
         being an island or something like that).
-    use_triangles : optional bool (default = False)
+    triangles : optional bool (default = False)
         Currently not implemented. Will eventually enable the writting of
         triangular cells when True.
 
@@ -306,17 +304,17 @@ def make_gefdc_cells(node_mask, cell_mask=None, use_triangles=False):
     '''
 
     triangle_cells = {
-        2: 3,
-        3: 2,
-        0: 4,
-        1: 1,
+        0: 3,
+        1: 2,
+        3: 1,
+        2: 4,
     }
     land_cell = 0
     water_cell = 5
     bank_cell = 9
 
     # I can't figure this out
-    if use_triangles:
+    if triangles:
         warnings.warn('triangles are experimental')
 
     # define the initial cells with everything labeled as a bank
@@ -338,7 +336,7 @@ def make_gefdc_cells(node_mask, cell_mask=None, use_triangles=False):
 
                 # if only 3  are wet, might be a triangle, but...
                 # this ignored since we already raised an error
-                elif n_wet == 3 and use_triangles:
+                elif n_wet == 3 and triangles:
                     dry_node = np.argmin(quad.flatten())
                     cells[jj, ii] = triangle_cells[dry_node]
 
@@ -374,9 +372,3 @@ def make_gefdc_cells(node_mask, cell_mask=None, use_triangles=False):
 
     final_cells = cells.copy()
     return final_cells
-
-
-def _outputfile(outputdir, filename):
-    if outputdir is None:
-        outputdir = '.'
-    return os.path.join(outputdir, filename)

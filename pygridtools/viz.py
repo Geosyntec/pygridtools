@@ -8,7 +8,7 @@ import seaborn
 from bokeh import plotting
 from bokeh.models import HoverTool
 
-from . import io
+from . import misc
 
 
 def checkAx(ax):
@@ -128,7 +128,7 @@ def _plot_cells_mpl(nodes_x, nodes_y, mask=None, ax=None):
                 coords = None
 
             else:
-                coords = io.makeQuadCoords(
+                coords = misc.makePolyCoords(
                     nodes_x[jj:jj+2, ii:ii+2],
                     nodes_y[jj:jj+2, ii:ii+2],
                 )

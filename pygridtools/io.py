@@ -10,6 +10,14 @@ import matplotlib.pyplot as plt
 import pandas
 import fiona
 
+from . import misc
+
+
+def _outputfile(outputdir, filename):
+    if outputdir is None:
+        outputdir = '.'
+    return os.path.join(outputdir, filename)
+
 
 def _check_mode(mode):
     if mode.lower() not in ['a', 'w']:
@@ -200,91 +208,6 @@ def dumpGridFiles(grid, filename):
                   header=False, float_format='%.3f')
 
 
-def makeQuadCoords(xarr, yarr, zpnt=None):
-    '''
-    Makes an array for coordinates suitable for building quadrilateral
-    geometries in shapfiles via fiona.
-
-    Parameters
-    ----------
-    xarr, yarr : numpy arrays
-        Arrays (2x2) of x coordinates and y coordinates for each vertex of
-        the quadrilateral.
-    zpnt : optional float or None (default)
-        If provided, this elevation value will be assied to all four vertices
-
-    Returns
-    -------
-    coords : numpy array
-        An array suitable for feeding into fiona as the geometry of a record.
-
-    '''
-
-    if not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0:
-        if zpnt is None:
-            coords = np.vstack([
-                np.hstack([xarr[0,:], xarr[1,::-1]]),
-                np.hstack([yarr[0,:], yarr[1,::-1]])
-            ]).T
-        else:
-            xcoords = np.hstack([xarr[0,:], xarr[1,::-1]])
-            ycoords = np.hstack([yarr[0,:], yarr[1,::-1]])
-            zcoords = np.array([zpnt] * xcoords.shape[0])
-            coords = np.vstack([xcoords, ycoords, zcoords]).T
-    else:
-        coords = None
-
-    return coords
-
-
-def makeRecord(ID, coords, geomtype, props):
-    '''
-    Creates a records for the fiona package to append to a shapefile
-
-    Parameters
-    ----------
-    ID : int
-        The record ID number
-    coords : tuple or array-like
-        The x-y coordinates of the geometry. For Points, just a tuple. An
-        array or list of tuples for LineStrings or Polygons
-    geomtype : string
-        A valid GDAL/OGR geometry specification (e.g. LineString, Point,
-        Polygon)
-    props : dict or collections.OrderedDict
-        A dict-like object defining the attributes of the record
-
-    Returns
-    -------
-    record : dict
-        A nested dictionary suitable for the fiona package to append to a
-        shapefile
-
-    Notes
-    -----
-    This is ignore the mask of a MaskedArray. That might be bad.
-
-    '''
-    if not geomtype in ['Point', 'LineString', 'Polygon']:
-        raise ValueError('Geometry {} not suppered'.format(geomtype))
-
-    if isinstance(coords, np.ma.MaskedArray):
-        coords = coords.data
-
-    if isinstance(coords, np.ndarray):
-        coords = coords.tolist()
-
-    record = {
-    'id': ID,
-    'geometry': {
-        'coordinates': coords if geomtype == 'Point' else [coords],
-        'type': geomtype
-        },
-    'properties': props
-    }
-    return record
-
-
 def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
                        reach=0, elev=None):
     '''
@@ -359,12 +282,12 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
                     )
 
                     # append to the output file
-                    record = makeRecord(row, coords, 'Point', props)
+                    record = misc.makeRecord(row, coords, 'Point', props)
                     out.write(record)
 
 
 def saveGridShapefile(X, Y, mask, template, outputfile, mode,
-                      river=None, reach=0, elev=None):
+                      river=None, reach=0, elev=None, triangles=False):
     '''
     Saves a shapefile of quadrilaterals representing grid cells.
 
@@ -392,6 +315,8 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
     elev : optional array or None (defauly)
         The elevation of the grid cells. Shape should be N-1 by M-1,
         where N and M are the dimensions of `X` and `Y` (like `mask`).
+    triangles : optional bool (default = False)
+        If True, triangles can be included
 
     Returns
     -------
@@ -438,10 +363,10 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
                     row += 1
                     Z = elev[jj, ii]
                     # build the array or coordinates
-                    coords = makeQuadCoords(
+                    coords = misc.makePolyCoords(
                         xarr=X[jj:jj+2, ii:ii+2],
                         yarr=Y[jj:jj+2, ii:ii+2],
-                        zpnt=Z
+                        zpnt=Z, triangles=triangles
                     )
 
                     # build the attributes
@@ -454,7 +379,7 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
                     # append to file is coordinates are not masked
                     # (masked = beyond the river boundary)
                     if coords is not None:
-                        record = makeRecord(row, coords, 'Polygon', props)
+                        record = misc.makeRecord(row, coords, 'Polygon', props)
                         out.write(record)
 
 
@@ -479,8 +404,8 @@ def saveXYShapefile(tidydata, template, outputfile, mode='w',
             ii=ii+2, jj=jj+2, elev=0,
             ii_jj='{:02d}_{:02d}'.format(ii+2, jj+2)
         )
-        # makeRecord(ID, coords, geomtype, props):
-        shpio.write(makeRecord(row.name, coords, 'Point', props))
+        # misc.makeRecord(ID, coords, geomtype, props):
+        shpio.write(misc.makeRecord(row.name, coords, 'Point', props))
         return 0
 
     # start writting or appending to the output
@@ -524,122 +449,84 @@ def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
     return df
 
 
-def _write_cellinp(bool_node_array, outfilename, triangle_cells=False,
-                  maxcols=125, testing=False):
-    '''
-    Take an array defining the nodes as wet (1) or dry (0) and writes
-    the cell.inp input file.
+def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
+                   writeheader=True, rowlabels=True,
+                   maxcols=125, flip=True):
+    '''Writes the cell.inp input file from an array of cell definitions.
 
-    Input
-    -----
-    bool_node_array : numpy array of integers (0's and 1's)
-        Not really a boolean array per se. Just an 0 or 1 array defining
-        a node as wet or dry.
-    outfilename : string
-        Path *and* filename to the outputfile. Yes, you have to tell it
+    Parameters
+    ----------
+    cell_array : numpy array
+        Integer array of the values written to ``outfile``.
+    outputfile : optional string (default = "cell.inp")
+        Path *and* filename to the output file. Yes, you have to tell it
         to call the file cell.inp
-    triangle_cells : optional bool, default is False
-        Toggles the definition if triangular cells. Very greedy.
-        Probably easier to keep off and add them yourself.
+    maxcols : optional int (default = 125)
+        Number of columns at which cell.inp should be wrapped. ``gefdc``
+        requires this to be 125.
+    flip : optional bool (default = True)
+        Numpy arrays have their origin in the upper left corner, so in
+        a sense south is up and north is down. This means that arrays
+        need to be flipped before writing to "cell.inp". Unless you are
+        _absolutely_sure_ that your array has been flipped already,
+        leave this parameter as True.
+
+    Returns
+    -------
+    None
+
+    See also
+    --------
+    _make_gefdc_cells
+
     '''
-    if not testing:
-        raise NotImplementedError
 
-    triangle_dict = {
-        0: 3,
-        1: 2,
-        2: 4,
-        3: 1,
-    }
+    if flip:
+        cell_array = np.flipud(cell_array)
 
-    # I can't figure this out
-    if triangle_cells:
-        raise NotImplementedError('you should add triangular cells yourself')
+    nrows, ncols = cell_array.shape
 
-    # basic stuff, array shapes, etc
-    ny, nx = bool_node_array.shape
-    cells = np.zeros(np.array(bool_node_array.shape)+2, dtype=int)
+    if cell_array.shape[1] > maxcols:
+        first_array = cell_array[:, :maxcols]
+        _second_array = cell_array[:, maxcols:]
+        padwidth = maxcols - _second_array.shape[1]
+        second_array = np.pad(_second_array, ((0, 0), (0, padwidth)),
+                              mode='constant', constant_values=0)
 
-    # loop through each *node*
-    for j in range(0, ny):
-        for i in range(0, nx):
-            # pull out the 4 nodes defining the cell (call it a quad)
-            quad = bool_node_array[j:j+2, i:i+2]
-            n_wet = quad.sum()
+        _write_cellinp(first_array, outputfile=outputfile, mode=mode,
+                       writeheader=writeheader, rowlabels=rowlabels,
+                       maxcols=maxcols, flip=False)
+        _write_cellinp(second_array, outputfile=outputfile, mode='a',
+                       writeheader=False, rowlabels=False,
+                       maxcols=maxcols, flip=False)
 
-            # the first row of *cells* is alawys all 0's
-            if j == 0 and n_wet > 0:
-                cells[j, i+1] = 9
-
-            # if all 4 nodes are wet (=1), then the cell is 5
-            if n_wet == 4:
-                cells[j+1, i+1] = 5
-
-            # # if only 3  are wet, might be a triangle, but...
-            # elif quad.sum() in (3, 2, 1):
-            #     # this ignored since we already raised an error
-            #     if triangle_cells:
-            #         dry_node = np.argmin(quad.flatten())
-            #         cells[j+1, i+1] = triangle_dict[dry_node]
-            #     # and this always happens instead (make it a bank)
-            #     else:
-            #         cells[j+1, i+1] = 9
-
-            # # 2 wet cells mean it's a bank
-            # elif quad.sum() == 2 or quad.sum() == 1:
-            #     cells[j+1, i+1] = 9
-
-    for cj in range(1, cells.shape[0]-1):
-        for ci in range(1, cells.shape[1]-1):
-            if cells[cj, ci] == 5:
-                block = cells[cj-1:cj+2, ci-1:ci+2]
-                bj, bi = np.nonzero(block == 0)
-                for bjj, bii in zip(bj, bi):
-                    cells[cj+bjj-1, ci+bii-1] = 9
-
-    nrows = cells.shape[0]
-    ncols = cells.shape[1]
-
-    nchunks = np.ceil(ncols / maxcols)
-    if ncols > maxcols:
-        final_cells = np.zeros((nrows*nchunks, maxcols), dtype=int)
-        for n in np.arange(nchunks):
-            col_start = n * maxcols
-            col_stop = (n+1) * maxcols
-
-            row_start = n * nrows
-            row_stop = (n+1) * nrows
-
-            cells_to_move = cells[:, col_start:col_stop]
-            final_cells[row_start:row_stop, 0:cells_to_move.shape[1]] = cells_to_move
     else:
-        final_cells = cells.copy()
+        columns = np.arange(1, maxcols+1, dtype=int)
+        colstr = [list('{:04d}'.format(c)) for c in columns]
+        hundreds = ''.join([c[1] for c in colstr])
+        tens = ''.join([c[2] for c in colstr])
+        ones = ''.join([c[3] for c in colstr])
 
-    final_cells = np.flipud(final_cells)
+        with open(outputfile, mode) as outfile:
+            if writeheader:
+                title = 'C -- cell.inp for EFDC model by pygridtools\n'
+                outfile.write(title)
+                outfile.write('C    {}\n'.format(hundreds[:ncols]))
+                outfile.write('C    {}\n'.format(tens[:ncols]))
+                outfile.write('C    {}\n'.format(ones[:ncols]))
 
-    columns = np.arange(1, 126, dtype=int)
-    colstr = [list('{:04d}'.format(c)) for c in columns]
-    hundreds = ''.join([c[1] for c in colstr])
-    tens = ''.join([c[2] for c in colstr])
-    ones = ''.join([c[3] for c in colstr])
+            for n, row in enumerate(cell_array):
+                row_number = nrows - n
+                row_strings = row.astype(str)
+                cell_text = ''.join(row_strings.tolist())
+                if rowlabels:
+                    row_text = '{0:3d}  {1:s}\n'.format(
+                        int(row_number), cell_text
+                    )
+                else:
+                    row_text = '     {0:s}\n'.format(cell_text)
 
-    with open(outfilename, 'w') as outfile:
-        outfile.write(
-            'C -- cell.inp for EFDC model. Generated by Paul/python\n'
-        )
-        outfile.write('C    {}\n'.format(hundreds[:ncols]))
-        outfile.write('C    {}\n'.format(tens[:ncols]))
-        outfile.write('C    {}\n'.format(ones[:ncols]))
-        for n, row in enumerate(final_cells):
-            row_number = nrows - n
-            row_strings = row.astype(str)
-            cell_text = ''.join(row_strings.tolist())
-            row_text = '{0:3d}  {1:s}\n'.format(int(row_number), cell_text)
-
-            outfile.write(row_text)
-
-
-    return cells
+                outfile.write(row_text)
 
 
 def _write_gefdc_control_file(outfile, title, max_i, max_j, bathyrows):
@@ -769,7 +656,7 @@ def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):
             ii=int(row.i), jj=int(row.j), elev=0,
             ii_jj='{:03d}_{:03d}'.format(int(row.i), int(row.j))
         )
-        record = makeRecord(int(row.name), coords, 'Point', props)
+        record = misc.makeRecord(int(row.name), coords, 'Point', props)
         try:
             outfile.write(record)
             return 1

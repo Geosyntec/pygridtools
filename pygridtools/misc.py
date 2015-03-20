@@ -1,5 +1,5 @@
 import os
-import pdb
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,14 +7,99 @@ import matplotlib.path as mpath
 import pandas
 import fiona
 
-import pygridgen
-
-from . import viz
-from . import io
-
 
 def points_inside_poly(points, polyverts):
     return mpath.Path(polyverts).contains_points(points)
+
+
+def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
+    '''
+    Makes an array for coordinates suitable for building quadrilateral
+    geometries in shapfiles via fiona.
+
+    Parameters
+    ----------
+    xarr, yarr : numpy arrays
+        Arrays (2x2) of x coordinates and y coordinates for each vertex
+        of the quadrilateral.
+    zpnt : optional float or None (default)
+        If provided, this elevation value will be assigned to all four
+        vertices.
+    triangles : optional bool (default = False)
+        If True, triangles will be returned
+
+    Returns
+    -------
+    coords : numpy array
+        An array suitable for feeding into fiona as the geometry of a record.
+
+    '''
+    def process_input(array):
+        flat = np.hstack([array[0,:], array[1,::-1]])
+        return flat[~np.isnan(flat)]
+
+    x = process_input(xarr)
+    y = process_input(yarr)
+    if (not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0
+            or (triangles and len(x) == 3)):
+        if zpnt is None:
+            coords = np.vstack([x ,y]).T
+        else:
+            z = np.array([zpnt] * x.shape[0])
+            coords = np.vstack([x, y, z]).T
+
+    else:
+        coords = None
+
+    return coords
+
+
+def makeRecord(ID, coords, geomtype, props):
+    '''
+    Creates a records for the fiona package to append to a shapefile
+
+    Parameters
+    ----------
+    ID : int
+        The record ID number
+    coords : tuple or array-like
+        The x-y coordinates of the geometry. For Points, just a tuple. An
+        array or list of tuples for LineStrings or Polygons
+    geomtype : string
+        A valid GDAL/OGR geometry specification (e.g. LineString, Point,
+        Polygon)
+    props : dict or collections.OrderedDict
+        A dict-like object defining the attributes of the record
+
+    Returns
+    -------
+    record : dict
+        A nested dictionary suitable for the fiona package to append to a
+        shapefile
+
+    Notes
+    -----
+    This is ignore the mask of a MaskedArray. That might be bad.
+
+    '''
+    if not geomtype in ['Point', 'LineString', 'Polygon']:
+        raise ValueError('Geometry {} not suppered'.format(geomtype))
+
+    if isinstance(coords, np.ma.MaskedArray):
+        coords = coords.data
+
+    if isinstance(coords, np.ndarray):
+        coords = coords.tolist()
+
+    record = {
+    'id': ID,
+    'geometry': {
+        'coordinates': coords if geomtype == 'Point' else [coords],
+        'type': geomtype
+        },
+    'properties': props
+    }
+    return record
 
 
 def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
@@ -87,96 +172,7 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
     return bathy
 
 
-def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
-             plot=True, xlimits=None, ax=None, figpath=None,
-             outdir=None, title=None, verbose=False, **gparams):
-    '''
-    Generate and (optionally) visualize a grid, and create input files
-    for the GEDFC preprocessor (makes grid input files for GEFDC).
-
-    Parameters
-    ----------
-    coords : optional pandas.DataFrame or None (default)
-        Defines the boundary of the model area. Must be provided if
-        `makegrid` = True. Required columns:
-          - 'x' (easting)
-          - 'y' (northing),
-          - 'beta' (turning points, must sum to 1)
-    bathydata : optional pandas.DataFrame or None (default)
-        Point bathymetry/elevation data. Will be interpolated unto the
-        grid if provided. If None, a default value of 0 will be used.
-        Required columns:
-          - 'x' (easting)
-          - 'y' (northing),
-          - 'z' (elevation)
-    makegrid : optional bool (default = True)
-        Set to false to not generate a new grid in favor of using the
-        provided object.
-    plot : optional bool (default = False)
-        Draws a plot of the grid
-    xlimits : optional bool (default = False)
-        Sets the xlimit of `Axes` object
-    ax : optional `matplotlib.Axes object or None (default)
-        Axes on which the grid will be drawn if `plot` = True. If
-        ommitted as `plot` = True, a new Axes will be created.
-    **gparams : optional kwargs
-        Parameters to be passed to the pygridgen.grid.Gridgen constructor.
-        Only used if `makegrid` = True and `coords` is not None.
-        `ny` and `nx` are required. Other values are optional.
-
-    Returns
-    -------
-    grid : pygridgen.grid.Gridgen obejct
-    fig : matplotlib.Figure object
-
-    Notes
-    -----
-    - Generating the grid can take some time. pass in `verbose` = True
-       to watch the progress in the console.
-
-    See Also
-    --------
-    pygridgen.grid.Gridgen
-
-    '''
-
-    # generate the grid.
-    if grid is None:
-        if makegrid:
-            try:
-                nx = gparams.pop('nx')
-                ny = gparams.pop('ny')
-            except KeyError:
-                raise ValueError('must provide `nx` and `ny` if '
-                                 '`makegrid` = True')
-            if verbose:
-                print('generating grid')
-            grid = pygridgen.Gridgen(coords.x, coords.y, coords.beta,
-                                     (ny, nx), **gparams)
-        else:
-            raise ValueError("must provide `grid` if `makegrid` = False")
-    if verbose:
-        print('interpolating bathymetry')
-    newbathy = interpolateBathymetry(bathydata, grid, xcol='x',
-                                     ycol='y', zcol='z')
-
-    if plot:
-        if verbose:
-            print('plotting data and saving image')
-        fig, ax = viz.plotPygridgen(grid, ax=ax)
-        ax.set_aspect('equal')
-        if xlimits is not None:
-            ax.set_xlim(xlimits)
-
-        if figpath is not None:
-            fig.savefig(figpath)
-    else:
-        fig = None
-
-    return grid, fig
-
-
-def padded_stack(a, b, how='vert', where='+', shift=0):
+def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
     '''Merge 2-dimensional numpy arrays with different shapes
 
     Parameters
@@ -192,8 +188,8 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
         corner, `'+'` indicates that the second array will be placed
         at higher index relative to the first array. Essentially:
          - if how == 'vert'
-            - `'+'` -> `a` is above `b`
-            - `'-'` -> `a` is below `b`
+            - `'+'` -> `a` is above (higher index) `b`
+            - `'-'` -> `a` is below (lower index) `b`
          - if how == 'horiz'
             - `'+'` -> `a` is to the left of `b`
             - `'-'` -> `a` is to the right of `b`
@@ -203,10 +199,8 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
         axis other than the one being merged. In other words, vertically
         stacked arrays can be shifted horizontally, and horizontally
         stacked arrays can be shifted vertically.
-    [a|b]_transform : function, lambda, or None (default)
-        Individual transformations that will be applied to the arrays
-        *prior* to being merged. This can be numeric of even alter the
-        shapes (e.g., `np.flipud`, `np.transpose`)
+    padval : optional, same type as array (default = np.nan)
+        Value with which the arrays will be padded.
 
     Returns
     -------
@@ -269,7 +263,7 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
             y_pads = (v_pads, (b_pad_left, b_pad_right))
 
             mode = 'constant'
-            fill = (np.nan, np.nan)
+            fill = (padval, padval)
             stacked = np.vstack([
                 np.pad(a, x_pads, mode=mode, constant_values=fill),
                 np.pad(b, y_pads, mode=mode, constant_values=fill)
@@ -285,331 +279,96 @@ def padded_stack(a, b, how='vert', where='+', shift=0):
     return stacked
 
 
-def _outputfile(outputdir, filename):
-    if outputdir is None:
-        outputdir = '.'
-    return os.path.join(outputdir, filename)
-
-
-class _PointSet(object):
-    def __init__(self, array):
-        self._points = np.asarray(array)
-
-    @property
-    def points(self):
-        return self._points
-    @points.setter
-    def points(self, value):
-        self._points = np.asarray(value)
-
-    @property
-    def shape(self):
-        return self.points.shape
-
-    def transform(self, fxn, *args, **kwargs):
-        self.points = fxn(self.points, *args, **kwargs)
-        return self
-
-    def transpose(self):
-        return self.transform(np.transpose)
-
-    def merge(self, other, how='vert', where='+', shift=0):
-        return self.transform(padded_stack, other.points, how=how,
-                              where=where, shift=shift)
-
-
-class ModelGrid(object):
-    def __init__(self, nodes_x, nodes_y):
-        if not np.all(nodes_x.shape == nodes_y.shape):
-            raise ValueError('input arrays must have the same shape')
-
-        self._nodes_x = _PointSet(nodes_x)
-        self._nodes_y = _PointSet(nodes_y)
-        self._template = None
-        self._cell_mask = np.zeros(self.cell_shape, dtype=bool)
-
-    @property
-    def nodes_x(self):
-        '''_PointSet object of x-nodes'''
-        return self._nodes_x
-    @nodes_x.setter
-    def nodes_x(self, value):
-        self._nodes_x = value
-
-    @property
-    def nodes_y(self):
-        return self._nodes_y
-    @nodes_y.setter
-    def nodes_y(self, value):
-        '''_PointSet object of y-nodes'''
-        self._nodes_y = value
-
-    @property
-    def cells_x(self):
-        '''_PointSet object of x-cells'''
-        xc = 0.25 * (
-            self.xn[1:,1:] + self.xn[1:,:-1] +
-            self.xn[:-1,1:] + self.xn[:-1,:-1]
-        )
-        return xc
-
-    @property
-    def cells_y(self):
-        yc = 0.25 * (
-            self.yn[1:,1:] + self.yn[1:,:-1] +
-            self.yn[:-1,1:] + self.yn[:-1,:-1]
-        )
-        return yc
-
-    @property
-    def shape(self):
-        return self.nodes_x.shape
-
-    @property
-    def cell_shape(self):
-        return self.cells_x.shape
-
-    @property
-    def xn(self):
-        '''shortcut to x-coords of nodes'''
-        return self.nodes_x.points
-
-    @property
-    def yn(self):
-        '''shortcut to y-coords of nodes'''
-        return self.nodes_y.points
-
-    @property
-    def xc(self):
-        '''shortcut to x-coords of nodes'''
-        return self.cells_x
-
-    @property
-    def yc(self):
-        '''shortcut to y-coords of nodes'''
-        return self.cells_y
-
-    @property
-    def icells(self):
-        '''rows of cells'''
-        return self.cell_shape[1]
-
-    @property
-    def jcells(self):
-        '''columns of cells'''
-        return self.cell_shape[0]
-
-    @property
-    def inodes(self):
-        '''rows of nodes'''
-        return self.shape[1]
-
-    @property
-    def jnodes(self):
-        '''columns of nodes'''
-        return self.shape[0]
-
-    @property
-    def cell_mask(self):
-        return self._cell_mask
-    @cell_mask.setter
-    def cell_mask(self, value):
-        self._cell_mask = value
-
-    @property
-    def template(self):
-        '''template shapefile'''
-        return self._template
-    @template.setter
-    def template(self, value):
-        self._template = value
-
-    def transform(self, fxn, *args, **kwargs):
-        self.nodes_x = self.nodes_x.transform(fxn, *args, **kwargs)
-        self.nodes_y = self.nodes_y.transform(fxn, *args, **kwargs)
-        return self
-
-    def transpose(self):
-        return self.transform(np.transpose)
-
-    def fliplr(self):
-        '''reverses the columns'''
-        return self.transform(np.fliplr)
-
-    def flipud(self):
-        '''reverses the rows'''
-        return self.transform(np.flipud)
-
-    def merge(self, other, how='vert', where='+', shift=0):
-        '''Merge with another grid
-
-        Parameters
-        ----------
-        other : ModelGrid
-            The other ModelGrid object.
-        '''
-        self.nodes_x = self.nodes_x.merge(other.nodes_x, how=how,
-                                          where=where, shift=shift)
-        self.nodes_y = self.nodes_y.merge(other.nodes_y, how=how,
-                                          where=where, shift=shift)
-        return self
-
-    def mask_cells_with_polygon(self, polyverts, inside=True, inplace=True):
-        polyverts = np.asarray(polyverts)
-        if polyverts.ndim != 2:
-            raise ValueError('polyverts must be a 2D array, or a '
-                             'similar sequence')
-
-        if polyverts.shape[1] != 2:
-            raise ValueError('polyverts must be two columns of points')
-
-        if polyverts.shape[0] < 3:
-            raise ValueError('polyverts must contain at least 3 points')
-
-        coords = self.as_coord_pairs(which='cells')
-        mask = points_inside_poly(coords, polyverts).reshape(self.cell_shape)
-
-        if not inside:
-            mask = ~mask
-
-        if inplace:
-            self.cell_mask = np.bitwise_or(self.cell_mask, mask)
-
-        else:
-            return mask
-
-    def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
-                              bathyrows=0, title='test'):
-        outfile = _outputfile(outputdir, filename)
-
-        gefdc = io._write_gefdc_control_file(
-            outfile,
-            title,
-            self.inodes + 2,
-            self.jnodes + 2,
-            bathyrows
-        )
-        return gefdc
-
-    def writeGEFDCCellFile(self, outputdir=None, filename='cell.inp',
-                           usetriangles=False, maxcols=125):
-        outfile = _outputfile(outputdir, filename)
-
-        cells = io._write_cellinp(
-            ~np.isnan(self.xn),
-            outfile,
-            triangle_cells=usetriangles,
-            maxcols=maxcols,
-            testing=True
-        )
-        return cells
-
-    def writeGEFDCGridFile(self, outputdir=None, filename='grid.out'):
-        outfile = _outputfile(outputdir, filename)
-        df = io._write_gridout_file(self.xn, self.yn, outfile)
-        return df
-
-    def writeGEFDCGridextFile(self, outputdir, shift=2, filename='gridext.inp'):
-        outfile = _outputfile(outputdir, filename)
-        df = self.as_dataframe().stack(level='i', dropna=True).reset_index()
-        df['i'] += shift
-        df['j'] += shift
-        io._write_gridext_file(df, outfile)
-        return df
-
-    def _plot_nodes(self, boundary=None, engine='mpl', ax=None, **kwargs):
-        raise NotImplementedError
-        if engine == 'mpl':
-            return viz._plot_nodes_mpl(self.xn, self.yn, boundary=boundary,
-                                       ax=ax, **kwargs)
-        elif engine == 'bokeh':
-            return viz._plot_nodes_bokeh(self.xn, self.yn, boundary=boundary,
-                                         **kwargs)
-
-    def plotCells(self, boundary=None, engine='mpl', ax=None, **kwargs):
-        return viz.plotCells(self.xn, self.yn, engine=engine, **kwargs)
-
-    def as_dataframe(self, usemask=False, which='nodes'):
-
-        x, y = self._get_x_y(which, usemask=usemask)
-
-        def make_cols(top_level):
-            columns = pandas.MultiIndex.from_product(
-                [[top_level], range(x.shape[1])],
-                names=['coord', 'i']
-            )
-            return columns
-
-        index = pandas.Index(range(x.shape[0]), name='j')
-        easting_cols = make_cols('easting')
-        northing_cols = make_cols('northing')
-
-        easting = pandas.DataFrame(x, index=index, columns=easting_cols)
-        northing = pandas.DataFrame(y, index=index, columns=northing_cols)
-        return easting.join(northing)
-
-    def as_coord_pairs(self, usemask=False, which='nodes'):
-        x, y = self._get_x_y(which, usemask=usemask)
-        return np.array(list(zip(x.flatten(), y.flatten())))
-
-    def to_shapefile(self, outputfile, usemask=True, which='nodes',
-                     river=None, reach=0, elev=None, template=None,
-                     geom='Point', mode='w'):
-
-        if usemask:
-            if which == 'nodes':
-                raise NotImplementedError('`usemask` not implemented for nodes')
-            mask = self.cell_mask.copy()
-        else:
-            mask = None
-
-        if template is None:
-            template = self.template
-
-        if geom.lower() == 'point':
-            x, y = self._get_x_y(which)
-
-            io.savePointShapefile(x, y, template, outputfile,
-                                  mode=mode, river=river, reach=reach,
-                                  elev=elev)
-
-        elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
-            io.saveGridShapefile(self.xn, self.yn, mask, template,
-                                 outputfile, mode=mode, river=river,
-                                 reach=reach, elev=elev)
-        else:
-            raise ValueError("geom must be either 'Point' or 'Polygon'")
-
-    def _get_x_y(self, which, usemask=False):
-        if which == 'nodes' and usemask:
-            raise ValueError("can only mask cells, not nodes")
-
-        if which.lower() == 'nodes':
-            x, y = self.xn, self.yn
-        elif which.lower() == 'cells':
-            x, y = self.xc, self.yc
-        else:
-            raise ValueError('`which` must be either "nodes" or "cells"')
-
-        if usemask:
-            x = np.ma.masked_array(x, self.cell_mask)
-            y = np.ma.masked_array(y, self.cell_mask)
-
-        return x, y
-
-    @staticmethod
-    def from_dataframes(df_x, df_y, icol='i'):
-        nodes_x = df_x.unstack(level='i')
-        nodes_y = df_y.unstack(level='i')
-        return ModelGrid(nodes_x, nodes_y)
-
-    @staticmethod
-    def from_shapefile(shapefile, icol='ii', jcol='jj'):
-        df = io.readGridShapefile(shapefile, icol=icol, jcol=jcol)
-        return ModelGrid.from_dataframes(df['easting'], df['northing'])
-
-    @staticmethod
-    def from_Gridgen(gridgen):
-        return ModelGrid(gridgen.x, gridgen.y)
-
-
+def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
+    '''
+    Take an array defining the nodes as wet (1) or dry (0) create the
+    array of cell values needed for GEFDC
+
+    Input
+    -----
+    node_mask : numpy bool array (N x M)
+        Bool array specifying if a *node* is present in the raw
+        (unmasked) grid.
+    cell_mask : optional numpy bool array (N-1 x M-1) or None (default)
+        Bool array specifying if a cell should be masked (e.g. due to
+        being an island or something like that).
+    triangles : optional bool (default = False)
+        Currently not implemented. Will eventually enable the writting of
+        triangular cells when True.
+
+    Returns
+    -------
+    cell_array : numpy array
+        Integer array of the values written to ``outfile``.
+
+    '''
+
+    triangle_cells = {
+        0: 3,
+        1: 2,
+        3: 1,
+        2: 4,
+    }
+    land_cell = 0
+    water_cell = 5
+    bank_cell = 9
+
+    # I can't figure this out
+    if triangles:
+        warnings.warn('triangles are experimental')
+
+    # define the initial cells with everything labeled as a bank
+    ny, nx = cell_mask.shape
+    cells = np.zeros((ny+2, nx+2), dtype=int) + bank_cell
+
+    # loop through each *node*
+    for jj in range(1, ny+1):
+        for ii in range(1, nx+1):
+            # pull out the 4 nodes defining the cell (call it a quad)
+            quad = node_mask[jj-1:jj+1, ii-1:ii+1]
+            n_wet = quad.sum()
+
+            # anything that's masked is a "bank"
+            if not cell_mask[jj-1, ii-1]:
+                # if all 4 nodes are wet (=1), then the cell is 5
+                if n_wet == 4:
+                    cells[jj, ii] = water_cell
+
+                # if only 3  are wet, might be a triangle, but...
+                # this ignored since we already raised an error
+                elif n_wet == 3 and triangles:
+                    dry_node = np.argmin(quad.flatten())
+                    cells[jj, ii] = triangle_cells[dry_node]
+
+            # otherwise it's just a bank
+            else:
+                cells[jj, ii] = bank_cell
+
+    padded_cells = np.pad(cells, 1, mode='constant', constant_values=bank_cell)
+    for cj in range(cells.shape[0]):
+        for ci in range(cells.shape[1]):
+            shift = 3
+            total = np.sum(padded_cells[cj:cj+shift, ci:ci+shift])
+            if total == bank_cell * shift**2:
+                cells[cj, ci] = land_cell
+
+    nrows = cells.shape[0]
+    ncols = cells.shape[1]
+
+    # nchunks = np.ceil(ncols / maxcols)
+    # if ncols > maxcols:
+    #     final_cells = np.zeros((nrows*nchunks, maxcols), dtype=int)
+    #     for n in np.arange(nchunks):
+    #         col_start = n * maxcols
+    #         col_stop = (n+1) * maxcols
+
+    #         row_start = n * nrows
+    #         row_stop = (n+1) * nrows
+
+    #         cells_to_move = cells[:, col_start:col_stop]
+    #         final_cells[row_start:row_stop, 0:cells_to_move.shape[1]] = cells_to_move
+    # else:
+    #     final_cells = cells.copy()
+
+    final_cells = cells.copy()
+    return final_cells

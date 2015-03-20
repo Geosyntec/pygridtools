@@ -29,6 +29,122 @@ def test_points_inside_poly():
     )
 
 
+class test_makePolyCoords(object):
+    def setup(self):
+        x1 = 1
+        x2 = 2
+        y1 = 4
+        y2 = 3
+        z = 5
+
+        self.xarr = np.array([[x1, x2], [x1, x2]])
+        self.yarr = np.array([[y1, y1], [y2, y2]])
+        self.x_tri = np.array([[x1, np.nan], [x1, x2]])
+        self.y_tri = np.array([[y1, np.nan], [y2, y2]])
+        self.zpnt = z
+        self.mask = np.array([[False, False], [True, True]])
+
+        self.known_base = np.array([[x1, y1], [x2, y1], [x2, y2], [x1, y2]])
+        self.known_no_masked = self.known_base.copy()
+        self.known_masked = None
+        self.known_with_z = np.array([
+            [x1, y1, z], [x2, y1, z], [x2, y2, z], [x1, y2, z]
+        ])
+        self.known_triangle = np.array([[x1, y1], [x2, y2], [x1, y2]])
+
+    def test_base(self):
+        coords = misc.makePolyCoords(self.xarr, self.yarr)
+        nptest.assert_array_equal(coords, self.known_base)
+
+    def test_no_masked(self):
+        xarr = np.ma.MaskedArray(self.xarr, mask=False)
+        yarr = np.ma.MaskedArray(self.yarr, mask=False)
+        coords = misc.makePolyCoords(xarr, yarr)
+        nptest.assert_array_equal(coords, self.known_no_masked)
+
+    def test_masked(self):
+        xarr = np.ma.MaskedArray(self.xarr, mask=self.mask)
+        yarr = np.ma.MaskedArray(self.yarr, mask=self.mask)
+        coords = misc.makePolyCoords(xarr, yarr)
+        nptest.assert_array_equal(coords, self.known_masked)
+
+    def test_with_z(self):
+        coords = misc.makePolyCoords(self.xarr, self.yarr, zpnt=self.zpnt)
+        nptest.assert_array_equal(coords, self.known_with_z)
+
+    def test_triangles(self):
+        coords = misc.makePolyCoords(self.x_tri, self.y_tri, triangles=True)
+        nptest.assert_array_equal(coords, self.known_triangle)
+
+
+class test_makeRecord(object):
+    def setup(self):
+        self.point = [1, 2]
+        self.point_array = np.array(self.point)
+        self.non_point = [[1, 2], [5, 6], [5, 2]]
+        self.non_point_array = np.array(self.non_point)
+        self.mask = np.array([[1, 0], [0, 1], [1, 0]])
+        self.masked_coords = np.ma.MaskedArray(self.non_point_array,
+                                               mask=self.mask)
+
+        self.props = {'prop1': 'this string', 'prop2': 3.1415}
+
+        self.known_point = {
+            'geometry': {
+                'type': 'Point',
+                'coordinates': [1, 2]
+            },
+            'id': 1,
+            'properties': self.props
+        }
+
+        self.known_line = {
+            'geometry': {
+                'type': 'LineString',
+                'coordinates': [[[1, 2], [5, 6], [5, 2]]]
+            },
+            'id': 1,
+            'properties': self.props
+        }
+
+        self.known_polygon = {
+            'geometry': {
+                'type': 'Polygon',
+                'coordinates': [[[1, 2], [5, 6], [5, 2]]]
+            },
+            'id': 1,
+            'properties': self.props
+        }
+
+    def test_point(self):
+        record = misc.makeRecord(1, self.point, 'Point', self.props)
+        nt.assert_dict_equal(record, self.known_point)
+
+    def test_point_array(self):
+        record = misc.makeRecord(1, self.point_array, 'Point', self.props)
+        nt.assert_dict_equal(record, self.known_point)
+
+    def test_line(self):
+        record = misc.makeRecord(1, self.non_point, 'LineString', self.props)
+        nt.assert_dict_equal(record, self.known_line)
+
+    def test_line_array(self):
+        record = misc.makeRecord(1, self.non_point_array, 'LineString', self.props)
+        nt.assert_dict_equal(record, self.known_line)
+
+    def test_polygon(self):
+        record = misc.makeRecord(1, self.non_point, 'Polygon', self.props)
+        nt.assert_dict_equal(record, self.known_polygon)
+
+    def test_polygon_array(self):
+        record = misc.makeRecord(1, self.non_point_array, 'Polygon', self.props)
+        nt.assert_dict_equal(record, self.known_polygon)
+
+    @nt.raises(ValueError)
+    def test_bad_geom(self):
+        record = misc.makeRecord(1, self.non_point_array, 'Circle', self.props)
+
+
 class test_interpolateBathymetry(object):
     def setup(self):
         self.bathy = testing.makeSimpleBathy()
@@ -74,175 +190,6 @@ class test_interpolateBathymetry(object):
 
     def teardown(self):
         pass
-
-
-class test_makeGrid(object):
-    def setup(self):
-        self.coords = testing.makeSimpleBoundary()
-        self.bathy = testing.makeSimpleBathy()
-        self.gridparams = {
-            'nx': 9,
-            'ny': 7,
-            'nnodes': 12,
-            'verbose': False,
-            'ul_idx': 0
-        }
-
-    def test_with_coords_and_bathy(self):
-        grid, junk = misc.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            plot=False,
-            makegrid=True,
-            **self.gridparams
-        )
-        nt.assert_equal(junk, None)
-        nt.assert_true(isinstance(grid, pygridgen.Gridgen))
-
-    def test_with_plot_without_fig_path(self):
-        grid, fig = misc.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            plot=True,
-            makegrid=True,
-            **self.gridparams
-        )
-        nt.assert_true(isinstance(fig, plt.Figure))
-        fig.savefig('tests/result_images/grid_basic.png', dpi=150)
-
-    def test_with_plot_with_xlimits_autosaved(self):
-        grid, fig = misc.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            plot=True,
-            makegrid=True,
-            xlimits=[0, 20],
-            figpath='tests/result_images/grid_autosaved_xlims.png',
-            **self.gridparams
-        )
-        nt.assert_true(isinstance(fig, plt.Figure))
-
-    def test_with_plot_with_ax(self):
-        fig, ax = plt.subplots()
-        grid, fig1 = misc.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            plot=True, ax=ax,
-            makegrid=True,
-            **self.gridparams
-        )
-        nt.assert_true(isinstance(fig, plt.Figure))
-        nt.assert_equal(fig, fig1)
-
-    def test_with_grid(self):
-        grid = testing.makeSimpleGrid()
-        grid1, junk = misc.makeGrid(
-            plot=False,
-            makegrid=False,
-            grid=grid,
-            **self.gridparams
-        )
-        nt.assert_equal(junk, None)
-        nt.assert_equal(grid, grid1)
-        nt.assert_true(isinstance(grid, pygridgen.Gridgen))
-        nt.assert_true(isinstance(grid1, pygridgen.Gridgen))
-        pass
-
-
-    @nt.raises(ValueError)
-    def test_makegrid_no_nx(self):
-        nx = self.gridparams.pop('nx')
-        grid, junk = misc.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            plot=False,
-            makegrid=True,
-            **self.gridparams
-        )
-
-    @nt.raises(ValueError)
-    def test_makegrid_no_ny(self):
-        ny = self.gridparams.pop('ny')
-        grid, junk = misc.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            plot=False,
-            makegrid=True,
-            **self.gridparams
-        )
-
-    @nt.raises(ValueError)
-    def test_False_makegrid_None_grid(self):
-        grid, junk = misc.makeGrid(
-            coords=None,
-            bathydata=self.bathy,
-            plot=False,
-            makegrid=False,
-            grid=None,
-            **self.gridparams
-        )
-
-    def test_check_gridparams(self):
-        grid, junk = misc.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            plot=False,
-            makegrid=True,
-            **self.gridparams
-        )
-        for gpkey in self.gridparams:
-            nt.assert_equal(self.gridparams[gpkey], getattr(grid, gpkey))
-
-    def test_check_GEFDC_output_bathy(self):
-        grid, junk = misc.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            plot=False,
-            makegrid=True,
-            outdir='tests/result_files/extra',
-            title='Extra Test Title',
-            **self.gridparams
-        )
-
-        bathyfile = 'depdat.inp'
-        gefdcfile = 'gefdc.inp'
-
-        outputdir = 'tests/result_files/extra'
-        baselinedir = 'tests/baseline_files/extra'
-
-        testing.compareTextFiles(
-            os.path.join(outputdir, bathyfile),
-            os.path.join(baselinedir, bathyfile)
-        )
-
-    def test_check_GEFDC_output_controlfile(self):
-        grid, junk = misc.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            plot=False,
-            makegrid=True,
-            outdir='tests/result_files/extra',
-            title='Extra Test Title',
-            **self.gridparams
-        )
-
-        bathyfile = 'depdat.inp'
-        gefdcfile = 'gefdc.inp'
-
-        outputdir = 'tests/result_files/extra'
-        baselinedir = 'tests/baseline_files/extra'
-        testing.compareTextFiles(
-            os.path.join(outputdir, gefdcfile),
-            os.path.join(baselinedir, gefdcfile)
-        )
-
-    def teardown(self):
-        plt.close('all')
-        try:
-            os.remove('gefdc.inp')
-            os.remove('depdat.inp')
-        except:
-            pass
 
 
 class test_padded_stack(object):
@@ -432,457 +379,142 @@ class test_padded_stack(object):
         nptest.assert_array_equal(step5, self.expected_all_gs)
 
 
-class test__outputfile(object):
-    def test_basic(self):
-        nt.assert_equal(
-            misc._outputfile('this', 'that.txt'),
-            os.path.join('this', 'that.txt')
-        )
-
-    def test_withNone(self):
-        nt.assert_equal(
-            misc._outputfile(None, 'that.txt'),
-            os.path.join('.', 'that.txt')
-        )
+class base_make_gefdc_cells(object):
+    def test_output(self):
+        cells = misc.make_gefdc_cells(self.nodes, cell_mask=self.mask,
+                                      triangles=self.triangles)
+        nptest.assert_array_equal(cells, self.known_cells)
 
 
-class test__PointSet(object):
+class test_make_gedfc_cells_triangles(base_make_gefdc_cells):
     def setup(self):
-        from numpy import nan
-        self.A = misc._PointSet(np.arange(12).reshape(4, 3) * 1.0)
-        self.B = misc._PointSet(np.arange(8).reshape(2, 4) * 1.0)
-        self.C = misc._PointSet(np.arange(18).reshape(3, 6) * 1.0)
+        self.triangles = True
+        self.nodes = np.array([
+            [0, 1, 1, 1, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 0, 0, 0, 0],
+        ])
+        self.mask = np.zeros_like(self.nodes)[1:, 1:]
 
-        self.known_flipped_A_points = np.array([
-            [ 2.,  1.,  0.],
-            [ 5.,  4.,  3.],
-            [ 8.,  7.,  6.],
-            [11., 10.,  9.]
+        self.known_cells = np.array([
+            [9, 9, 9, 9, 9, 9, 0, 0, 0],
+            [9, 3, 5, 5, 2, 9, 9, 9, 9],
+            [9, 5, 5, 5, 5, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 5, 5, 9],
+            [9, 4, 5, 5, 1, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9, 0, 0, 0],
         ])
 
 
-        self.known_transposed_transformed_A_points = np.array([
-            [2., 5., 8., 11.],
-            [1., 4., 7., 10.],
-            [0., 3., 6.,  9.],
-        ])
-
-        self.known_AB_vplus_0 = np.array([
-            [ 0.,   1.,   2., nan],
-            [ 3.,   4.,   5., nan],
-            [ 6.,   7.,   8., nan],
-            [ 9.,  10.,  11., nan],
-            [ 0.,   1.,   2.,  3.],
-            [ 4.,   5.,   6.,  7.]
-        ])
-
-        self.known_AB_vminus_0 = np.array([
-            [ 0.,   1.,   2.,  3.],
-            [ 4.,   5.,   6.,  7.],
-            [ 0.,   1.,   2., nan],
-            [ 3.,   4.,   5., nan],
-            [ 6.,   7.,   8., nan],
-            [ 9.,  10.,  11., nan]
-        ])
-
-        self.known_AB_vplus_2 = np.array([
-            [ 0.,   1.,   2., nan,   nan, nan],
-            [ 3.,   4.,   5., nan,   nan, nan],
-            [ 6.,   7.,   8., nan,   nan, nan],
-            [ 9.,  10.,  11., nan,   nan, nan],
-            [nan,  nan,   0.,   1.,   2.,  3.],
-            [nan,  nan,   4.,   5.,   6.,  7.]
-        ])
-
-        self.known_AB_vminus_2 = np.array([
-            [nan, nan,  0.,  1.,  2.,  3.],
-            [nan, nan,  4.,  5.,  6.,  7.],
-            [ 0.,  1.,  2., nan, nan, nan],
-            [ 3.,  4.,  5., nan, nan, nan],
-            [ 6.,  7.,  8., nan, nan, nan],
-            [ 9., 10., 11., nan, nan, nan]
-        ])
-
-        self.known_AB_vplus_neg1 = np.array([
-            [nan, 0., 1.,   2.],
-            [nan, 3., 4.,   5.],
-            [nan, 6., 7.,   8.],
-            [nan, 9., 10., 11.],
-            [ 0., 1., 2.,   3.],
-            [ 4., 5., 6.,   7.]
-        ])
-
-        self.known_AB_vminus_neg1 = np.array([
-            [ 0., 1., 2.,   3.],
-            [ 4., 5., 6.,   7.],
-            [nan, 0., 1.,   2.],
-            [nan, 3., 4.,   5.],
-            [nan, 6., 7.,   8.],
-            [nan, 9., 10., 11.]
-        ])
-
-        self.known_AB_hplus_0 = np.array([
-            [0.,  1.,  2.,  0.,  1.,  2.,  3.],
-            [3.,  4.,  5.,  4.,  5.,  6.,  7.],
-            [6.,  7.,  8., nan, nan, nan, nan],
-            [9., 10., 11., nan, nan, nan, nan]
-        ])
-
-        self.known_AB_hminus_0 = np.array([
-            [ 0.,  1.,  2.,  3., 0.,  1.,  2.],
-            [ 4.,  5.,  6.,  7., 3.,  4.,  5.],
-            [nan, nan, nan, nan, 6.,  7.,  8.],
-            [nan, nan, nan, nan, 9., 10., 11.]
-        ])
-
-        self.known_AB_hplus_2 = np.array([
-            [0.,  1.,  2., nan, nan, nan, nan],
-            [3.,  4.,  5., nan, nan, nan, nan],
-            [6.,  7.,  8.,  0.,  1.,  2.,  3.],
-            [9., 10., 11.,  4.,  5.,  6.,  7.]
-        ])
-
-        self.known_AB_hminus_2 = np.array([
-            [nan, nan, nan, nan, 0.,  1.,  2.],
-            [nan, nan, nan, nan, 3.,  4.,  5.],
-            [ 0.,  1.,  2.,  3., 6.,  7.,  8.],
-            [ 4.,  5.,  6.,  7., 9., 10., 11.]
-        ])
-
-        self.known_AB_hplus_neg1 = np.array([
-            [nan, nan, nan,  0.,  1.,  2.,  3.],
-            [ 0.,  1.,  2.,  4.,  5.,  6.,  7.],
-            [ 3.,  4.,  5., nan, nan, nan, nan],
-            [ 6.,  7.,  8., nan, nan, nan, nan],
-            [ 9., 10., 11., nan, nan, nan, nan]
-        ])
-
-        self.known_AB_hminus_neg1 = np.array([
-            [ 0.,  1.,  2.,  3., nan, nan, nan],
-            [ 4.,  5.,  6.,  7.,  0.,  1.,  2.],
-            [nan, nan, nan, nan,  3.,  4.,  5.],
-            [nan, nan, nan, nan,  6.,  7.,  8.],
-            [nan, nan, nan, nan,  9., 10., 11.]
-        ])
-
-    def test_points_and_setter(self):
-        set_val = np.arange(16).reshape(4, 4) * 1
-        self.A.points = set_val
-        nptest.assert_array_equal(set_val, self.A.points)
-
-    def test_transform(self):
-        nptest.assert_array_equal(
-            self.known_flipped_A_points,
-            self.A.transform(np.fliplr).points
-        )
-
-    def test_transpose(self):
-        nptest.assert_array_equal(
-            self.A.points.T,
-            self.A.transpose().points
-        )
-
-    def test_transpose_transform(self):
-        nptest.assert_array_equal(
-            self.known_transposed_transformed_A_points,
-            self.A.transpose().transform(np.flipud).points
-        )
-
-    def test_transform_transpose(self):
-        nptest.assert_array_equal(
-            self.known_transposed_transformed_A_points,
-            self.A.transpose().transform(np.flipud).points
-        )
-
-    def test_merge_vplus_0(self):
-        nptest.assert_array_equal(
-            self.known_AB_vplus_0,
-            self.A.merge(self.B, how='v', where='+', shift=0).points,
-        )
-
-    def test_merge_vminus_0(self):
-        nptest.assert_array_equal(
-            self.known_AB_vminus_0,
-            self.A.merge(self.B, how='v', where='-', shift=0).points,
-        )
-
-    def test_merge_vplus_2(self):
-        nptest.assert_array_equal(
-            self.known_AB_vplus_2,
-            self.A.merge(self.B, how='v', where='+', shift=2).points,
-        )
-
-    def test_merge_vminus_2(self):
-        nptest.assert_array_equal(
-            self.known_AB_vminus_2,
-            self.A.merge(self.B, how='v', where='-', shift=2).points,
-        )
-
-    def test_merge_vplus_neg1(self):
-        nptest.assert_array_equal(
-            self.known_AB_vplus_neg1,
-            self.A.merge(self.B, how='v', where='+', shift=-1).points,
-        )
-
-    def test_merge_vminus_neg1(self):
-        nptest.assert_array_equal(
-            self.known_AB_vminus_neg1,
-            self.A.merge(self.B, how='v', where='-', shift=-1).points,
-        )
-
-    def test_merge_hplus_0(self):
-        nptest.assert_array_equal(
-            self.known_AB_hplus_0,
-            self.A.merge(self.B, how='h', where='+', shift=0).points,
-        )
-
-    def test_merge_hminus_0(self):
-        nptest.assert_array_equal(
-            self.known_AB_hminus_0,
-            self.A.merge(self.B, how='h', where='-', shift=0).points,
-        )
-
-    def test_merge_hplus_2(self):
-        nptest.assert_array_equal(
-            self.known_AB_hplus_2,
-            self.A.merge(self.B, how='h', where='+', shift=2).points,
-        )
-
-    def test_merge_hminus_2(self):
-        nptest.assert_array_equal(
-            self.known_AB_hminus_2,
-            self.A.merge(self.B, how='h', where='-', shift=2).points,
-        )
-
-    def test_merge_hplus_neg1(self):
-        nptest.assert_array_equal(
-            self.known_AB_hplus_neg1,
-            self.A.merge(self.B, how='h', where='+', shift=-1).points,
-        )
-
-    def test_merge_hminus_neg1(self):
-        nptest.assert_array_equal(
-            self.known_AB_hminus_neg1,
-            self.A.merge(self.B, how='h', where='-', shift=-1).points,
-        )
-
-
-class test_ModelGrid(object):
+class test_make_gefdc_cells_simple_mask(base_make_gefdc_cells):
     def setup(self):
-        self.xn, self.yn = testing.make_nodes()
-        self.xc, self.yc = testing.make_cells()
-        self.g1 = misc.ModelGrid(self.xn[:, :3], self.yn[:, :3])
-        self.g2 = misc.ModelGrid(self.xn[2:5, 3:], self.yn[2:5, 3:])
-
-        self.known_rows = 9
-        self.known_cols = 3
-        self.known_df = pandas.DataFrame({
-            ('easting', 0): {
-                0: 1.0, 1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0,
-                5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0
-            }, ('easting', 1): {
-                0: 1.5, 1: 1.5, 2: 1.5, 3: 1.5, 4: 1.5,
-                5: 1.5, 6: 1.5, 7: 1.5, 8: 1.5
-            }, ('easting', 2): {
-                0: 2.0, 1: 2.0, 2: 2.0, 3: 2.0, 4: 2.0,
-                5: 2.0, 6: 2.0, 7: 2.0, 8: 2.0
-            }, ('northing', 0): {
-                0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
-                5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0
-            }, ('northing', 1): {
-                0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
-                5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0
-            }, ('northing', 2): {
-                0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
-                5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0}
-            })
-
-        self.known_masked_cell_df = pandas.DataFrame({
-            ('easting', 0): {
-                0: nan, 1: nan, 2: 1.25, 3: 1.25, 4: 1.25,
-                5: 1.25, 6: 1.25, 7: 1.25
-            }, ('easting', 1): {
-                0: nan, 1: nan, 2: 1.75, 3: 1.75, 4: 1.75,
-                5: 1.75, 6: 1.75, 7: 1.75
-            }, ('northing', 0): {
-                0: nan, 1: nan, 2: 1.25, 3: 1.75, 4: 2.25,
-                5: 2.75, 6: 3.25, 7: 3.75
-            }, ('northing', 1): {
-                0: nan, 1: nan, 2: 1.25, 3: 1.75, 4: 2.25,
-                5: 2.75, 6: 3.25, 7: 3.75
-            }
-        })
-
-
-        self.known_coord_pairs = np.array([
-            [1. , 0. ], [1.5, 0. ], [2. , 0. ], [1. , 0.5],
-            [1.5, 0.5], [2. , 0.5], [1. , 1. ], [1.5, 1. ],
-            [2. , 1. ], [1. , 1.5], [1.5, 1.5], [2. , 1.5],
-            [1. , 2. ], [1.5, 2. ], [2. , 2. ], [1. , 2.5],
-            [1.5, 2.5], [2. , 2.5], [1. , 3. ], [1.5, 3. ],
-            [2. , 3. ], [1. , 3.5], [1.5, 3.5], [2. , 3.5],
-            [1. , 4. ], [1.5, 4. ], [2. , 4. ]
+        size = 6
+        self.triangles = False
+        self.nodes = np.ones((size, size))
+        self.mask = np.array([
+            [1, 1, 0, 0, 0],
+            [1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
         ])
 
-        self.known_mask = np.array([
-            [True,  True ], [True,  True ],
-            [False, False], [False, False],
-            [False, False], [False, False],
-            [False, False], [False, False],
+        self.known_cells = np.array([
+            [0, 0, 9, 9, 9, 9, 9],
+            [0, 0, 9, 5, 5, 5, 9],
+            [9, 9, 9, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 9],
+            [9, 9, 9, 9, 9, 9, 9]
         ])
 
-        self.known_node_pairs_masked = np.array([
-            [ nan,  nan], [ nan,  nan], [ nan,  nan], [ nan,  nan],
-            [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
-            [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
-            [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
+
+class test_make_gefdc_cells_simple_nomask(base_make_gefdc_cells):
+    def setup(self):
+        size = 6
+        self.triangles = False
+        self.nodes = np.ones((size, size))
+        self.mask = np.zeros((size - 1, size - 1))
+
+        self.known_cells = np.array([
+            [9, 9, 9, 9, 9, 9, 9],
+            [9, 5, 5, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 9],
+            [9, 5, 5, 5, 5, 5, 9],
+            [9, 9, 9, 9, 9, 9, 9]
         ])
 
-        self.known_node_pairs = np.array([
-            [1.25, 0.25], [1.75, 0.25], [1.25, 0.75], [1.75, 0.75],
-            [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
-            [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
-            [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
+
+class test_make_gefdc_cells_complex_nomask(base_make_gefdc_cells):
+    def setup(self):
+        self.triangles = False
+        self.nodes  = np.array([
+            [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
         ])
 
-    def test_nodes_x(self):
-        nt.assert_true(hasattr(self.g1, 'nodes_x'))
-        nt.assert_true(isinstance(self.g1.nodes_x, misc._PointSet))
-
-    def test_nodes_y(self):
-        nt.assert_true(hasattr(self.g1, 'nodes_y'))
-        nt.assert_true(isinstance(self.g1.nodes_y, misc._PointSet))
-
-    def test_cells_x(self):
-        nt.assert_true(hasattr(self.g1, 'cells_x'))
-        nt.assert_true(isinstance(self.g1.cells_x, np.ndarray))
-        nptest.assert_array_equal(self.g1.cells_x, self.xc[:, :2])
-
-    def test_cells_y(self):
-        nt.assert_true(hasattr(self.g1, 'cells_y'))
-        nt.assert_true(isinstance(self.g1.cells_y, np.ndarray))
-        nptest.assert_array_equal(self.g1.cells_y, self.yc[:, :2])
-
-    def test_icells(self):
-        nt.assert_equal(
-            self.g1.icells,
-            self.known_cols - 1
-        )
-
-    def test_jcells(self):
-        nt.assert_equal(
-            self.g1.jcells,
-            self.known_rows - 1
-        )
-
-    def test_inodes(self):
-        nt.assert_equal(
-            self.g1.inodes,
-            self.known_cols
-        )
-
-    def test_jnodes(self):
-        nt.assert_equal(
-            self.g1.jnodes,
-            self.known_rows
-        )
-
-    def test_shape(self):
-        nt.assert_true(hasattr(self.g1, 'shape'))
-        nt.assert_tuple_equal(
-            self.g1.shape,
-            (self.known_rows, self.known_cols)
-        )
-
-    def test_cell_shape(self):
-        nt.assert_true(hasattr(self.g1, 'cell_shape'))
-        nt.assert_tuple_equal(
-            self.g1.cell_shape,
-            (self.known_rows - 1, self.known_cols - 1)
-        )
-
-    def test_cell_mask(self):
-        nt.assert_true(hasattr(self.g1, 'cell_mask'))
-        known_base_mask = np.array([
-            [0, 0], [0, 0], [0, 0], [0, 0],
-            [0, 0], [0, 0], [0, 0], [0, 0],
+        self.mask = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ])
-        nptest.assert_array_equal(self.g1.cell_mask, known_base_mask)
 
-    def test_template(self):
-        nt.assert_equal(self.g1.template, None)
-
-        template_value = 'junk'
-        self.g1.template = template_value
-        nt.assert_equal(self.g1.template, template_value)
-
-    def test_as_dataframe_nomask_nodes(self):
-        pdtest.assert_frame_equal(
-            self.g1.as_dataframe(usemask=False, which='nodes'),
-            self.known_df,
-            check_names=False
-        )
-
-        pdtest.assert_index_equal(
-            self.g1.as_dataframe().columns,
-            self.known_df.columns,
-        )
-
-    def test_as_coord_pairs_nomask_nodes(self):
-        nptest.assert_array_equal(
-            self.g1.as_coord_pairs(usemask=False, which='nodes'),
-            self.known_coord_pairs
-        )
-
-    @nt.raises(ValueError)
-    def test_as_dataframe_mask_nodes(self):
-        self.g1.as_dataframe(usemask=True, which='nodes')
-
-    @nt.raises(ValueError)
-    def test_as_coord_pairs_mask_nodes(self):
-        self.g1.as_coord_pairs(usemask=True, which='nodes')
-
-    def test_as_coord_pairs_nomask_cells(self):
-        nptest.assert_array_equal(
-            self.g1.as_coord_pairs(usemask=False, which='cells'),
-            self.known_node_pairs
-        )
-
-    def test_as_coord_pairs_mask_cells(self):
-        self.g1.cell_mask = self.known_mask
-        nptest.assert_array_equal(
-            self.g1.as_coord_pairs(usemask=True, which='cells'),
-            self.known_node_pairs_masked
-        )
-
-    def test_as_dataframe_mask_cells(self):
-        self.g1.cell_mask = self.known_mask
-        df = self.g1.as_dataframe(usemask=True, which='cells')
-        pdtest.assert_frame_equal(df, self.known_masked_cell_df,
-                                  check_names=False)
-
-        pdtest.assert_index_equal(
-            df.columns, self.known_masked_cell_df.columns,
-        )
-
-    def test_transform(self):
-        gx = self.g1.xn.copy() * 10
-        g = self.g1.transform(lambda x: x * 10)
-        nptest.assert_array_equal(g.xn, gx)
-
-    def test_fliplr(self):
-        gx = np.fliplr(self.g1.xn.copy())
-        g = self.g1.fliplr()
-        nptest.assert_array_equal(g.xn, gx)
-
-    def test_flipud(self):
-        gx = np.flipud(self.g1.xn.copy())
-        g = self.g1.flipud()
-        nptest.assert_array_equal(g.xn, gx)
-
-    def test_merge(self):
-        g3 = self.g1.merge(self.g2, how='horiz', where='+', shift=2)
-        g4 = misc.ModelGrid(self.xn, self.yn)
-
-        nptest.assert_array_equal(g3.xn, g4.xn)
-        nptest.assert_array_equal(g3.xc, g4.xc)
+        self.known_cells = np.array([
+            [0, 9, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0],
+            [0, 9, 5, 5, 5, 5, 5, 9, 0, 0, 0, 0],
+            [0, 9, 9, 5, 5, 5, 9, 9, 0, 0, 0, 0],
+            [0, 0, 9, 5, 5, 5, 9, 0, 0, 0, 0, 0],
+            [0, 0, 9, 9, 5, 9, 9, 0, 0, 0, 0, 0],
+            [0, 0, 0, 9, 5, 9, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 9, 5, 9, 9, 0, 0, 0, 0, 0],
+            [0, 0, 0, 9, 9, 5, 9, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9],
+            [0, 0, 0, 0, 0, 9, 5, 5, 5, 5, 5, 9],
+            [0, 0, 0, 0, 0, 9, 5, 5, 5, 5, 5, 9],
+            [0, 0, 0, 0, 0, 9, 5, 5, 5, 5, 5, 9],
+            [0, 0, 0, 0, 0, 9, 5, 5, 5, 5, 5, 9],
+            [0, 0, 0, 0, 0, 9, 5, 5, 5, 5, 5, 9],
+            [0, 0, 0, 0, 0, 9, 5, 5, 5, 5, 5, 9],
+            [0, 0, 0, 9, 9, 9, 5, 5, 5, 5, 5, 9],
+            [0, 0, 0, 9, 5, 5, 5, 9, 9, 9, 9, 9],
+            [0, 0, 0, 9, 5, 5, 5, 9, 0, 0, 0, 0],
+            [0, 0, 0, 9, 5, 5, 5, 9, 0, 0, 0, 0],
+            [0, 0, 0, 9, 9, 9, 9, 9, 0, 0, 0, 0]
+        ])

@@ -378,6 +378,13 @@ class test_padded_stack(object):
 
         nptest.assert_array_equal(step5, self.expected_all_gs)
 
+    @nt.raises(ValueError)
+    def test_bad_how(self):
+        misc.padded_stack(self.g1, self.g3, how='junk', where='-', shift=2)
+
+    @nt.raises(ValueError)
+    def test_bad_where(self):
+        misc.padded_stack(self.g1, self.g3, how='v', where='junk', shift=2)
 
 class base_make_gefdc_cells(object):
     def test_output(self):

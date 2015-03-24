@@ -6,6 +6,7 @@ import numpy as np
 import numpy.testing as nptest
 import matplotlib.pyplot as plt
 import pandas
+import pandas.util.testing as pdtest
 import fiona
 
 from pygridtools import io
@@ -362,12 +363,47 @@ def test__write_gridext_file():
     testing.compareTextFiles(result_filename, known_filename)
 
 
-def test__write_gridout_file():
-    known_filename = 'tests/baseline_files/testgrid.out'
-    result_filename = 'tests/result_files/testgrid.out'
+class test__write_gridout_file(object):
+    def setup(self):
+        self.known_filename = 'tests/baseline_files/testgrid.out'
+        self.result_filename = 'tests/result_files/testgrid.out'
 
-    x, y = testing.makeSimpleNodes()
-    io._write_gridout_file(x, y, result_filename)
-    testing.compareTextFiles(result_filename, known_filename)
+        self.x, self.y = testing.makeSimpleNodes()
 
+    def test_baseline(self):
+        io._write_gridout_file(self.x, self.y, self.result_filename)
+        testing.compareTextFiles(self.result_filename, self.known_filename)
+
+    @nt.raises(ValueError)
+    def test_errors(self):
+        io._write_gridout_file(self.x, self.y[2:, 2:], 'junk')
+
+
+class test_readGridShapefile(object):
+    def setup(self):
+        self.point_file = "tests/baseline_files/array_point.shp"
+        self.cell_file = "tests/baseline_files/array_grid.shp"
+        index = pandas.MultiIndex.from_product(
+            [[0, 1, 2, 3], [0, 1, 2]],
+            names=list('ji')
+        )
+        x = [1., 2., 3.] * 4
+        y = sorted([4., 5., 6., 7.] * 3)
+        data = {
+            'easting': x,
+            'northing': y
+        }
+        self.known_df = pandas.DataFrame(data=data, index=index)
+        self.known_df['elev'] = 0.
+        self.known_df['river'] = 'test'
+        self.ocols = ['elev', 'river']
+
+    def test_read_pointfile(self):
+        result_df = io.readGridShapefile(self.point_file, othercols=self.ocols)
+        pdtest.assert_frame_equal(result_df, self.known_df)
+
+    @nt.raises(NotImplementedError)
+    def test_read_cellfile(self):
+        result_df = io.readGridShapefile(self.cell_file)
+        pdtest.assert_frame_equal(result_df, self.known_df)
 

@@ -124,7 +124,7 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
         data.append({
             'x': record['geometry']['coordinates'][0],
             'y': record['geometry']['coordinates'][1],
-            'beta': record['properties'][betacol],
+            'beta': _get_col_val(record, betacol, default=0),
             'order': _get_col_val(record, sortcol, default=n*5),
             'reach': _get_col_val(record, reachcol, default='main'),
             'upperleft': _get_col_val(record, upperleftcol, default=False),
@@ -396,7 +396,8 @@ def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
             if geomtype == 'Point':
                 geom = np.array(record['geometry']['coordinates'])
             elif geomtype == 'Polygon':
-                geom = np.array(record['geometry']['coordinates']).flatten()
+                raise NotImplementedError("can only read points for now")
+                #geom = np.array(record['geometry']['coordinates']).flatten()
 
             dfrow = {
                 'i': expand * (record['properties'][icol] - 2),
@@ -410,8 +411,10 @@ def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
             data.append(dfrow)
 
     df = pandas.DataFrame(data).set_index(['j', 'i'])
+    columns = ['easting', 'northing']
+    columns.extend(othercols)
     df.sort(inplace=True)
-    return df
+    return df[columns]
 
 
 def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
@@ -625,7 +628,7 @@ def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):
         try:
             outfile.write(record)
             return 1
-        except:
+        except: # pragma: no cover
             return 0
 
     # start writting or appending to the output

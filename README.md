@@ -2,7 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/phobson/pygridtools/badge.svg)](https://coveralls.io/r/phobson/pygridtools)
 
 # pygridtools
-Miscellaneous utilities to accompany pygridgen
+Miscellaneous utilities to accompany [`pygridgen`](https://github.com/hetland/pygridgen)
 
 ## Summary
 This package aims to provide a convenient interface to
@@ -18,7 +18,7 @@ Use [`conda`](http://conda.pydata.org/) and grab the dependecies
 in my channel via:
 
 ```bash
-conda create --yes --name=grids python=2.7
+conda create --yes --name=grids python=3.4
 source activate grids
 conda config --add channels phobson
 conda install --yes seaborn bokeh fiona shapely nose csa nn gridutils gridgen pygridgen
@@ -26,8 +26,11 @@ conda install --yes seaborn bokeh fiona shapely nose csa nn gridutils gridgen py
 
 Then clone this directory and do `pip install .`
 
-## Python >=3.3 support
-Working on it. Gotta work out `pygridgen` first.
+## Python versions.
+Currently tested on:
+  - 2.7
+  - 3.3
+  - 3.4
 
 ## Contributing
   1. Feedback is a huge contribution

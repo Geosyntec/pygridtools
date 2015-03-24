@@ -31,6 +31,11 @@ Currently tested on:
   - 2.7
   - 3.3
   - 3.4
+  
+## Examples
+  1. [Basic grid generation and focusing](http://nbviewer.ipython.org/github/phobson/pygridtools/blob/master/examples/1%20-%20Gridgen%20Basics.ipynb)
+  2. [Masking dry (land) cells and GIS output](http://nbviewer.ipython.org/github/phobson/pygridtools/blob/master/examples/2%20-%20Shapefiles%20and%20masking%20cells.ipynb)
+
 
 ## Contributing
   1. Feedback is a huge contribution

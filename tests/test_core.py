@@ -1,5 +1,5 @@
 import os
-
+import warnings
 
 import numpy as np
 from numpy import nan
@@ -241,8 +241,13 @@ class test_ModelGrid(object):
     def setup(self):
         self.xn, self.yn = testing.makeSimpleNodes()
         self.xc, self.yc = testing.makeSimpleCells()
+        self.mg = core.ModelGrid(self.xn, self.yn)
         self.g1 = core.ModelGrid(self.xn[:, :3], self.yn[:, :3])
         self.g2 = core.ModelGrid(self.xn[2:5, 3:], self.yn[2:5, 3:])
+
+        self.template = 'tests/test_data/schema_template.shp'
+        self.g1.template = self.template
+        self.g2.template = self.template
 
         self.known_rows = 9
         self.known_cols = 3
@@ -315,6 +320,10 @@ class test_ModelGrid(object):
             [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
         ])
 
+    @nt.raises(ValueError)
+    def test_bad_input(self):
+        mg = core.ModelGrid(self.xc, self.yc[2:, 2:])
+
     def test_nodes_x(self):
         nt.assert_true(hasattr(self.g1, 'nodes_x'))
         nt.assert_true(isinstance(self.g1.nodes_x, core._PointSet))
@@ -380,11 +389,13 @@ class test_ModelGrid(object):
         nptest.assert_array_equal(self.g1.cell_mask, known_base_mask)
 
     def test_template(self):
-        nt.assert_equal(self.g1.template, None)
+        nt.assert_equal(self.g1.template, self.template)
 
         template_value = 'junk'
         self.g1.template = template_value
         nt.assert_equal(self.g1.template, template_value)
+
+        self.g1.template = self.template
 
     def test_as_dataframe_nomask_nodes(self):
         pdtest.assert_frame_equal(
@@ -440,6 +451,13 @@ class test_ModelGrid(object):
         g = self.g1.transform(lambda x: x * 10)
         nptest.assert_array_equal(g.xn, gx)
 
+    def test_transpose(self):
+        gx = self.g1.xn.copy()
+        nptest.assert_array_equal(
+            self.g1.transpose().xn,
+            gx.transpose()
+        )
+
     def test_fliplr(self):
         gx = np.fliplr(self.g1.xn.copy())
         g = self.g1.fliplr()
@@ -456,6 +474,140 @@ class test_ModelGrid(object):
 
         nptest.assert_array_equal(g3.xn, g4.xn)
         nptest.assert_array_equal(g3.xc, g4.xc)
+
+    @nt.raises(ValueError)
+    def test_to_shapefile_bad_geom(self):
+        self.g1.to_shapefile('junk', geom='Line')
+
+    def test_to_shapefile_nomask_nodes_points(self):
+        outfile = 'tests/result_files/mgshp_nomask_nodes_points.shp'
+        basefile = 'tests/baseline_files/mgshp_nomask_nodes_points.shp'
+        self.g1.to_shapefile(outfile, usemask=False, which='nodes',
+                             geom='point')
+        testing.compareShapefiles(outfile, basefile)
+
+    def test_to_shapefile_nomask_cells_points(self):
+        outfile = 'tests/result_files/mgshp_nomask_cells_points.shp'
+        basefile = 'tests/baseline_files/mgshp_nomask_cells_points.shp'
+        self.g1.to_shapefile(outfile, usemask=False, which='cells',
+                             geom='point')
+        testing.compareShapefiles(outfile, basefile)
+
+    def test_to_shapefile_nomask_nodes_polys(self):
+        outfile = 'tests/result_files/mgshp_nomask_nodes_polys.shp'
+        basefile = 'tests/baseline_files/mgshp_nomask_cells_polys.shp'
+        self.g1.to_shapefile(outfile, usemask=False, which='nodes',
+                             geom='polygon')
+        testing.compareShapefiles(outfile, basefile)
+
+    def test_to_shapefile_nomask_cells_polys(self):
+        outfile = 'tests/result_files/mgshp_nomask_cells_polys.shp'
+        basefile = 'tests/baseline_files/mgshp_nomask_cells_polys.shp'
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self.g1.to_shapefile(outfile, usemask=False, which='cells',
+                                 geom='polygon')
+            nt.assert_equal(len(w), 1)
+
+        testing.compareShapefiles(outfile, basefile)
+
+    def test_to_shapefile_mask_cells_points(self):
+        outfile = 'tests/result_files/mgshp_mask_cells_points.shp'
+        basefile = 'tests/baseline_files/mgshp_mask_cells_points.shp'
+        self.g1.cell_mask = self.known_mask
+
+        self.g1.to_shapefile(outfile, usemask=True, which='cells',
+                             geom='point')
+        testing.compareShapefiles(outfile, basefile)
+
+    def test_to_shapefile_mask_cells_polys(self):
+        outfile = 'tests/result_files/mgshp_mask_cells_polys.shp'
+        basefile = 'tests/baseline_files/mgshp_mask_cells_polys.shp'
+        self.g1.cell_mask = self.known_mask
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self.g1.to_shapefile(outfile, usemask=True, which='cells',
+                                 geom='polygon')
+            nt.assert_equal(len(w), 1)
+
+        testing.compareShapefiles(outfile, basefile)
+
+    @nt.raises(ValueError)
+    def test_to_shapefile_mask_nodes(self):
+        self.g1.to_shapefile('junk', usemask=True, which='nodes', geom='point')
+
+    @nt.raises(ValueError)
+    def test__get_x_y_nodes_and_mask(self):
+        self.g1._get_x_y('nodes', usemask=True)
+
+    @nt.raises(ValueError)
+    def test__get_x_y_bad_value(self):
+        self.g1._get_x_y('junk', usemask=True)
+
+    def test__get_x_y_nodes(self):
+        x, y = self.g1._get_x_y('nodes', usemask=False)
+        nptest.assert_array_equal(x, self.g1.xn)
+        nptest.assert_array_equal(y, self.g1.yn)
+
+    def test__get_x_y_cells(self):
+        x, y = self.g1._get_x_y('cells', usemask=False)
+        nptest.assert_array_equal(x, self.g1.xc)
+        nptest.assert_array_equal(y, self.g1.yc)
+
+    def test_writeGEFDCControlFile(self):
+        known_filename = 'tests/baseline_files/modelgrid_gefdc.inp'
+        result_path = 'tests/result_files'
+        result_file = 'modelgrid_gefdc.inp'
+        self.mg.writeGEFDCControlFile(
+            outputdir=result_path,
+            filename=result_file,
+            title='Model Grid Test'
+        )
+        testing.compareTextFiles(
+            os.path.join(result_path, result_file),
+            known_filename
+        )
+
+    def test_writeGEFDCCellFile(self):
+        known_filename = 'tests/baseline_files/modelgrid_cell.inp'
+        result_path = 'tests/result_files'
+        result_file = 'modelgrid_cell.inp'
+        self.mg.writeGEFDCCellFile(
+            outputdir=result_path,
+            filename=result_file,
+        )
+        testing.compareTextFiles(
+            os.path.join(result_path, result_file),
+            known_filename
+        )
+
+    def test_writeGEFDCGridFile(self):
+        known_filename = 'tests/baseline_files/modelgrid_grid.out'
+        result_path = 'tests/result_files'
+        result_file = 'modelgrid_grid.out'
+        self.mg.writeGEFDCGridFile(
+            outputdir=result_path,
+            filename=result_file,
+        )
+        testing.compareTextFiles(
+            os.path.join(result_path, result_file),
+            known_filename
+        )
+
+    def test_writeGEFDCGridextFiles(self):
+        known_filename = 'tests/baseline_files/modelgrid_gridext.inp'
+        result_path = 'tests/result_files'
+        result_file = 'modelgrid_gridext.inp'
+        self.mg.writeGEFDCGridextFile(
+            outputdir=result_path,
+            filename=result_file,
+        )
+        testing.compareTextFiles(
+            os.path.join(result_path, result_file),
+            known_filename
+        )
 
 
 class test_makeGrid(object):

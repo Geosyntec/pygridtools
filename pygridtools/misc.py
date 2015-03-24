@@ -160,8 +160,7 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
 
         try:
             extrapolate = triangles.nn_extrapolator(gridbathy['z'])
-        except:
-            # pragma: no cover
+        except: # pragma: no cover
             extrapolate = triangles.nn_extrapolator(gridbathy['z'][:-1])
 
         elev = np.ma.masked_invalid(extrapolate(grid.x_rho, grid.y_rho))

@@ -138,7 +138,7 @@ def _plot_cells_mpl(nodes_x, nodes_y, mask=None, ax=None):
                                    zorder=0, facecolor='0.875')
                 ax.add_artist(rect)
 
-    return fig
+    return fig, ax
 
 
 def plotBoundaries(river=None, islands=None, engine='mpl', ax=None):

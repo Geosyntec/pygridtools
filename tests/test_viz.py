@@ -77,22 +77,22 @@ class test_plotPygridgen(object):
 
 
 def test__plot_cells_bokeh():
-    x, y = testing.make_nodes()
+    x, y = testing.makeSimpleNodes()
     p = viz._plot_cells_bokeh(x, y)
 
 
 def test__plot_cell_mpl():
-    x, y = testing.make_nodes()
+    x, y = testing.makeSimpleNodes()
     fig = viz._plot_cells_mpl(x, y)
     nt.assert_true(isinstance(fig, plt.Figure))
 
 
 def test_plotCells_bokeh():
-    x, y = testing.make_nodes()
+    x, y = testing.makeSimpleNodes()
     p = viz.plotCells(x, y, engine='bokeh')
 
 
 def test_plotCells_mpl():
-    x, y = testing.make_nodes()
+    x, y = testing.makeSimpleNodes()
     p = viz.plotCells(x, y, engine='mpl')
 

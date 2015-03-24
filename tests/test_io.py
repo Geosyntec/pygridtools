@@ -347,8 +347,19 @@ def test__write_gefdc_control_file():
     io._write_gefdc_control_file(result_filename, 'Test Input File', 100, 25, 0)
     testing.compareTextFiles(result_filename, known_filename)
 
-class test__write_gridout_file(object):
-    pass
+def test__write_gridout_file():
+    known_filename = 'tests/baseline_files/testgridext.inp'
+    result_filename = 'tests/result_files/testgridext.inp'
+    df = pandas.DataFrame(np.array([
+        [1.25, 3, 4, 3.75],
+        [1.75, 4, 4, 3.25],
+        [1.25, 4, 5, 3.75],
+        [1.75, 5, 5, 3.25],
+    ]), columns=['x', 'ii', 'jj', 'y'])
+    io._write_gridext_file(df, result_filename, icol='ii', jcol='jj',
+                           xcol='x', ycol='y')
+    testing.compareTextFiles(result_filename, known_filename)
+
 
 
 class test__write_gridext_file(object):

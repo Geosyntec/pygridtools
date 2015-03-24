@@ -168,8 +168,6 @@ class test_loadPolygonFromShapefile(object):
         nptest.assert_array_almost_equal(island[0], self.known_islands[1])
 
 
-
-
 def test_dumpGridFile():
     grid = testing.makeSimpleGrid()
     outputfile = 'tests/result_files/grid.out'

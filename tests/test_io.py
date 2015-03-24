@@ -26,7 +26,6 @@ class test__outputfile(object):
         )
 
 
-
 class test__check_mode(object):
     @nt.raises(ValueError)
     def test_errors(self):
@@ -126,6 +125,49 @@ class test_loadBoundaryFromShapefile(object):
             filterfxn=lambda r: r['properties']['reach'] == self.test_reach
         )
         nt.assert_equal(df.shape[0], self.known_points_in_testreach)
+
+
+class test_loadPolygonFromShapefile(object):
+    def setup(self):
+        self.shpfile = 'tests/test_data/simple_islands.shp'
+        self.filter = lambda x: x['properties']['name'] == 'keeper'
+        self.known_islands = [
+            np.array([
+                [10.18915802,  3.71280277], [ 9.34025375,  7.21914648],
+                [ 9.34025375,  7.21914648], [10.15224913, 11.98039216],
+                [14.1384083 , 11.83275663], [17.6816609 ,  7.47750865],
+                [15.94694348,  3.63898501], [10.18915802,  3.71280277]
+            ]),
+            np.array([
+                [ 1.10957324,  3.67589389], [-0.95732411,  7.69896194],
+                [-0.95732411,  7.69896194], [ 0.81430219, 10.9100346 ],
+                [ 5.98154556, 10.98385236], [ 8.67589389,  7.03460208],
+                [ 6.86735871,  3.71280277], [ 1.10957324,  3.67589389]
+            ]),
+        ]
+
+    @nptest.dec.skipif(sys.version_info[0] == 3)
+    def test_baseline(self):
+        islands = io.loadPolygonFromShapefile(self.shpfile)
+        nt.assert_true(isinstance(islands, list))
+        for test, known in zip(islands, self.known_islands):
+            nptest.assert_array_almost_equal(test, known)
+
+    @nptest.dec.skipif(sys.version_info[0] == 3)
+    def test_filter(self):
+        island = io.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter)
+        nt.assert_true(isinstance(island, np.ndarray))
+        nptest.assert_array_almost_equal(island, self.known_islands[1])
+
+    @nptest.dec.skipif(sys.version_info[0] == 3)
+    def test_filter_nosqueeze(self):
+        island = io.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter,
+                                             squeeze=False)
+        nt.assert_true(island, list)
+        nt.assert_equal(len(island), 1)
+        nptest.assert_array_almost_equal(island[0], self.known_islands[1])
+
+
 
 
 def test_dumpGridFile():

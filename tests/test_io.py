@@ -339,3 +339,20 @@ class test_gridextToShapefile(object):
     def test_bad_template_file(self):
         io.gridextToShapefile(self.gridextfile, self.outputfile,
                               '/junkie/mcjunk.shp', river=self.river)
+
+
+def test__write_gefdc_control_file():
+    known_filename = 'tests/baseline_files/maingefdc.inp'
+    result_filename = 'tests/result_files/maingefdc.inp'
+    io._write_gefdc_control_file(result_filename, 'Test Input File', 100, 25, 0)
+    testing.compareTextFiles(result_filename, known_filename)
+
+class test__write_gridout_file(object):
+    pass
+
+
+class test__write_gridext_file(object):
+    pass
+
+
+

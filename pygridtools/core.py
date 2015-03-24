@@ -289,25 +289,20 @@ class ModelGrid(object):
                      river=None, reach=0, elev=None, template=None,
                      geom='Polygon', mode='w', triangles=False):
 
-        if usemask:
-            if which == 'nodes':
-                raise NotImplementedError('`usemask` not implemented for nodes')
-            mask = self.cell_mask.copy()
-        else:
-            mask = None
 
-        if template is None:
-            template = self.template
+        x, y = self._get_x_y(which, usemask=usemask)
 
         if geom.lower() == 'point':
-            x, y = self._get_x_y(which)
-
             io.savePointShapefile(x, y, template, outputfile,
                                   mode=mode, river=river, reach=reach,
                                   elev=elev)
 
         elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
-            io.saveGridShapefile(self.xn, self.yn, mask, template,
+            if usemask:
+                mask = self.cell_mask.copy()
+            else:
+                mask = None
+            io.saveGridShapefile(x, y, mask, template,
                                  outputfile, mode=mode, river=river,
                                  reach=reach, elev=elev,
                                  triangles=triangles)
@@ -317,19 +312,20 @@ class ModelGrid(object):
             raise ValueError("geom must be either 'Point' or 'Polygon'")
 
     def _get_x_y(self, which, usemask=False):
-        if which == 'nodes' and usemask:
-            raise ValueError("can only mask cells, not nodes")
-
         if which.lower() == 'nodes':
-            x, y = self.xn, self.yn
+            if usemask:
+                raise ValueError("can only mask cells, not nodes")
+            else:
+                x, y = self.xn, self.yn
+
         elif which.lower() == 'cells':
             x, y = self.xc, self.yc
+            if usemask:
+                x = np.ma.masked_array(x, self.cell_mask)
+                y = np.ma.masked_array(y, self.cell_mask)
+
         else:
             raise ValueError('`which` must be either "nodes" or "cells"')
-
-        if usemask:
-            x = np.ma.masked_array(x, self.cell_mask)
-            y = np.ma.masked_array(y, self.cell_mask)
 
         return x, y
 

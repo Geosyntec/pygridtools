@@ -509,8 +509,30 @@ class test_ModelGrid(object):
 
         testing.compareShapefiles(outfile, basefile)
 
+    def test_to_shapefile_mask_cells_points(self):
+        outfile = 'tests/result_files/mgshp_mask_cells_points.shp'
+        basefile = 'tests/baseline_files/mgshp_mask_cells_points.shp'
+        self.g1.cell_mask = self.known_mask
+
+        self.g1.to_shapefile(outfile, usemask=True, which='cells',
+                             geom='point')
+        testing.compareShapefiles(outfile, basefile)
+
+    def test_to_shapefile_mask_cells_polys(self):
+        outfile = 'tests/result_files/mgshp_mask_cells_polys.shp'
+        basefile = 'tests/baseline_files/mgshp_mask_cells_polys.shp'
+        self.g1.cell_mask = self.known_mask
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self.g1.to_shapefile(outfile, usemask=True, which='cells',
+                                 geom='polygon')
+            nt.assert_equal(len(w), 1)
+
+        testing.compareShapefiles(outfile, basefile)
+
     @nt.raises(NotImplementedError)
-    def test_to_shapefile_masknodes(self):
+    def test_to_shapefile_mask_nodes(self):
         self.g1.to_shapefile('junk', usemask=True, which='nodes')
 
     @nt.raises(ValueError)

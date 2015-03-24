@@ -146,17 +146,20 @@ class test_loadPolygonFromShapefile(object):
             ]),
         ]
 
+    @nptest.dec.skipif(sys.version_info[0] == 3)
     def test_baseline(self):
         islands = io.loadPolygonFromShapefile(self.shpfile)
         nt.assert_true(isinstance(islands, list))
         for test, known in zip(islands, self.known_islands):
             nptest.assert_array_almost_equal(test, known)
 
+    @nptest.dec.skipif(sys.version_info[0] == 3)
     def test_filter(self):
         island = io.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter)
         nt.assert_true(isinstance(island, np.ndarray))
         nptest.assert_array_almost_equal(island, self.known_islands[1])
 
+    @nptest.dec.skipif(sys.version_info[0] == 3)
     def test_filter_nosqueeze(self):
         island = io.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter,
                                              squeeze=False)

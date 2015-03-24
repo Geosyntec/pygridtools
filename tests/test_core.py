@@ -315,6 +315,10 @@ class test_ModelGrid(object):
             [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
         ])
 
+    @nt.raises(ValueError)
+    def test_bad_input(self):
+        mg = core.ModelGrid(self.xc, self.yc[2:, 2:])
+
     def test_nodes_x(self):
         nt.assert_true(hasattr(self.g1, 'nodes_x'))
         nt.assert_true(isinstance(self.g1.nodes_x, core._PointSet))
@@ -439,6 +443,13 @@ class test_ModelGrid(object):
         gx = self.g1.xn.copy() * 10
         g = self.g1.transform(lambda x: x * 10)
         nptest.assert_array_equal(g.xn, gx)
+
+    def test_transpose(self):
+        gx = self.g1.xn.copy()
+        nptest.assert_array_equal(
+            self.g1.transpose().xn,
+            gx.transpose()
+        )
 
     def test_fliplr(self):
         gx = np.fliplr(self.g1.xn.copy())

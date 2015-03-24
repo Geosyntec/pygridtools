@@ -383,41 +383,6 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
                         out.write(record)
 
 
-def saveXYShapefile(tidydata, template, outputfile, mode='w',
-                    xcol='x', ycol='y', icol='i', jcol='j'):
-
-
-    # load the template
-    with fiona.open(template, 'r') as src:
-        src_driver = src.driver
-        src_crs = src.crs
-        src_schema = src.schema
-
-    src_schema['geometry'] = 'Point'
-
-    def row2shp_record(row, shpio):
-        ii = int(row[icol])
-        jj = int(row[jcol])
-        coords = (float(row[xcol]), float(row[ycol]))
-        props = OrderedDict(
-            id=int(row.name), river='none', reach='none',
-            ii=ii+2, jj=jj+2, elev=0,
-            ii_jj='{:02d}_{:02d}'.format(ii+2, jj+2)
-        )
-        # misc.makeRecord(ID, coords, geomtype, props):
-        shpio.write(misc.makeRecord(row.name, coords, 'Point', props))
-        return 0
-
-    # start writting or appending to the output
-    with fiona.open(
-        outputfile, mode,
-        driver=src_driver,
-        crs=src_crs,
-        schema=src_schema
-    ) as out:
-        _ = tidydata.apply(lambda row: row2shp_record(row, out), axis=1)
-
-
 def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
                       expand=1):
 

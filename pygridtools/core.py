@@ -290,9 +290,11 @@ class ModelGrid(object):
                      geom='Polygon', mode='w', triangles=False):
 
 
-        x, y = self._get_x_y(which, usemask=usemask)
+        if template is None:
+            template = self.template
 
         if geom.lower() == 'point':
+            x, y = self._get_x_y(which, usemask=usemask)
             io.savePointShapefile(x, y, template, outputfile,
                                   mode=mode, river=river, reach=reach,
                                   elev=elev)
@@ -302,6 +304,7 @@ class ModelGrid(object):
                 mask = self.cell_mask.copy()
             else:
                 mask = None
+            x, y = self._get_x_y('nodes', usemask=False)
             io.saveGridShapefile(x, y, mask, template,
                                  outputfile, mode=mode, river=river,
                                  reach=reach, elev=elev,

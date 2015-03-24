@@ -394,6 +394,8 @@ class test_ModelGrid(object):
         self.g1.template = template_value
         nt.assert_equal(self.g1.template, template_value)
 
+        self.g1.template = self.template
+
     def test_as_dataframe_nomask_nodes(self):
         pdtest.assert_frame_equal(
             self.g1.as_dataframe(usemask=False, which='nodes'),
@@ -509,6 +511,7 @@ class test_ModelGrid(object):
 
         testing.compareShapefiles(outfile, basefile)
 
+    #
     def test_to_shapefile_mask_cells_points(self):
         outfile = 'tests/result_files/mgshp_mask_cells_points.shp'
         basefile = 'tests/baseline_files/mgshp_mask_cells_points.shp'
@@ -518,6 +521,7 @@ class test_ModelGrid(object):
                              geom='point')
         testing.compareShapefiles(outfile, basefile)
 
+    #
     def test_to_shapefile_mask_cells_polys(self):
         outfile = 'tests/result_files/mgshp_mask_cells_polys.shp'
         basefile = 'tests/baseline_files/mgshp_mask_cells_polys.shp'
@@ -531,9 +535,9 @@ class test_ModelGrid(object):
 
         testing.compareShapefiles(outfile, basefile)
 
-    @nt.raises(NotImplementedError)
+    @nt.raises(ValueError)
     def test_to_shapefile_mask_nodes(self):
-        self.g1.to_shapefile('junk', usemask=True, which='nodes')
+        self.g1.to_shapefile('junk', usemask=True, which='nodes', geom='point')
 
     @nt.raises(ValueError)
     def test__get_x_y_nodes_and_mask(self):

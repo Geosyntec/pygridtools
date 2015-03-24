@@ -1,6 +1,5 @@
 import os
 
-
 import numpy as np
 from numpy import nan
 import matplotlib.pyplot as plt
@@ -385,6 +384,7 @@ class test_padded_stack(object):
     @nt.raises(ValueError)
     def test_bad_where(self):
         misc.padded_stack(self.g1, self.g3, how='v', where='junk', shift=2)
+
 
 class base_make_gefdc_cells(object):
     def test_output(self):

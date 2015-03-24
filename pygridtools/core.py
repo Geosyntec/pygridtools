@@ -1,5 +1,7 @@
 from __future__ import division
 
+import warnings
+
 import numpy as np
 import pandas
 import pygridgen
@@ -283,9 +285,9 @@ class ModelGrid(object):
         x, y = self._get_x_y(which, usemask=usemask)
         return np.array(list(zip(x.flatten(), y.flatten())))
 
-    def to_shapefile(self, outputfile, usemask=True, which='nodes',
+    def to_shapefile(self, outputfile, usemask=True, which='cells',
                      river=None, reach=0, elev=None, template=None,
-                     geom='Point', mode='w', triangles=False):
+                     geom='Polygon', mode='w', triangles=False):
 
         if usemask:
             if which == 'nodes':
@@ -309,6 +311,8 @@ class ModelGrid(object):
                                  outputfile, mode=mode, river=river,
                                  reach=reach, elev=elev,
                                  triangles=triangles)
+            if which == 'cells':
+                warnings.warn("polygons always constructed from nodes")
         else:
             raise ValueError("geom must be either 'Point' or 'Polygon'")
 

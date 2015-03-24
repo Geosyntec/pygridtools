@@ -1,5 +1,5 @@
 import os
-
+import warnings
 
 import numpy as np
 from numpy import nan
@@ -244,6 +244,10 @@ class test_ModelGrid(object):
         self.g1 = core.ModelGrid(self.xn[:, :3], self.yn[:, :3])
         self.g2 = core.ModelGrid(self.xn[2:5, 3:], self.yn[2:5, 3:])
 
+        self.template = 'tests/test_data/schema_template.shp'
+        self.g1.template = self.template
+        self.g2.template = self.template
+
         self.known_rows = 9
         self.known_cols = 3
         self.known_df = pandas.DataFrame({
@@ -384,7 +388,7 @@ class test_ModelGrid(object):
         nptest.assert_array_equal(self.g1.cell_mask, known_base_mask)
 
     def test_template(self):
-        nt.assert_equal(self.g1.template, None)
+        nt.assert_equal(self.g1.template, self.template)
 
         template_value = 'junk'
         self.g1.template = template_value
@@ -467,6 +471,65 @@ class test_ModelGrid(object):
 
         nptest.assert_array_equal(g3.xn, g4.xn)
         nptest.assert_array_equal(g3.xc, g4.xc)
+
+    @nt.raises(ValueError)
+    def test_to_shapefile_bad_geom(self):
+        self.g1.to_shapefile('junk', geom='Line')
+
+    def test_to_shapefile_nomask_nodes_points(self):
+        outfile = 'tests/result_files/mgshp_nomask_nodes_points.shp'
+        basefile = 'tests/baseline_files/mgshp_nomask_nodes_points.shp'
+        self.g1.to_shapefile(outfile, usemask=False, which='nodes',
+                             geom='point')
+        testing.compareShapefiles(outfile, basefile)
+
+    def test_to_shapefile_nomask_cells_points(self):
+        outfile = 'tests/result_files/mgshp_nomask_cells_points.shp'
+        basefile = 'tests/baseline_files/mgshp_nomask_cells_points.shp'
+        self.g1.to_shapefile(outfile, usemask=False, which='cells',
+                             geom='point')
+        testing.compareShapefiles(outfile, basefile)
+
+    def test_to_shapefile_nomask_nodes_polys(self):
+        outfile = 'tests/result_files/mgshp_nomask_nodes_polys.shp'
+        basefile = 'tests/baseline_files/mgshp_nomask_cells_polys.shp'
+        self.g1.to_shapefile(outfile, usemask=False, which='nodes',
+                             geom='polygon')
+        testing.compareShapefiles(outfile, basefile)
+
+    def test_to_shapefile_nomask_cells_polys(self):
+        outfile = 'tests/result_files/mgshp_nomask_cells_polys.shp'
+        basefile = 'tests/baseline_files/mgshp_nomask_cells_polys.shp'
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self.g1.to_shapefile(outfile, usemask=False, which='cells',
+                                 geom='polygon')
+            nt.assert_equal(len(w), 1)
+
+        testing.compareShapefiles(outfile, basefile)
+
+    @nt.raises(NotImplementedError)
+    def test_to_shapefile_masknodes(self):
+        self.g1.to_shapefile('junk', usemask=True, which='nodes')
+
+    @nt.raises(ValueError)
+    def test__get_x_y_nodes_and_mask(self):
+        self.g1._get_x_y('nodes', usemask=True)
+
+    @nt.raises(ValueError)
+    def test__get_x_y_bad_value(self):
+        self.g1._get_x_y('junk', usemask=True)
+
+    def test__get_x_y_nodes(self):
+        x, y = self.g1._get_x_y('nodes', usemask=False)
+        nptest.assert_array_equal(x, self.g1.xn)
+        nptest.assert_array_equal(y, self.g1.yn)
+
+    def test__get_x_y_cells(self):
+        x, y = self.g1._get_x_y('cells', usemask=False)
+        nptest.assert_array_equal(x, self.g1.xc)
+        nptest.assert_array_equal(y, self.g1.yc)
 
 
 class test_makeGrid(object):

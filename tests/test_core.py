@@ -239,8 +239,8 @@ class test__PointSet(object):
 
 class test_ModelGrid(object):
     def setup(self):
-        self.xn, self.yn = testing.make_nodes()
-        self.xc, self.yc = testing.make_cells()
+        self.xn, self.yn = testing.makeSimpleNodes()
+        self.xc, self.yc = testing.makeSimpleCells()
         self.g1 = core.ModelGrid(self.xn[:, :3], self.yn[:, :3])
         self.g2 = core.ModelGrid(self.xn[2:5, 3:], self.yn[2:5, 3:])
 

@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import nan
 import matplotlib; matplotlib.use('agg')
 import pandas
 import fiona
@@ -77,8 +78,7 @@ def compareShapefiles(baselinefile, outputfile, atol=0.001):
         )
 
 
-def make_nodes():
-    from numpy import nan
+def makeSimpleNodes():
     x = np.array([
         [1.0, 1.5, 2.0, nan, nan, nan, nan],
         [1.0, 1.5, 2.0, nan, nan, nan, nan],
@@ -106,8 +106,7 @@ def make_nodes():
     return np.ma.masked_invalid(x, 0), np.ma.masked_invalid(y, 0)
 
 
-def make_cells():
-    from numpy import nan
+def makeSimpleCells():
     x = np.array([
         [1.25, 1.75,  nan,  nan,  nan,  nan,],
         [1.25, 1.75,  nan,  nan,  nan,  nan,],

@@ -241,6 +241,7 @@ class test_ModelGrid(object):
     def setup(self):
         self.xn, self.yn = testing.makeSimpleNodes()
         self.xc, self.yc = testing.makeSimpleCells()
+        self.mg = core.ModelGrid(self.xn, self.yn)
         self.g1 = core.ModelGrid(self.xn[:, :3], self.yn[:, :3])
         self.g2 = core.ModelGrid(self.xn[2:5, 3:], self.yn[2:5, 3:])
 
@@ -511,7 +512,6 @@ class test_ModelGrid(object):
 
         testing.compareShapefiles(outfile, basefile)
 
-    #
     def test_to_shapefile_mask_cells_points(self):
         outfile = 'tests/result_files/mgshp_mask_cells_points.shp'
         basefile = 'tests/baseline_files/mgshp_mask_cells_points.shp'
@@ -521,7 +521,6 @@ class test_ModelGrid(object):
                              geom='point')
         testing.compareShapefiles(outfile, basefile)
 
-    #
     def test_to_shapefile_mask_cells_polys(self):
         outfile = 'tests/result_files/mgshp_mask_cells_polys.shp'
         basefile = 'tests/baseline_files/mgshp_mask_cells_polys.shp'
@@ -556,6 +555,59 @@ class test_ModelGrid(object):
         x, y = self.g1._get_x_y('cells', usemask=False)
         nptest.assert_array_equal(x, self.g1.xc)
         nptest.assert_array_equal(y, self.g1.yc)
+
+    def test_writeGEFDCControlFile(self):
+        known_filename = 'tests/baseline_files/modelgrid_gefdc.inp'
+        result_path = 'tests/result_files'
+        result_file = 'modelgrid_gefdc.inp'
+        self.mg.writeGEFDCControlFile(
+            outputdir=result_path,
+            filename=result_file,
+            title='Model Grid Test'
+        )
+        testing.compareTextFiles(
+            os.path.join(result_path, result_file),
+            known_filename
+        )
+
+    def test_writeGEFDCCellFile(self):
+        known_filename = 'tests/baseline_files/modelgrid_cell.inp'
+        result_path = 'tests/result_files'
+        result_file = 'modelgrid_cell.inp'
+        self.mg.writeGEFDCCellFile(
+            outputdir=result_path,
+            filename=result_file,
+        )
+        testing.compareTextFiles(
+            os.path.join(result_path, result_file),
+            known_filename
+        )
+
+    def test_writeGEFDCGridFile(self):
+        known_filename = 'tests/baseline_files/modelgrid_grid.out'
+        result_path = 'tests/result_files'
+        result_file = 'modelgrid_grid.out'
+        self.mg.writeGEFDCGridFile(
+            outputdir=result_path,
+            filename=result_file,
+        )
+        testing.compareTextFiles(
+            os.path.join(result_path, result_file),
+            known_filename
+        )
+
+    def test_writeGEFDCGridextFiles(self):
+        known_filename = 'tests/baseline_files/modelgrid_gridext.inp'
+        result_path = 'tests/result_files'
+        result_file = 'modelgrid_gridext.inp'
+        self.mg.writeGEFDCGridextFile(
+            outputdir=result_path,
+            filename=result_file,
+        )
+        testing.compareTextFiles(
+            os.path.join(result_path, result_file),
+            known_filename
+        )
 
 
 class test_makeGrid(object):

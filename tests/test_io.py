@@ -309,12 +309,6 @@ class test_write_cellinp(object):
         )
 
 
-class test__write_gefdc_control_file(object):
-    def setup(self):
-        self.title
-        self.max_i
-
-
 class test_gridextToShapefile(object):
     def setup(self):
         self.gridextfile = 'tests/test_data/gridext.inp'

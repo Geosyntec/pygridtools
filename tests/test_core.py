@@ -625,7 +625,7 @@ class test_makeGrid(object):
     def test_with_coords_and_bathy(self):
         grid = core.makeGrid(
             coords=self.coords,
-            bathydata=self.bathy,
+            bathydata=self.bathy.dropna(),
             **self.gridparams
         )
         nt.assert_true(isinstance(grid, pygridgen.Gridgen))

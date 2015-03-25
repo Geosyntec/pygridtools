@@ -149,42 +149,33 @@ class test_interpolateBathymetry(object):
         self.bathy = testing.makeSimpleBathy()
         self.grid = testing.makeSimpleGrid()
 
-        self.known_real_elev = np.ma.MaskedArray(
-            data= [
-                [100.15, 100.2 , -999.99, -999.99, -999.99, -999.99],
-                [100.2 , 100.25,  100.65,  100.74,  100.83,  100.95],
-                [100.25, 100.3 ,  100.35,  100.4 ,  100.45,  100.5 ],
-                [100.3 , 100.35,  100.4 ,  100.45,  100.5 ,  100.55],
-                [100.35, 100.4 , -999.99, -999.99, -999.99, -999.99],
-                [100.4 , 100.45, -999.99, -999.99, -999.99, -999.99],
-                [100.45, 100.5 , -999.99, -999.99, -999.99, -999.99],
-                [100.5 , 100.55, -999.99, -999.99, -999.99, -999.99]
-            ],
-            mask=[
-                [False, False,  True,  True,  True,  True],
-                [False, False, False, False, False, False],
-                [False, False, False, False, False, False],
-                [False, False, False, False, False, False],
-                [False, False,  True,  True,  True,  True],
-                [False, False,  True,  True,  True,  True],
-                [False, False,  True,  True,  True,  True],
-                [False, False,  True,  True,  True,  True]
-            ]
-        )
+        self.known_real_elev = np.ma.masked_invalid(np.array([
+            [100.15, 100.2 ,    nan,    nan,    nan,    nan],
+            [100.2 , 100.25, 100.65, 100.74, 100.83, 100.95],
+            [100.25, 100.3 , 100.35, 100.4 , 100.45, 100.5 ],
+            [100.3 , 100.35, 100.4 , 100.45, 100.5 , 100.55],
+            [100.35, 100.4 ,    nan,    nan,    nan,    nan],
+            [100.4 , 100.45,    nan,    nan,    nan,    nan],
+            [100.45, 100.5 ,    nan,    nan,    nan,    nan],
+            [100.5 , 100.55,    nan,    nan,    nan,    nan]
+        ]))
 
     def test_fake_bathy(self):
-        misc.interpolateBathymetry(None, self.grid)
+        elev = misc.interpolateBathymetry(None, self.grid.x_rho, self.grid.y_rho)
         nptest.assert_array_equal(
-            self.grid.elev,
+            elev,
             np.ma.MaskedArray(data=np.zeros(self.grid.x_rho.shape),
                               mask=self.grid.x_rho.mask)
         )
-        nt.assert_tuple_equal(self.grid.elev.shape, self.grid.x_rho.shape)
+        nt.assert_tuple_equal(elev.shape, self.grid.x_rho.shape)
 
     def test_real_bathy(self):
-        misc.interpolateBathymetry(self.bathy, self.grid)
+        elev = misc.interpolateBathymetry(
+            self.bathy, self.grid.x_rho, self.grid.y_rho
+        )
+
         nptest.assert_array_almost_equal(
-            self.grid.elev, self.known_real_elev, decimal=2
+            elev, self.known_real_elev, decimal=2
         )
 
     def teardown(self):

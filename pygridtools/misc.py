@@ -4,8 +4,11 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
+import matplotlib.mlab as mlab
 import pandas
 import fiona
+
+import pygridgen
 
 
 def points_inside_poly(points, polyverts):
@@ -102,7 +105,8 @@ def makeRecord(ID, coords, geomtype, props):
     return record
 
 
-def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
+def interpolateBathymetry(bathy, x_points, y_points,
+                          xcol='x', ycol='y', zcol='z'):
     '''
     Interpolates x-y-z point data onto the grid of a Gridgen object.
     Matplotlib's nearest-neighbor interpolation schema is used to
@@ -112,11 +116,12 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
     ----------
     bathy : pandas.DataFrame or None
         The bathymetry data stored as x-y-z points in a DataFrame.
-    grid : pygridgen.grid.Gridgen object
-        The grid onto which the bathymetry will be interpolated
+    [x|y]_points : numpy arrays
+        The x, y locations onto which the bathymetry will be
+        interpolated.
     xcol/ycol/zcol : optional strings
         Column names for each of the quantities defining the elevation
-        pints. Defaults are "easting/northing/elevation".
+        pints. Defaults are "x/y/z".
 
     Returns
     -------
@@ -128,45 +133,43 @@ def interpolateBathymetry(bathy, grid, xcol='x', ycol='y', zcol='z'):
     This operates on the grid object in place.
 
     '''
-    import matplotlib.delaunay as mdelaunay
 
     if bathy is None:
-        elev = np.zeros(grid.x_rho.shape)
+        elev = np.zeros(x_points.shape)
 
-        if isinstance(grid.x_rho, np.ma.MaskedArray):
-            elev = np.ma.MaskedArray(data=elev, mask=grid.x_rho.mask)
+        if isinstance(x_points, np.ma.MaskedArray):
+            elev = np.ma.MaskedArray(data=elev, mask=x_points.mask)
 
         bathy = pandas.DataFrame({
-            'x': grid.x_rho.flatten(),
-            'y': grid.y_rho.flatten(),
-            'z': elev.flatten()
+            xcol: x_points.flatten(),
+            ycol: y_points.flatten(),
+            zcol: elev.flatten()
         })
 
     else:
-        bathy = bathy[['x', 'y', 'z']]
+        bathy = bathy[[xcol, ycol, zcol]]
 
-        # find where the bathy is inside our grid
-        grididx = (
-            (bathy['x'] <= grid.x_rho.max()) &
-            (bathy['x'] >= grid.x_rho.min()) &
-            (bathy['y'] <= grid.y_rho.max()) &
-            (bathy['y'] >= grid.y_rho.min())
-        )
+    # find where the bathy is inside our grid
+    grididx = (
+        (bathy[xcol] <= x_points.max()) &
+        (bathy[xcol] >= x_points.min()) &
+        (bathy[ycol] <= y_points.max()) &
+        (bathy[ycol] >= y_points.min())
+    )
 
-        gridbathy = bathy[grididx]
+    gridbathy = bathy[grididx].dropna(how='any')
 
-        # triangulate the grid
-        triangles = mdelaunay.Triangulation(gridbathy['x'], gridbathy['y'])
+    # fill in NaNs with something outside of the bounds
+    xx = x_points.copy()
+    yt = y_points.copy()
+    xx[np.isnan(x_points)] = x_points.max() + 5
+    yy[np.isnan(y_points)] = y_points.max() + 5
 
-        try:
-            extrapolate = triangles.nn_extrapolator(gridbathy['z'])
-        except: # pragma: no cover
-            extrapolate = triangles.nn_extrapolator(gridbathy['z'][:-1])
+    # use cubic-spline approximation to interpolate the grid
+    csa = pygridgen.csa(gridbathy[xcol], gridbathy[ycol], gridbathy[zcol])
+    return csa(xx, yy)
 
-        elev = np.ma.masked_invalid(extrapolate(grid.x_rho, grid.y_rho))
-
-    grid.elev = elev
-    return bathy
+        # linear interpol
 
 
 def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):

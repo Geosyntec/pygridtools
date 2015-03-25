@@ -361,9 +361,7 @@ class ModelGrid(object):
         return ModelGrid(gridgen.x, gridgen.y)
 
 
-def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
-             plot=True, xlimits=None, ax=None, figpath=None,
-             outdir=None, title=None, verbose=False, **gparams):
+def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
     '''
     Generate and (optionally) visualize a grid, and create input files
     for the GEDFC preprocessor (makes grid input files for GEFDC).
@@ -383,16 +381,6 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
           - 'x' (easting)
           - 'y' (northing),
           - 'z' (elevation)
-    makegrid : optional bool (default = True)
-        Set to false to not generate a new grid in favor of using the
-        provided object.
-    plot : optional bool (default = False)
-        Draws a plot of the grid
-    xlimits : optional bool (default = False)
-        Sets the xlimit of `Axes` object
-    ax : optional `matplotlib.Axes object or None (default)
-        Axes on which the grid will be drawn if `plot` = True. If
-        ommitted as `plot` = True, a new Axes will be created.
     **gparams : optional kwargs
         Parameters to be passed to the pygridgen.grid.Gridgen constructor.
         Only used if `makegrid` = True and `coords` is not None.
@@ -401,7 +389,6 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
     Returns
     -------
     grid : pygridgen.grid.Gridgen obejct
-    fig : matplotlib.Figure object
 
     Notes
     -----
@@ -415,36 +402,22 @@ def makeGrid(coords=None, bathydata=None, makegrid=True, grid=None,
     '''
 
     # generate the grid.
-    if grid is None:
-        if makegrid:
-            try:
-                nx = gparams.pop('nx')
-                ny = gparams.pop('ny')
-            except KeyError:
-                raise ValueError('must provide `nx` and `ny` if '
-                                 '`makegrid` = True')
-            if verbose:
-                print('generating grid')
-            grid = pygridgen.Gridgen(coords.x, coords.y, coords.beta,
-                                     (ny, nx), **gparams)
-        else:
-            raise ValueError("must provide `grid` if `makegrid` = False")
+    try:
+        nx = gparams.pop('nx')
+        ny = gparams.pop('ny')
+    except KeyError:
+        raise ValueError('must provide `nx` and `ny` if '
+                         '`makegrid` = True')
+    if verbose:
+        print('generating grid')
+
+    grid = pygridgen.Gridgen(coords.x, coords.y, coords.beta,
+                             (ny, nx), **gparams)
+
     if verbose:
         print('interpolating bathymetry')
+
     newbathy = misc.interpolateBathymetry(bathydata, grid, xcol='x',
                                           ycol='y', zcol='z')
 
-    if plot:
-        if verbose:
-            print('plotting data and saving image')
-        fig, ax = viz.plotPygridgen(grid, ax=ax)
-        ax.set_aspect('equal')
-        if xlimits is not None:
-            ax.set_xlim(xlimits)
-
-        if figpath is not None:
-            fig.savefig(figpath)
-    else:
-        fig = None
-
-    return grid, fig
+    return grid

@@ -83,7 +83,7 @@ def test__plot_cells_bokeh():
 
 def test__plot_cell_mpl():
     x, y = testing.makeSimpleNodes()
-    fig = viz._plot_cells_mpl(x, y)
+    fig, ax = viz._plot_cells_mpl(x, y)
     nt.assert_true(isinstance(fig, plt.Figure))
 
 

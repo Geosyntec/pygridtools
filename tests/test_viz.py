@@ -43,19 +43,19 @@ class test_plotReachDF(object):
         plt.close('all')
 
     def test_smoketest_withoutax(self):
-        fig = viz.plotReachDF(self.boundary, 'x', 'y', 'reach')
+        fig = viz.plotReachDF(self.boundary, 'x', 'y')
         nt.assert_true(isinstance(fig, seaborn.FacetGrid))
         figfile = 'tests/result_images/plotreach_withoutax.png'
         fig.savefig(figfile, dpi=150)
 
     def test_smoketest_withflipped(self):
-        fig = viz.plotReachDF(self.boundary, 'x', 'y', 'reach', flip=True)
+        fig = viz.plotReachDF(self.boundary, 'x', 'y', flip=True)
         figfile = 'tests/result_images/plotreach_flip.png'
         fig.savefig(figfile, dpi=150)
 
     @nt.raises(ValueError)
     def test_badinput(self):
-        viz.plotReachDF(self.boundary.values, 'x', 'y', 'reach', flip=True)
+        viz.plotReachDF(self.boundary.values, 'x', 'y', flip=True)
 
 
 class test_plotPygridgen(object):
@@ -83,7 +83,7 @@ def test__plot_cells_bokeh():
 
 def test__plot_cell_mpl():
     x, y = testing.makeSimpleNodes()
-    fig = viz._plot_cells_mpl(x, y)
+    fig, ax = viz._plot_cells_mpl(x, y)
     nt.assert_true(isinstance(fig, plt.Figure))
 
 

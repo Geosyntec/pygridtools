@@ -23,7 +23,7 @@ def checkAx(ax):
     return fig, ax
 
 
-def plotReachDF(boundary, xcol, ycol, reachcol, flip=False):
+def plotReachDF(boundary, xcol, ycol, flip=False):
     if not isinstance(boundary, pandas.DataFrame):
         raise ValueError('`boundary` must be a dataframe')
 
@@ -46,7 +46,7 @@ def plotPygridgen(grid, ax=None):
     if ax.is_last_row():
         ax.set_xlabel('$nx = {}$'.format(grid.nx), size=14)
 
-    fig = plotCells(grid.x, grid.y, ax=ax, engine='mpl')
+    fig, ax = plotCells(grid.x, grid.y, ax=ax, engine='mpl')
     return fig, ax
 
 
@@ -138,7 +138,7 @@ def _plot_cells_mpl(nodes_x, nodes_y, mask=None, ax=None):
                                    zorder=0, facecolor='0.875')
                 ax.add_artist(rect)
 
-    return fig
+    return fig, ax
 
 
 def plotBoundaries(river=None, islands=None, engine='mpl', ax=None):

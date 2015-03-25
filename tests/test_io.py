@@ -327,7 +327,7 @@ class test_gridextToShapefile(object):
 
     @nt.raises(ValueError)
     def test_bad_input_file(self):
-        io.gridextToShapefile('junk', self.outputfile,
+        io.gridextToShapefile('junk__', self.outputfile,
                               self.template, river=self.river)
 
     @nt.raises(ValueError)

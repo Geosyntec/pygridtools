@@ -259,15 +259,20 @@ class ModelGrid(object):
             return viz._plot_nodes_bokeh(self.xn, self.yn, boundary=boundary,
                                          **kwargs)
 
-    def plotCells(self, boundary=None, engine='mpl', ax=None, usemask=True,
-                  river=None, islands=None, **kwargs):
+    def plotCells(self, engine='mpl', ax=None, usemask=True,
+                  river=None, islands=None, boundary=None,
+                  bxcol='x', bycol='y', **kwargs):
         if usemask:
             mask = self.cell_mask.copy()
         else:
             mask = None
 
-        fig, ax = viz.plotCells(self.xn, self.yn, engine=engine, ax=ax,
-                            mask=mask, **kwargs)
+
+        if boundary is not None:
+            fg = viz.plotReachDF(boundary, bxcol, bycol)
+
+        fig, ax = viz.plotCells(self.xn, self.yn, engine=engine,
+                                ax=fg.axes[0, 0], mask=mask, **kwargs)
 
         if river is not None or islands is not None:
             fig, ax = viz.plotBoundaries(river=river, islands=islands,

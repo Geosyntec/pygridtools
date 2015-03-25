@@ -23,7 +23,7 @@ def checkAx(ax):
     return fig, ax
 
 
-def plotReachDF(boundary, xcol, ycol, reachcol, flip=False):
+def plotReachDF(boundary, xcol, ycol, flip=False):
     if not isinstance(boundary, pandas.DataFrame):
         raise ValueError('`boundary` must be a dataframe')
 

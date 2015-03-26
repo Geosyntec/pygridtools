@@ -389,7 +389,50 @@ def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
     **gparams : optional kwargs
         Parameters to be passed to the pygridgen.grid.Gridgen constructor.
         Only used if `makegrid` = True and `coords` is not None.
-        `ny` and `nx` are required. Other values are optional.
+        `ny` and `nx` are absolutely required. Optional values include:
+
+        ul_idx : optional int (default = 0)
+            The index of the what should be considered the upper left
+            corner of the grid boundary in the `xbry`, `ybry`, and
+            `beta` inputs. This is actually more arbitrary than it
+            sounds. Put it some place convenient for you, and the
+            algorthim will conceptually rotate the boundary to place
+            this point in the upper left corner. Keep that in mind when
+            specifying the shape of the grid.
+        focus : optional pygridgen.Focus instance or None (default)
+            A focus object to tighten/loosen the grid in certain
+            sections.
+        proj : option pyproj projection or None (default)
+            A pyproj projection to be used to convert lat/lon
+            coordinates to a projected (Cartesian) coordinate system
+            (e.g., UTM, state plane).
+        nnodes : optional int (default = 14)
+            The number of nodes used in grid generation. This affects
+            the precision and computation time. A rule of thumb is that
+            this should be equal to or slightly larger than
+            -log10(precision).
+        precision : optional float (default = 1.0e-12)
+            The precision with which the grid is generated. The default
+            value is good for lat/lon coordinate (i.e., smaller
+            magnitudes of boundary coordinates). You can relax this to
+            e.g., 1e-3 when working in state plane or UTM grids and
+            you'll typically get better performance.
+        nppe : optional int (default = 3)
+            The number of points per internal edge. Lower values will
+            coarsen the image.
+        newton : optional bool (default = True)
+            Toggles the use of Gauss-Newton solver with Broyden update
+            to determine the sigma values of the grid domains. If False
+            simple iterations will be used instead.
+        thin : optional bool (default = True)
+            Toggle to True when the (some portion of) the grid is
+            generally narrow in one dimension compared to another.
+        checksimplepoly : optional bool (default = True)
+            Toggles a check to confirm that the boundary inputs form a
+            valid geometry.
+        verbose : optional bool (default = True)
+            Toggles the printing of console statements to track the
+            progress of the grid generation.
 
     Returns
     -------
@@ -397,32 +440,30 @@ def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
 
     Notes
     -----
-    - Generating the grid can take some time. pass in `verbose` = True
-       to watch the progress in the console.
+    If your boundary has a lot of points, this really can take quite
+    some time. Setting verbose=True will help track the progress of the
+    grid generattion.
 
     See Also
     --------
-    pygridgen.grid.Gridgen
+    pygridgen.Gridgen, pygridgen.csa, pygridtools.ModelGrid
 
     '''
 
     # generate the grid.
     try:
-        nx = gparams.pop('nx')
-        ny = gparams.pop('ny')
+        shape = (gparams.pop('ny'), gparams.pop('nx'))
     except KeyError:
-        raise ValueError('must provide `nx` and `ny` if '
-                         '`makegrid` = True')
+        raise ValueError('you must provide `nx` and `ny` to generate a grid')
     if verbose:
         print('generating grid')
 
-    grid = pygridgen.Gridgen(coords.x, coords.y, coords.beta,
-                             (ny, nx), **gparams)
+    grid = pygridgen.Gridgen(coords.x, coords.y, coords.beta, shape, **gparams)
 
     if verbose:
         print('interpolating bathymetry')
 
-    newbathy = misc.interpolateBathymetry(bathydata, grid, xcol='x',
-                                          ycol='y', zcol='z')
+    newbathy = misc.interpolateBathymetry(bathydata, grid.x_rho, grid.y_rho,
+                                          xcol='x', ycol='y', zcol='z')
 
     return grid

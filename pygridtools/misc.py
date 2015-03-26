@@ -161,7 +161,7 @@ def interpolateBathymetry(bathy, x_points, y_points,
 
     # fill in NaNs with something outside of the bounds
     xx = x_points.copy()
-    yt = y_points.copy()
+    yy = y_points.copy()
     xx[np.isnan(x_points)] = x_points.max() + 5
     yy[np.isnan(y_points)] = y_points.max() + 5
 

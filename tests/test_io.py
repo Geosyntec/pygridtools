@@ -112,14 +112,14 @@ class test_loadBoundaryFromShapefile(object):
         self.test_reach = 1
         self.known_points_in_testreach = 10
 
-    @nptest.dec.skipif(sys.version_info[0] == 3)
+    #@nptest.dec.skipif(sys.version_info[0] == 3)
     def test_nofilter(self):
         df = io.loadBoundaryFromShapefile(self.shapefile)
         nt.assert_true(isinstance(df, pandas.DataFrame))
         nt.assert_list_equal(df.columns.tolist(), self.known_df_columns)
         nt.assert_equal(df.shape[0], self.known_points_in_boundary)
 
-    @nptest.dec.skipif(sys.version_info[0] == 3)
+    #@nptest.dec.skipif(sys.version_info[0] == 3)
     def test_filter(self):
         df = io.loadBoundaryFromShapefile(
             self.shapefile,
@@ -147,20 +147,20 @@ class test_loadPolygonFromShapefile(object):
             ]),
         ]
 
-    @nptest.dec.skipif(sys.version_info[0] == 3)
+    #@nptest.dec.skipif(sys.version_info[0] == 3)
     def test_baseline(self):
         islands = io.loadPolygonFromShapefile(self.shpfile)
         nt.assert_true(isinstance(islands, list))
         for test, known in zip(islands, self.known_islands):
             nptest.assert_array_almost_equal(test, known)
 
-    @nptest.dec.skipif(sys.version_info[0] == 3)
+    #@nptest.dec.skipif(sys.version_info[0] == 3)
     def test_filter(self):
         island = io.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter)
         nt.assert_true(isinstance(island, np.ndarray))
         nptest.assert_array_almost_equal(island, self.known_islands[1])
 
-    @nptest.dec.skipif(sys.version_info[0] == 3)
+    #@nptest.dec.skipif(sys.version_info[0] == 3)
     def test_filter_nosqueeze(self):
         island = io.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter,
                                              squeeze=False)
@@ -211,7 +211,7 @@ class test_savePointShapefile(object):
     def test_bad_mode(self):
         io.savePointShapefile(self.x, self.y, self.template, 'junk', 'r')
 
-    @nptest.dec.skipif(sys.version_info[0] == 3)
+    #@nptest.dec.skipif(sys.version_info[0] == 3)
     def test_with_arrays(self):
         fname = 'array_point.shp'
         outfile = os.path.join(self.outputdir, fname)
@@ -221,7 +221,7 @@ class test_savePointShapefile(object):
 
         testing.compareShapefiles(outfile, basefile)
 
-    @nptest.dec.skipif(sys.version_info[0] == 3)
+    #@nptest.dec.skipif(sys.version_info[0] == 3)
     def test_with_masks(self):
         fname = 'mask_point.shp'
         outfile = os.path.join(self.outputdir, fname)

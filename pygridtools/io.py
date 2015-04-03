@@ -106,9 +106,9 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
     # load and filter the data
     with fiona.open(shapefile, 'r') as shp:
         if filterfxn is None:
-            reach_bry = filter(lambda x: True, shp)
+            reach_bry = list(filter(lambda x: True, shp))
         else:
-            reach_bry = filter(filterfxn, shp)
+            reach_bry = list(filter(filterfxn, shp))
 
     def _get_col_val(rec, col, default=None):
         if col is not None:
@@ -169,9 +169,9 @@ def loadPolygonFromShapefile(shapefile, filterfxn=None, squeeze=True):
     # load and filter the data
     with fiona.open(shapefile, 'r') as shp:
         if filterfxn is None:
-            polygons = filter(lambda x: True, shp)
+            polygons = list(filter(lambda x: True, shp))
         else:
-            polygons = filter(filterfxn, shp)
+            polygons = list(filter(filterfxn, shp))
 
     data = []
     for record in polygons:
@@ -277,7 +277,7 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
                     # build the attributes
                     props = OrderedDict(
                         id=int(row), river=river, reach=reach,
-                        ii=int(ii+2), jj=int(jj+2), elev=elev[jj,ii],
+                        ii=int(ii+2), jj=int(jj+2), elev=float(elev[jj,ii]),
                         ii_jj='{:02d}_{:02d}'.format(ii+2, jj+2)
                     )
 

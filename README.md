@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/phobson/pygridtools.svg?branch=master)](https://travis-ci.org/phobson/pygridtools)
-[![Coverage Status](https://coveralls.io/repos/phobson/pygridtools/badge.svg)](https://coveralls.io/r/phobson/pygridtools)
+[![Build Status](https://travis-ci.org/Geosyntec/pygridtools.svg?branch=master)](https://travis-ci.org/Geosyntec/pygridtools)
+[![Coverage Status](https://coveralls.io/repos/Geosyntec/pygridtools/badge.svg)](https://coveralls.io/r/Geosyntec/pygridtools)
 
 # pygridtools
 Miscellaneous utilities to accompany [`pygridgen`](https://github.com/hetland/pygridgen)
@@ -18,10 +18,9 @@ Use [`conda`](http://conda.pydata.org/) and grab the dependecies
 in my channel via:
 
 ```bash
-conda create --yes --name=grids python=3.4
-source activate grids
-conda config --add channels phobson
-conda install --yes seaborn bokeh fiona shapely nose csa nn gridutils gridgen pygridgen
+conda creat --name=grid python=3.4 seaborn fiona nose 
+source activate grid
+conda install --channel=IOOS pygridgen
 ```
 
 Then clone this directory and do `pip install .`
@@ -29,7 +28,6 @@ Then clone this directory and do `pip install .`
 ## Python versions.
 Currently tested on:
   - 2.7
-  - 3.3
   - 3.4
 
 ## Examples

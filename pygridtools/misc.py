@@ -13,9 +13,8 @@ def points_inside_poly(points, polyverts):
 
 
 def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
-    '''
-    Makes an array for coordinates suitable for building quadrilateral
-    geometries in shapfiles via fiona.
+    """ Makes an array for coordinates suitable for building
+    quadrilateral geometries in shapfiles via fiona.
 
     Parameters
     ----------
@@ -33,7 +32,8 @@ def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
     coords : numpy array
         An array suitable for feeding into fiona as the geometry of a record.
 
-    '''
+    """
+
     def process_input(array):
         flat = np.hstack([array[0,:], array[1,::-1]])
         return flat[~np.isnan(flat)]
@@ -55,16 +55,15 @@ def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
 
 
 def makeRecord(ID, coords, geomtype, props):
-    '''
-    Creates a records for the fiona package to append to a shapefile
+    """ Creates a record to be appended to a shapefile via fiona.
 
     Parameters
     ----------
     ID : int
         The record ID number
     coords : tuple or array-like
-        The x-y coordinates of the geometry. For Points, just a tuple. An
-        array or list of tuples for LineStrings or Polygons
+        The x-y coordinates of the geometry. For Points, just a tuple.
+        An array or list of tuples for LineStrings or Polygons
     geomtype : string
         A valid GDAL/OGR geometry specification (e.g. LineString, Point,
         Polygon)
@@ -74,14 +73,15 @@ def makeRecord(ID, coords, geomtype, props):
     Returns
     -------
     record : dict
-        A nested dictionary suitable for the fiona package to append to a
-        shapefile
+        A nested dictionary suitable for the fiona package to append to
+        a shapefile
 
     Notes
     -----
     This is ignore the mask of a MaskedArray. That might be bad.
 
-    '''
+    """
+
     if not geomtype in ['Point', 'LineString', 'Polygon']:
         raise ValueError('Geometry {} not suppered'.format(geomtype))
 
@@ -92,20 +92,18 @@ def makeRecord(ID, coords, geomtype, props):
         coords = coords.tolist()
 
     record = {
-    'id': ID,
-    'geometry': {
-        'coordinates': coords if geomtype == 'Point' else [coords],
-        'type': geomtype
+        'id': ID,
+        'geometry': {
+            'coordinates': coords if geomtype == 'Point' else [coords],
+            'type': geomtype
         },
-    'properties': props
+        'properties': props
     }
     return record
 
 
-def interpolateBathymetry(bathy, x_points, y_points,
-                          xcol='x', ycol='y', zcol='z'):
-    '''
-    Interpolates x-y-z point data onto the grid of a Gridgen object.
+def interpolateBathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='z'):
+    """ Interpolates x-y-z point data onto the grid of a Gridgen object.
     Matplotlib's nearest-neighbor interpolation schema is used to
     estimate the elevation at the grid centers.
 
@@ -125,11 +123,7 @@ def interpolateBathymetry(bathy, x_points, y_points,
     gridbathy : pandas.DataFrame
         The bathymetry for just the area covering the grid.
 
-    Notes
-    -----
-    This operates on the grid object in place.
-
-    '''
+    """
 
     try:
         import pygridgen
@@ -173,7 +167,7 @@ def interpolateBathymetry(bathy, x_points, y_points,
 
 
 def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
-    '''Merge 2-dimensional numpy arrays with different shapes
+    """ Merge 2-dimensional numpy arrays with different shapes.
 
     Parameters
     ----------
@@ -227,7 +221,8 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
                [ -4.,  -5.,  -6.,  -7.,   9.,  10.,  11.]]
 
 
-    '''
+    """
+
     a = np.asarray(a)
     b = np.asarray(b)
 
@@ -280,9 +275,8 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
 
 
 def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
-    '''
-    Take an array defining the nodes as wet (1) or dry (0) create the
-    array of cell values needed for GEFDC
+    """ Take an array defining the nodes as wet (1) or dry (0) create
+    the array of cell values needed for GEFDC.
 
     Input
     -----
@@ -301,7 +295,7 @@ def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
     cell_array : numpy array
         Integer array of the values written to ``outfile``.
 
-    '''
+    """
 
     triangle_cells = {
         0: 3,

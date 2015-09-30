@@ -4,16 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas
 
-# from bokeh import plotting
-# from bokeh.models import HoverTool
-
 from . import misc
 
 
-def checkAx(ax):
-    '''
-    Pass in an Axes or None, get back an Axes and a Figure
-    '''
+def _check_ax(ax):
     if ax is None:
         fig, ax = plt.subplots()
     else:
@@ -22,28 +16,83 @@ def checkAx(ax):
     return fig, ax
 
 
-def plotReachDF(boundary, xcol, ycol, flip=False, **subplot_opts):
+def plotReachDF(boundary, xcol='x', ycol='y', betacol='beta', ax=None):
+    """ Plots the reach (domain) of a grid from the boundary coordinates
+    stored in a pandas.DataFrame.
+
+    Parameters
+    ----------
+    boundary : pandas.DataFrame
+        Dataframe containing x, y, and beta information about the grid
+        domain.
+    xcol, ycol, betacol : str, optional
+        Strings defining the column labels in ``boundary`` for the
+        x- and y-coordinates, and the beta (turning point parameter).
+    ax : matplotlib Axes, optional
+        Axes on which the data will be plotted. If None, a new one will
+        be created.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+
+    See Also
+    --------
+    misc.makeGrid (for info re: the beta parameter)
+
+    """
+
     if not isinstance(boundary, pandas.DataFrame):
         raise ValueError('`boundary` must be a dataframe')
 
+    # setup the figure
+    fig, ax = _check_ax(ax)
 
-    fig, ax = plt.subplots(**subplot_opts)
+    # plot the boundary as a line
     ax.plot(boundary[xcol], boundary[ycol], 'k-', label='__nolegend__')
-    beta_neg1 = boundary[boundary['beta'] == -1]
-    beta_zero = boundary[boundary['beta'] ==  0]
-    beta_pos1 = boundary[boundary['beta'] ==  1]
-    ax.plot(beta_neg1[xcol], beta_neg1[ycol], 's', linestyle='none')
-    ax.plot(beta_zero[xcol], beta_zero[ycol], 'o', linestyle='none')
-    ax.plot(beta_pos1[xcol], beta_pos1[ycol], '^', linestyle='none')
 
+    # plot negative turns
+    beta_neg1 = boundary[boundary['beta'] == -1]
+    ax.plot(beta_neg1[xcol], beta_neg1[ycol], 's', linestyle='none')
+
+    # plot non-turns
+    beta_zero = boundary[boundary['beta'] ==  0]
+    ax.plot(beta_zero[xcol], beta_zero[ycol], 'o', linestyle='none')
+
+    # plot positve turns
+    beta_pos1 = boundary[boundary['beta'] ==  1]
+    ax.plot(beta_pos1[xcol], beta_pos1[ycol], '^', linestyle='none')
 
     return fig
 
 
 def plotPygridgen(grid, ax=None):
-    fig, ax = checkAx(ax)
-    ax.plot(grid.xbry, grid.ybry, 'k-', label='boundary',
-            zorder=10, alpha=0.5, linewidth=1.5)
+    """ Plots a pygridgen' object's boundary and cells.
+
+    Parameters
+    ----------
+    grid : pygridgen.Grid object
+        The grid object to be visualized
+    ax : matplotlib Axes, optional
+        Axes on which the data will be plotted. If None, a new one will
+        be created.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+
+    """
+
+    # setup the figure
+    fig, ax = _check_ax(ax)
+
+    # coerce the boundary info into a dataframe and plot
+    boundary = pandas.DataFrame({
+        'x': grid.xbry,
+        'y': grid.ybry,
+        'beta': grid.beta
+    }).pipe(plotReachDF, ax=ax)
+
 
     if ax.is_first_col():
         ax.set_ylabel('$ny = {}$'.format(grid.ny), size=14)
@@ -52,11 +101,36 @@ def plotPygridgen(grid, ax=None):
         ax.set_xlabel('$nx = {}$'.format(grid.nx), size=14)
 
     fig, ax = plotCells(grid.x, grid.y, ax=ax, engine='mpl')
-    return fig, ax
+
+    return fig
 
 
-def plotCells(nodes_x, nodes_y, name='test', engine='bokeh',
-              mask=None, ax=None):
+def plotCells(nodes_x, nodes_y, name=None, engine='mpl', mask=None, ax=None):
+    """ Plots a grid's cells.
+
+    Parameters
+    ----------
+    nodes_x, nodes_y : array-like
+        Arrays of x- and y- coordindates defining the nodes of a grid.
+    name : str, optional
+        Name for the grid to be displayed in the figure's title
+        (bokeh only).
+    engine : str (default = 'mpl')
+        The plotting engine used to draw the figure. Use 'mpl' for
+        static images. In the __future__, 'bokeh' will be an option for
+        interactive charts.
+    mask : array-like of bools, optional
+        Mask that can be applyed to ``nodes_x`` and ``nodes_y``.
+    ax : matplotlib Axes, optional
+        Axes on which the data will be plotted. If None, a new one will
+        be created.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+
+    """
+
     nodes_x = np.ma.asarray(nodes_x)
     nodes_y = np.ma.asarray(nodes_y)
     if not np.all(nodes_x.shape == nodes_y.shape):
@@ -67,7 +141,8 @@ def plotCells(nodes_x, nodes_y, name='test', engine='bokeh',
 
     # pragma: no cover
     if engine.lower() == 'bokeh':
-        raise NotImplementedError("'bokeh' is not an implemented engine (yet)".format(engine))
+        msg = "'bokeh' is not an implemented engine (yet)".format(engine)
+        raise NotImplementedError(msg)
         p = _plot_cells_bokeh(nodes_x, nodes_y, name=name)
         return p
 
@@ -79,8 +154,7 @@ def plotCells(nodes_x, nodes_y, name='test', engine='bokeh',
         raise NotImplementedError("'{}' is not a valid engine".format(engine))
 
 
-# pragma: no cover
-def _plot_cells_bokeh(nodes_x, nodes_y, name='test'):
+def _plot_cells_bokeh(nodes_x, nodes_y, name='test'): # pragma: no cover
     raise NotImplementedError
 
     def getCellColor(row, col):
@@ -125,7 +199,7 @@ def _plot_cells_bokeh(nodes_x, nodes_y, name='test'):
 
 
 def _plot_cells_mpl(nodes_x, nodes_y, mask=None, ax=None):
-    fig, ax = checkAx(ax)
+    fig, ax = _check_ax(ax)
 
     rows, cols = nodes_x.shape
     if mask is None:
@@ -151,11 +225,34 @@ def _plot_cells_mpl(nodes_x, nodes_y, mask=None, ax=None):
 
 
 def plotBoundaries(river=None, islands=None, engine='mpl', ax=None):
-    fig, ax = checkAx(ax)
+    """ Plots a grid's boundary.
+
+    Parameters
+    ----------
+    river : array-like
+        An N x 2 array of x-y coordinates that define the river. Cells
+        whose centroids are outside the river will not be drawn.
+    islands : list of array-likes
+        A list of N x 2 arrays that define islands in the river. Cells
+        whose centroids are inside the islands will not be drawn.
+    engine : str (default = 'mpl')
+        The plotting engine used to draw the figure. Use 'mpl' for
+        static images. In the __future__, 'bokeh' will be an option for
+        interactive charts.
+    ax : matplotlib Axes, optional
+        Axes on which the data will be plotted. If None, a new one will
+        be created.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+
+    """
+    fig, ax = _check_ax(ax)
     if engine == 'mpl':
         _plot_boundaries_mpl(river, islands, ax=ax)
         ax.set_aspect('equal')
-        return fig, ax
+        return fig
 
     elif engine == 'bokeh':
         raise NotImplementedError("bokeh engine not ready yet")

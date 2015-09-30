@@ -1,4 +1,4 @@
 from .core import *
 from .misc import *
-from . import io
+from . import iotools
 from . import viz

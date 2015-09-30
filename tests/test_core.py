@@ -271,6 +271,8 @@ class test_ModelGrid(object):
                 0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
                 5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0}
             })
+        self.known_df.columns.names = ['coord', 'i']
+        self.known_df.index.names = ['j']
 
         self.known_masked_cell_df = pandas.DataFrame({
             ('easting', 0): {
@@ -287,6 +289,8 @@ class test_ModelGrid(object):
                 5: 2.75, 6: 3.25, 7: 3.75
             }
         })
+        self.known_masked_cell_df.columns.names = ['coord', 'i']
+        self.known_masked_cell_df.index.names = ['j']
 
 
         self.known_coord_pairs = np.array([

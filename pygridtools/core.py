@@ -7,7 +7,7 @@ import pandas
 import pygridgen
 
 from . import misc
-from . import io
+from . import iotools
 from . import viz
 
 
@@ -214,9 +214,9 @@ class ModelGrid(object):
 
     def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
                               bathyrows=0, title='test'):
-        outfile = io._outputfile(outputdir, filename)
+        outfile = iotools._outputfile(outputdir, filename)
 
-        gefdc = io._write_gefdc_control_file(
+        gefdc = iotools._write_gefdc_control_file(
             outfile,
             title,
             self.inodes + 1,
@@ -231,23 +231,23 @@ class ModelGrid(object):
         cells = misc.make_gefdc_cells(
             ~np.isnan(self.xn), self.cell_mask, triangles=triangles
         )
-        outfile = io._outputfile(outputdir, filename)
+        outfile = iotools._outputfile(outputdir, filename)
 
-        io._write_cellinp(cells, outputfile=outfile,
+        iotools._write_cellinp(cells, outputfile=outfile,
                                   flip=True, maxcols=maxcols)
         return cells
 
     def writeGEFDCGridFile(self, outputdir=None, filename='grid.out'):
-        outfile = io._outputfile(outputdir, filename)
-        df = io._write_gridout_file(self.xn, self.yn, outfile)
+        outfile = iotools._outputfile(outputdir, filename)
+        df = iotools._write_gridout_file(self.xn, self.yn, outfile)
         return df
 
     def writeGEFDCGridextFile(self, outputdir, shift=2, filename='gridext.inp'):
-        outfile = io._outputfile(outputdir, filename)
+        outfile = iotools._outputfile(outputdir, filename)
         df = self.as_dataframe().stack(level='i', dropna=True).reset_index()
         df['i'] += shift
         df['j'] += shift
-        io._write_gridext_file(df, outfile)
+        iotools._write_gridext_file(df, outfile)
         return df
 
     def _plot_nodes(self, boundary=None, engine='mpl', ax=None, **kwargs):
@@ -313,7 +313,7 @@ class ModelGrid(object):
 
         if geom.lower() == 'point':
             x, y = self._get_x_y(which, usemask=usemask)
-            io.savePointShapefile(x, y, template, outputfile,
+            iotools.savePointShapefile(x, y, template, outputfile,
                                   mode=mode, river=river, reach=reach,
                                   elev=elev)
 
@@ -323,7 +323,7 @@ class ModelGrid(object):
             else:
                 mask = None
             x, y = self._get_x_y('nodes', usemask=False)
-            io.saveGridShapefile(x, y, mask, template,
+            iotools.saveGridShapefile(x, y, mask, template,
                                  outputfile, mode=mode, river=river,
                                  reach=reach, elev=elev,
                                  triangles=triangles)
@@ -358,7 +358,7 @@ class ModelGrid(object):
 
     @staticmethod
     def from_shapefile(shapefile, icol='ii', jcol='jj'):
-        df = io.readGridShapefile(shapefile, icol=icol, jcol=jcol)
+        df = iotools.readGridShapefile(shapefile, icol=icol, jcol=jcol)
         return ModelGrid.from_dataframes(df['easting'], df['northing'])
 
     @staticmethod

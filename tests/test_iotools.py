@@ -9,20 +9,20 @@ import pandas
 import pandas.util.testing as pdtest
 import fiona
 
-from pygridtools import io
+from pygridtools import iotools
 import testing
 
 
 class test__outputfile(object):
     def test_basic(self):
         nt.assert_equal(
-            io._outputfile('this', 'that.txt'),
+            iotools._outputfile('this', 'that.txt'),
             os.path.join('this', 'that.txt')
         )
 
     def test_withNone(self):
         nt.assert_equal(
-            io._outputfile(None, 'that.txt'),
+            iotools._outputfile(None, 'that.txt'),
             os.path.join('.', 'that.txt')
         )
 
@@ -30,13 +30,13 @@ class test__outputfile(object):
 class test__check_mode(object):
     @nt.raises(ValueError)
     def test_errors(self):
-        io._check_mode('z')
+        iotools._check_mode('z')
 
     def test_upper(self):
-        nt.assert_equal(io._check_mode('A'), 'a')
+        nt.assert_equal(iotools._check_mode('A'), 'a')
 
     def test_lower(self):
-        nt.assert_equal(io._check_mode('w'), 'w')
+        nt.assert_equal(iotools._check_mode('w'), 'w')
 
 
 class test__check_elev_or_mask(object):
@@ -50,19 +50,19 @@ class test__check_elev_or_mask(object):
 
     @nt.raises(ValueError)
     def test_failNone(self):
-        io._check_elev_or_mask(self.X, None, failNone=True)
+        iotools._check_elev_or_mask(self.X, None, failNone=True)
 
     @nt.raises(ValueError)
     def test_bad_shape(self):
-        io._check_elev_or_mask(self.X, self.Yoffset)
+        iotools._check_elev_or_mask(self.X, self.Yoffset)
 
     def test_offset(self):
-        other = io._check_elev_or_mask(self.X, self.Yoffset,
+        other = iotools._check_elev_or_mask(self.X, self.Yoffset,
                                        offset=self.offset)
         nptest.assert_array_equal(other, self.Yoffset)
 
     def test_nooffset(self):
-        other = io._check_elev_or_mask(self.X, self.Y, offset=0)
+        other = iotools._check_elev_or_mask(self.X, self.Y, offset=0)
         nptest.assert_array_equal(other, self.Y)
 
 
@@ -95,10 +95,10 @@ class test__check_for_same_masks(object):
 
     @nt.raises(ValueError)
     def test_error(self):
-        io._check_for_same_masks(self.X, self.Y2)
+        iotools._check_for_same_masks(self.X, self.Y2)
 
     def test_baseline(self):
-        x, y = io._check_for_same_masks(self.X, self.Y1)
+        x, y = iotools._check_for_same_masks(self.X, self.Y1)
         nptest.assert_array_equal(self.X, x.data)
         nptest.assert_array_equal(self.Y1, y.data)
 
@@ -113,13 +113,13 @@ class test_loadBoundaryFromShapefile(object):
         self.known_points_in_testreach = 10
 
     def test_nofilter(self):
-        df = io.loadBoundaryFromShapefile(self.shapefile)
+        df = iotools.loadBoundaryFromShapefile(self.shapefile)
         nt.assert_true(isinstance(df, pandas.DataFrame))
         nt.assert_list_equal(df.columns.tolist(), self.known_df_columns)
         nt.assert_equal(df.shape[0], self.known_points_in_boundary)
 
     def test_filter(self):
-        df = io.loadBoundaryFromShapefile(
+        df = iotools.loadBoundaryFromShapefile(
             self.shapefile,
             filterfxn=lambda r: r['properties']['reach'] == self.test_reach
         )
@@ -146,18 +146,18 @@ class test_loadPolygonFromShapefile(object):
         ]
 
     def test_baseline(self):
-        islands = io.loadPolygonFromShapefile(self.shpfile)
+        islands = iotools.loadPolygonFromShapefile(self.shpfile)
         nt.assert_true(isinstance(islands, list))
         for test, known in zip(islands, self.known_islands):
             nptest.assert_array_almost_equal(test, known)
 
     def test_filter(self):
-        island = io.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter)
+        island = iotools.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter)
         nt.assert_true(isinstance(island, np.ndarray))
         nptest.assert_array_almost_equal(island, self.known_islands[1])
 
     def test_filter_nosqueeze(self):
-        island = io.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter,
+        island = iotools.loadPolygonFromShapefile(self.shpfile, filterfxn=self.filter,
                                              squeeze=False)
         nt.assert_true(island, list)
         nt.assert_equal(len(island), 1)
@@ -168,7 +168,7 @@ def test_dumpGridFile():
     grid = testing.makeSimpleGrid()
     outputfile = 'tests/result_files/grid.out'
     baselinefile = 'tests/baseline_files/grid.out'
-    io.dumpGridFiles(grid, 'tests/result_files/grid.out')
+    iotools.dumpGridFiles(grid, outputfile)
 
     testing.compareTextFiles(outputfile, baselinefile)
 
@@ -200,17 +200,17 @@ class test_savePointShapefile(object):
 
     @nt.raises(ValueError)
     def test_bad_shapes(self):
-        io.savePointShapefile(self.x, self.y[:, :1], self.template, 'junk', 'w')
+        iotools.savePointShapefile(self.x, self.y[:, :1], self.template, 'junk', 'w')
 
     @nt.raises(ValueError)
     def test_bad_mode(self):
-        io.savePointShapefile(self.x, self.y, self.template, 'junk', 'r')
+        iotools.savePointShapefile(self.x, self.y, self.template, 'junk', 'r')
 
     def test_with_arrays(self):
         fname = 'array_point.shp'
         outfile = os.path.join(self.outputdir, fname)
         basefile = os.path.join(self.baselinedir, fname)
-        io.savePointShapefile(self.x, self.y, self.template, outfile,
+        iotools.savePointShapefile(self.x, self.y, self.template, outfile,
                               'w', river=self.river)
 
         testing.compareShapefiles(outfile, basefile)
@@ -219,7 +219,7 @@ class test_savePointShapefile(object):
         fname = 'mask_point.shp'
         outfile = os.path.join(self.outputdir, fname)
         basefile = os.path.join(self.baselinedir, fname)
-        io.savePointShapefile(np.ma.MaskedArray(self.x, self.mask),
+        iotools.savePointShapefile(np.ma.MaskedArray(self.x, self.mask),
                               np.ma.MaskedArray(self.y, self.mask),
                               self.template, outfile, 'w', river=self.river)
 
@@ -248,14 +248,14 @@ class test_saveGridShapefile(object):
     @nt.raises(ValueError)
     def test_bad_mode(self):
         outfile = os.path.join(self.outputdir, 'junk.shp')
-        io.saveGridShapefile(self.grid.x, self.grid.y, self.mask,
+        iotools.saveGridShapefile(self.grid.x, self.grid.y, self.mask,
                              self.template, outfile, mode='junk')
 
     def test_with_arrays(self):
         fname = 'array_grid.shp'
         outfile = os.path.join(self.outputdir, fname)
         basefile = os.path.join(self.baselinedir, fname)
-        io.saveGridShapefile(self.grid.x, self.grid.y, self.mask,
+        iotools.saveGridShapefile(self.grid.x, self.grid.y, self.mask,
                              self.template, outfile, 'w', river=self.river,
                              elev=None)
 
@@ -288,14 +288,14 @@ class test_write_cellinp(object):
         self.known_chunked_output = 'tests/baseline_files/cell_chunked.inp'
 
     def test_basic(self):
-        io._write_cellinp(self.cells, self.basic_output)
+        iotools._write_cellinp(self.cells, self.basic_output)
         testing.compareTextFiles(
             self.basic_output,
             self.known_basic_output
         )
 
     def test_chunked(self):
-        io._write_cellinp(self.cells, self.chunked_output, maxcols=5)
+        iotools._write_cellinp(self.cells, self.chunked_output, maxcols=5)
         testing.compareTextFiles(
             self.chunked_output,
             self.known_chunked_output
@@ -312,7 +312,7 @@ class test_gridextToShapefile(object):
         self.reach = 1
 
     def test_basic(self):
-        io.gridextToShapefile(self.gridextfile, self.outputfile,
+        iotools.gridextToShapefile(self.gridextfile, self.outputfile,
                               self.template, river=self.river)
 
         testing.compareShapefiles(self.outputfile, self.baselinefile)
@@ -320,19 +320,19 @@ class test_gridextToShapefile(object):
 
     @nt.raises(ValueError)
     def test_bad_input_file(self):
-        io.gridextToShapefile('junk__', self.outputfile,
+        iotools.gridextToShapefile('junk__', self.outputfile,
                               self.template, river=self.river)
 
     @nt.raises(ValueError)
     def test_bad_template_file(self):
-        io.gridextToShapefile(self.gridextfile, self.outputfile,
+        iotools.gridextToShapefile(self.gridextfile, self.outputfile,
                               '/junkie/mcjunk.shp', river=self.river)
 
 
 def test__write_gefdc_control_file():
     known_filename = 'tests/baseline_files/maingefdc.inp'
     result_filename = 'tests/result_files/maingefdc.inp'
-    io._write_gefdc_control_file(result_filename, 'Test Input File', 100, 25, 0)
+    iotools._write_gefdc_control_file(result_filename, 'Test Input File', 100, 25, 0)
     testing.compareTextFiles(result_filename, known_filename)
 
 
@@ -345,7 +345,7 @@ def test__write_gridext_file():
         [1.25, 4, 5, 3.75],
         [1.75, 5, 5, 3.25],
     ]), columns=['x', 'ii', 'jj', 'y'])
-    io._write_gridext_file(df, result_filename, icol='ii', jcol='jj',
+    iotools._write_gridext_file(df, result_filename, icol='ii', jcol='jj',
                            xcol='x', ycol='y')
     testing.compareTextFiles(result_filename, known_filename)
 
@@ -358,12 +358,12 @@ class test__write_gridout_file(object):
         self.x, self.y = testing.makeSimpleNodes()
 
     def test_baseline(self):
-        io._write_gridout_file(self.x, self.y, self.result_filename)
+        iotools._write_gridout_file(self.x, self.y, self.result_filename)
         testing.compareTextFiles(self.result_filename, self.known_filename)
 
     @nt.raises(ValueError)
     def test_errors(self):
-        io._write_gridout_file(self.x, self.y[2:, 2:], 'junk')
+        iotools._write_gridout_file(self.x, self.y[2:, 2:], 'junk')
 
 
 class test_readGridShapefile(object):
@@ -386,11 +386,11 @@ class test_readGridShapefile(object):
         self.ocols = ['elev', 'river']
 
     def test_read_pointfile(self):
-        result_df = io.readGridShapefile(self.point_file, othercols=self.ocols)
+        result_df = iotools.readGridShapefile(self.point_file, othercols=self.ocols)
         pdtest.assert_frame_equal(result_df, self.known_df)
 
     @nt.raises(NotImplementedError)
     def test_read_cellfile(self):
-        result_df = io.readGridShapefile(self.cell_file)
+        result_df = iotools.readGridShapefile(self.cell_file)
         pdtest.assert_frame_equal(result_df, self.known_df)
 

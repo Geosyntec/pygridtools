@@ -168,7 +168,7 @@ def test_dumpGridFile():
     grid = testing.makeSimpleGrid()
     outputfile = 'tests/result_files/grid.out'
     baselinefile = 'tests/baseline_files/grid.out'
-    iotools.dumpGridFiles(grid, 'tests/result_files/grid.out')
+    iotools.dumpGridFiles(grid, outputfile)
 
     testing.compareTextFiles(outputfile, baselinefile)
 

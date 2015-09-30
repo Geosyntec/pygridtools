@@ -76,6 +76,7 @@ class test_plotPygridgen(object):
         fig.savefig("tests/result_images/gridsmoke.png", dpi=150)
 
 
+@nptest.dec.skipif(True)
 def test__plot_cells_bokeh():
     x, y = testing.makeSimpleNodes()
     p = viz._plot_cells_bokeh(x, y)
@@ -87,6 +88,7 @@ def test__plot_cell_mpl():
     nt.assert_true(isinstance(fig, plt.Figure))
 
 
+@nptest.dec.skipif(True)
 def test_plotCells_bokeh():
     x, y = testing.makeSimpleNodes()
     p = viz.plotCells(x, y, engine='bokeh')

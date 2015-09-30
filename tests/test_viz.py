@@ -8,6 +8,7 @@ import testing
 import nose.tools as nt
 import numpy.testing as nptest
 
+
 class test_checkAx(object):
     def setup(self):
         self.fig, self.ax = plt.subplots()
@@ -76,7 +77,7 @@ class test_plotPygridgen(object):
         fig.savefig("tests/result_images/gridsmoke.png", dpi=150)
 
 
-@nptest.dec.skipif(True)
+@nt.raises(NotImplementedError)
 def test__plot_cells_bokeh():
     x, y = testing.makeSimpleNodes()
     p = viz._plot_cells_bokeh(x, y)
@@ -88,7 +89,7 @@ def test__plot_cell_mpl():
     nt.assert_true(isinstance(fig, plt.Figure))
 
 
-@nptest.dec.skipif(True)
+@nt.raises(NotImplementedError)
 def test_plotCells_bokeh():
     x, y = testing.makeSimpleNodes()
     p = viz.plotCells(x, y, engine='bokeh')

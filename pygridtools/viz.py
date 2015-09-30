@@ -60,7 +60,9 @@ def plotCells(nodes_x, nodes_y, name='test', engine='bokeh',
     if not np.all(nodes_x.mask == nodes_y.mask):
         raise ValueError("node arrays must have identical masks")
 
+    # pragma: no cover
     if engine.lower() == 'bokeh':
+        raise NotImplementedError("'bokeh' is not an implemented engine (yet)".format(engine))
         p = _plot_cells_bokeh(nodes_x, nodes_y, name=name)
         return p
 
@@ -72,47 +74,49 @@ def plotCells(nodes_x, nodes_y, name='test', engine='bokeh',
         raise NotImplementedError("'{}' is not a valid engine".format(engine))
 
 
-# def _plot_cells_bokeh(nodes_x, nodes_y, name='test'):
+# pragma: no cover
+def _plot_cells_bokeh(nodes_x, nodes_y, name='test'):
+    raise NotImplementedError
 
-#     def getCellColor(row, col):
-#         return 'blue'
+    def getCellColor(row, col):
+        return 'blue'
 
-#     cell_x = []
-#     cell_y = []
-#     cell_color = []
+    cell_x = []
+    cell_y = []
+    cell_color = []
 
-#     for row in range(nodes_x.shape[0] - 1):
-#         for col in range(nodes_x.shape[1] - 1):
-#             top_x = nodes_x[row:row+2, col]
-#             bot_x = nodes_x[row:row+2, col+1][::-1]
-#             cell_x.append(np.hstack([top_x, bot_x]).tolist())
+    for row in range(nodes_x.shape[0] - 1):
+        for col in range(nodes_x.shape[1] - 1):
+            top_x = nodes_x[row:row+2, col]
+            bot_x = nodes_x[row:row+2, col+1][::-1]
+            cell_x.append(np.hstack([top_x, bot_x]).tolist())
 
-#             top_y = nodes_y[row:row+2, col]
-#             bot_y = nodes_y[row:row+2, col+1][::-1]
-#             cell_y.append(np.hstack([top_y, bot_y]).tolist())
-#             cell_color.append(getCellColor(row, col))
+            top_y = nodes_y[row:row+2, col]
+            bot_y = nodes_y[row:row+2, col+1][::-1]
+            cell_y.append(np.hstack([top_y, bot_y]).tolist())
+            cell_color.append(getCellColor(row, col))
 
-#     plotting.output_file("{}.html".format(name.replace(' ', '_')),
-#                         title="{} example".format(name))
+    plotting.output_file("{}.html".format(name.replace(' ', '_')),
+                        title="{} example".format(name))
 
-#     TOOLS = "resize,pan,wheel_zoom,box_zoom,reset,hover,save"
+    TOOLS = "resize,pan,wheel_zoom,box_zoom,reset,hover,save"
 
-#     p = plotting.figure(title="Test Grid Viz", tools=TOOLS)
-#     # if boundary is not None:
-#     #     p.patches([boundary.x.values], [boundary.y.values],
-#     #               line_color='black', fill_color='black')
-#     p.patches(cell_x, cell_y, fill_color="blue", fill_alpha=0.7,
-#               line_color="white", line_width=0.5)
+    p = plotting.figure(title="Test Grid Viz", tools=TOOLS)
+    # if boundary is not None:
+    #     p.patches([boundary.x.values], [boundary.y.values],
+    #               line_color='black', fill_color='black')
+    p.patches(cell_x, cell_y, fill_color="blue", fill_alpha=0.7,
+              line_color="white", line_width=0.5)
 
-#     hover = p.select(dict(type=HoverTool))
-#     hover.snap_to_data = False
-#     hover.tooltips = OrderedDict([
-#         ("index", "$index/250."),
-#         ("(x,y)", "($x, $y)"),
-#         ("fill color", "$color[hex, swatch]:fill_color"),
-#     ])
+    hover = p.select(dict(type=HoverTool))
+    hover.snap_to_data = False
+    hover.tooltips = OrderedDict([
+        ("index", "$index/250."),
+        ("(x,y)", "($x, $y)"),
+        ("fill color", "$color[hex, swatch]:fill_color"),
+    ])
 
-#     return p
+    return p
 
 
 def _plot_cells_mpl(nodes_x, nodes_y, mask=None, ax=None):

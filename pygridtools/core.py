@@ -4,7 +4,6 @@ import warnings
 
 import numpy as np
 import pandas
-import pygridgen
 
 from . import misc
 from . import iotools
@@ -449,6 +448,10 @@ def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
     pygridgen.Gridgen, pygridgen.csa, pygridtools.ModelGrid
 
     '''
+    try:
+        import pygridgen
+    except ImportError:
+        raise ImportError("`pygridgen` not installed. Cannot make grid.")
 
     # generate the grid.
     try:

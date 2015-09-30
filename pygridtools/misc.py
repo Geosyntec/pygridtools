@@ -6,9 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import matplotlib.mlab as mlab
 import pandas
-import fiona
-
-import pygridgen
 
 
 def points_inside_poly(points, polyverts):
@@ -134,6 +131,11 @@ def interpolateBathymetry(bathy, x_points, y_points,
 
     '''
 
+    try:
+        import pygridgen
+    except ImportError:
+        raise ImportError("`pygridgen` not installed. Cannot interpolate bathymetry.")
+
     if bathy is None:
         elev = np.zeros(x_points.shape)
 
@@ -168,8 +170,6 @@ def interpolateBathymetry(bathy, x_points, y_points,
     # use cubic-spline approximation to interpolate the grid
     csa = pygridgen.csa(gridbathy[xcol], gridbathy[ycol], gridbathy[zcol])
     return csa(xx, yy)
-
-        # linear interpol
 
 
 def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):

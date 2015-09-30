@@ -32,7 +32,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.4',
 ]
-INSTALL_REQUIRES = ['seaborn']
+INSTALL_REQUIRES = ['numpy', 'matplotlib', 'fiona', 'pandas']
 PACKAGE_DATA = {}
 DATA_FILES = []
 

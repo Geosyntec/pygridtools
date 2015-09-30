@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn
 
 from pygridtools import viz
 import testing
@@ -45,7 +44,7 @@ class test_plotReachDF(object):
 
     def test_smoketest_withoutax(self):
         fig = viz.plotReachDF(self.boundary, 'x', 'y')
-        nt.assert_true(isinstance(fig, seaborn.FacetGrid))
+        nt.assert_true(isinstance(fig, plt.Figure))
         figfile = 'tests/result_images/plotreach_withoutax.png'
         fig.savefig(figfile, dpi=150)
 

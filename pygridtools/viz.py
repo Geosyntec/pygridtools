@@ -3,7 +3,6 @@ from collections import OrderedDict
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas
-import seaborn
 
 # from bokeh import plotting
 # from bokeh.models import HoverTool
@@ -23,16 +22,22 @@ def checkAx(ax):
     return fig, ax
 
 
-def plotReachDF(boundary, xcol, ycol, flip=False):
+def plotReachDF(boundary, xcol, ycol, flip=False, **subplot_opts):
     if not isinstance(boundary, pandas.DataFrame):
         raise ValueError('`boundary` must be a dataframe')
 
-    fg = seaborn.FacetGrid(data=boundary, legend_out=False, size=5,
-                           hue='beta', hue_kws={'marker': ['s', 'o', '^']})
-    fg.axes[0, 0].plot(boundary[xcol], boundary[ycol], 'k-')
-    fg.map(plt.plot, xcol, ycol, linestyle='none')
-    fg.add_legend()
-    return fg
+
+    fig, ax = plt.subplots(**subplot_opts)
+    ax.plot(boundary[xcol], boundary[ycol], 'k-', label='__nolegend__')
+    beta_neg1 = boundary[boundary['beta'] == -1]
+    beta_zero = boundary[boundary['beta'] ==  0]
+    beta_pos1 = boundary[boundary['beta'] ==  1]
+    ax.plot(beta_neg1[xcol], beta_neg1[ycol], 's', linestyle='none')
+    ax.plot(beta_zero[xcol], beta_zero[ycol], 'o', linestyle='none')
+    ax.plot(beta_pos1[xcol], beta_pos1[ycol], '^', linestyle='none')
+
+
+    return fig
 
 
 def plotPygridgen(grid, ax=None):

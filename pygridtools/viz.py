@@ -60,7 +60,7 @@ def plotCells(nodes_x, nodes_y, name='test', engine='bokeh',
     if not np.all(nodes_x.mask == nodes_y.mask):
         raise ValueError("node arrays must have identical masks")
 
-    #pragma: no cover
+    # pragma: no cover
     if engine.lower() == 'bokeh':
         raise NotImplementedError("'bokeh' is not an implemented engine (yet)".format(engine))
         p = _plot_cells_bokeh(nodes_x, nodes_y, name=name)
@@ -74,7 +74,7 @@ def plotCells(nodes_x, nodes_y, name='test', engine='bokeh',
         raise NotImplementedError("'{}' is not a valid engine".format(engine))
 
 
-#pragma: no cover
+# pragma: no cover
 def _plot_cells_bokeh(nodes_x, nodes_y, name='test'):
     raise NotImplementedError
 

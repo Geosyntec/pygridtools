@@ -28,7 +28,7 @@ install:
   # We just set up a conda environment with the right Python version. This
   # should not need changing.
 
-  - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION seaborn bokeh fiona nose
+  - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION seaborn fiona=1.5 nose
   - source activate test
   # Below, include the dependencies you want to install with conda, optionally
   # specifying versions used in the matrix above. If you split this into

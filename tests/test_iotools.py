@@ -167,8 +167,14 @@ class test_loadPolygonFromShapefile(object):
 def test_dumpGridFile():
     grid = testing.makeSimpleGrid()
     outputfile = 'tests/result_files/grid.out'
-    baselinefile = 'tests/baseline_files/grid.out'
     iotools.dumpGridFiles(grid, outputfile)
+
+    if sys.platform == 'win32':
+        baselinefile = 'tests/baseline_files/grid_win.out'
+    elif sys.platform == 'darwin':
+        baselinefile = 'tests/baseline_files/grid_osx.out'
+    else:
+        baselinefile = 'tests/baseline_files/grid.out'
 
     testing.compareTextFiles(outputfile, baselinefile)
 

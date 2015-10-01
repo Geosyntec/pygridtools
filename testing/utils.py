@@ -3,12 +3,20 @@ from numpy import nan
 import matplotlib; matplotlib.use('agg')
 import pandas
 import fiona
-import pygridgen
-
-#from pygridtools.misc import Grid
-
 import nose.tools as nt
 import numpy.testing as nptest
+
+
+@nt.nottest
+class fakegrid(object):
+    def __init__(self):
+        self.x, self.y = makeSimpleNodes()
+        boundary = makeSimpleBoundary()
+        self.xbry = boundary['x']
+        self.ybry = boundary['y']
+        self.beta = boundary['beta']
+        self.ny, self.nx = self.x.shape
+        self.x_rho, self.y_rho = makeSimpleCells()
 
 
 def makeSimpleBoundary():
@@ -22,13 +30,17 @@ def makeSimpleGrid():
     '''
     Makes a basic grid for testing purposes
     '''
-    boundary = makeSimpleBoundary()
-    np.random.seed(0)
-    ny = 9
-    nx = 7
-    ul_idx = 0
-    grid = pygridgen.Gridgen(boundary.x, boundary.y, boundary.beta,
-                            (ny, nx), ul_idx=ul_idx)
+    try:
+        import pygridgen
+        boundary = makeSimpleBoundary()
+        np.random.seed(0)
+        ny = 9
+        nx = 7
+        ul_idx = 0
+        grid = pygridgen.Gridgen(boundary.x, boundary.y, boundary.beta,
+                                (ny, nx), ul_idx=ul_idx)
+    except ImportError:
+        grid = fakegrid()
 
     return grid
 

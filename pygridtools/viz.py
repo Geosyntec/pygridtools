@@ -100,7 +100,7 @@ def plotPygridgen(grid, ax=None):
     if ax.is_last_row():
         ax.set_xlabel('$nx = {}$'.format(grid.nx), size=14)
 
-    fig, ax = plotCells(grid.x, grid.y, ax=ax, engine='mpl')
+    fig = plotCells(grid.x, grid.y, ax=ax, engine='mpl')
 
     return fig
 

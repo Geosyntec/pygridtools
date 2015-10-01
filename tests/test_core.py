@@ -617,6 +617,17 @@ class test_ModelGrid(object):
             known_filename
         )
 
+    @nptest.dec.skipif(True)
+    def test_plotCells_basic(self):
+        fig, ax = self.mg.plotCells()
+
+    @nptest.dec.skipif(True)
+    def test_plotCells_boundary(self):
+        fig, ax = self.mg.plotCells(
+            boundary=testing.makeSimpleBoundary(),
+            usemask=True
+        )
+
 
 class test_makeGrid(object):
     def setup(self):

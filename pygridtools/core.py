@@ -261,18 +261,25 @@ class ModelGrid(object):
 
     def plotCells(self, engine='mpl', ax=None, usemask=True,
                   river=None, islands=None, boundary=None,
-                  bxcol='x', bycol='y', **kwargs):
+                  bxcol='x', bycol='y', **kwargs): # pragma: no cover
         if usemask:
             mask = self.cell_mask.copy()
         else:
             mask = None
 
 
+        fig, ax = viz._check_ax(ax)
         if boundary is not None:
-            fg = viz.plotReachDF(boundary, bxcol, bycol)
+            fig = viz.plotReachDF(boundary, bxcol, bycol, ax=ax)
 
-        fig, ax = viz.plotCells(self.xn, self.yn, engine=engine,
-                                ax=fg.axes[0, 0], mask=mask, **kwargs)
+        fig = viz.plotCells(
+            self.xn,
+            self.yn,
+            engine=engine,
+            ax=ax,
+            mask=mask,
+            **kwargs
+        )
 
         if river is not None or islands is not None:
             fig, ax = viz.plotBoundaries(river=river, islands=islands,

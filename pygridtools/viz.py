@@ -203,7 +203,10 @@ def _plot_cells_mpl(nodes_x, nodes_y, mask=None, ax=None):
 
     rows, cols = nodes_x.shape
     if mask is None:
-        mask = np.zeros(nodes_x.shape)
+        if hasattr(nodes_x, 'mask'):
+            mask = nodes_x.mask
+        else:
+            mask = np.zeros(nodes_x.shape)
 
     for jj in range(rows - 1):
         for ii in range(cols - 1):

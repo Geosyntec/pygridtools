@@ -127,7 +127,7 @@ def interpolateBathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='z
 
     try:
         import pygridgen
-    except ImportError:
+    except ImportError: # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot interpolate bathymetry.")
 
     if bathy is None:

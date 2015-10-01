@@ -147,11 +147,11 @@ def plotCells(nodes_x, nodes_y, name=None, engine='mpl', mask=None, ax=None):
         return p
 
     elif engine.lower() in ('mpl', 'matplotlib', 'sns', 'seaborn'):
-        fig = _plot_cells_mpl(nodes_x, nodes_y, ax=ax, mask=mask)
+        fig, ax = _plot_cells_mpl(nodes_x, nodes_y, ax=ax, mask=mask)
         return fig
 
     else:
-        raise NotImplementedError("'{}' is not a valid engine".format(engine))
+        raise ValueError("'{}' is not a valid engine".format(engine))
 
 
 def _plot_cells_bokeh(nodes_x, nodes_y, name='test'): # pragma: no cover

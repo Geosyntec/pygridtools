@@ -640,6 +640,17 @@ class test_makeGrid(object):
         nt.assert_true(isinstance(grid, pygridgen.Gridgen))
 
     @nptest.dec.skipif(not has_pgg)
+    def test_with_coords_and_bathy_verbose(self):
+        params = self.gridparams.copy()
+        params['verbose'] = True
+        grid = core.makeGrid(
+            coords=self.coords,
+            bathydata=self.bathy.dropna(),
+            **self.gridparams
+        )
+        nt.assert_true(isinstance(grid, pygridgen.Gridgen))
+
+    @nptest.dec.skipif(not has_pgg)
     @nt.raises(ValueError)
     def test_makegrid_no_nx(self):
         nx = self.gridparams.pop('nx')

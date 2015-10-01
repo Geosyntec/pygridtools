@@ -252,10 +252,10 @@ class ModelGrid(object):
 
     def _plot_nodes(self, boundary=None, engine='mpl', ax=None, **kwargs):
         raise NotImplementedError
-        if engine == 'mpl':
+        if engine == 'mpl': # pragma: no cover
             return viz._plot_nodes_mpl(self.xn, self.yn, boundary=boundary,
                                        ax=ax, **kwargs)
-        elif engine == 'bokeh':
+        elif engine == 'bokeh': # pragma: no cover
             return viz._plot_nodes_bokeh(self.xn, self.yn, boundary=boundary,
                                          **kwargs)
 
@@ -451,7 +451,7 @@ def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
 
     try:
         import pygridgen
-    except ImportError:
+    except ImportError: # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot make grid.")
 
     # generate the grid.

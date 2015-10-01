@@ -49,35 +49,6 @@ def makeSimpleBathy():
     return bathy
 
 
-def compareTextFiles(baselinefile, outputfile):
-    with open(outputfile) as output:
-        results = output.read()
-
-    with open(baselinefile) as baseline:
-        expected = baseline.read()
-
-    nt.assert_equal(results, expected)
-
-
-def compareShapefiles(baselinefile, outputfile, atol=0.001):
-    base_records = []
-    result_records = []
-    with fiona.open(outputfile, 'r') as result:
-        result_records = list(result)
-
-    with fiona.open(baselinefile, 'r') as baseline:
-        base_records = list(baseline)
-
-    for rr, br in zip(result_records, base_records):
-        nt.assert_dict_equal(rr['properties'], br['properties'])
-        nt.assert_equal(rr['geometry']['type'], br['geometry']['type'])
-        nptest.assert_allclose(
-            rr['geometry']['coordinates'],
-            br['geometry']['coordinates'],
-            atol=atol
-        )
-
-
 def makeSimpleNodes():
     x = np.array([
         [1.0, 1.5, 2.0, nan, nan, nan, nan],
@@ -130,3 +101,34 @@ def makeSimpleCells():
     ])
 
     return np.ma.masked_invalid(x, 0), np.ma.masked_invalid(y, 0)
+
+
+def compareTextFiles(baselinefile, outputfile):
+    with open(outputfile) as output:
+        results = output.read()
+
+    with open(baselinefile) as baseline:
+        expected = baseline.read()
+
+    nt.assert_equal(results, expected)
+
+
+def compareShapefiles(baselinefile, outputfile, atol=0.001):
+    base_records = []
+    result_records = []
+    with fiona.open(outputfile, 'r') as result:
+        result_records = list(result)
+
+    with fiona.open(baselinefile, 'r') as baseline:
+        base_records = list(baseline)
+
+    for rr, br in zip(result_records, base_records):
+        nt.assert_dict_equal(rr['properties'], br['properties'])
+        nt.assert_equal(rr['geometry']['type'], br['geometry']['type'])
+        nptest.assert_allclose(
+            rr['geometry']['coordinates'],
+            br['geometry']['coordinates'],
+            atol=atol
+        )
+
+

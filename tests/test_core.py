@@ -5,15 +5,19 @@ import numpy as np
 from numpy import nan
 import matplotlib.pyplot as plt
 import pandas
-import pygridgen
 
 import nose.tools as nt
 import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
-import pygridgen
 from pygridtools import core
 import testing
+
+try:
+    import pygridgen
+    has_pgg = True
+except ImportError:
+    has_pgg = False
 
 
 class test__PointSet(object):
@@ -613,6 +617,17 @@ class test_ModelGrid(object):
             known_filename
         )
 
+    @nptest.dec.skipif(True)
+    def test_plotCells_basic(self):
+        fig, ax = self.mg.plotCells()
+
+    @nptest.dec.skipif(True)
+    def test_plotCells_boundary(self):
+        fig, ax = self.mg.plotCells(
+            boundary=testing.makeSimpleBoundary(),
+            usemask=True
+        )
+
 
 class test_makeGrid(object):
     def setup(self):
@@ -626,6 +641,7 @@ class test_makeGrid(object):
             'ul_idx': 0
         }
 
+    @nptest.dec.skipif(not has_pgg)
     def test_with_coords_and_bathy(self):
         grid = core.makeGrid(
             coords=self.coords,
@@ -634,6 +650,18 @@ class test_makeGrid(object):
         )
         nt.assert_true(isinstance(grid, pygridgen.Gridgen))
 
+    @nptest.dec.skipif(not has_pgg)
+    def test_with_coords_and_bathy_verbose(self):
+        params = self.gridparams.copy()
+        params['verbose'] = True
+        grid = core.makeGrid(
+            coords=self.coords,
+            bathydata=self.bathy.dropna(),
+            **self.gridparams
+        )
+        nt.assert_true(isinstance(grid, pygridgen.Gridgen))
+
+    @nptest.dec.skipif(not has_pgg)
     @nt.raises(ValueError)
     def test_makegrid_no_nx(self):
         nx = self.gridparams.pop('nx')
@@ -643,6 +671,7 @@ class test_makeGrid(object):
             **self.gridparams
         )
 
+    @nptest.dec.skipif(not has_pgg)
     @nt.raises(ValueError)
     def test_makegrid_no_ny(self):
         ny = self.gridparams.pop('ny')

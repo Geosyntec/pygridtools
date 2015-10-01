@@ -8,7 +8,7 @@ import nose.tools as nt
 import numpy.testing as nptest
 
 
-class test_checkAx(object):
+class test__check_ax(object):
     def setup(self):
         self.fig, self.ax = plt.subplots()
 
@@ -17,12 +17,12 @@ class test_checkAx(object):
         plt.close(self.fig)
 
     def test_with_ax(self):
-        fig, ax = viz.checkAx(self.ax)
+        fig, ax = viz._check_ax(self.ax)
         nt.assert_equal(self.fig, fig)
         nt.assert_equal(self.ax, ax)
 
     def test_without_ax(self):
-        fig, ax = viz.checkAx(None)
+        fig, ax = viz._check_ax(None)
         nt.assert_not_equals(self.fig, fig)
         nt.assert_not_equals(self.ax, ax)
 
@@ -31,38 +31,32 @@ class test_checkAx(object):
 
     @nt.raises(AttributeError)
     def test_bad_ax(self):
-        viz.checkAx('junk')
+        viz._check_ax('junk')
 
 
-class test_plotReachDF(object):
+class BasePlotChecker_Mixin(object):
     def setup(self):
         self.boundary = testing.makeSimpleBoundary()
-        plt.close('all')
+        self.grid = testing.makeSimpleGrid()
+        self.nodes = testing.makeSimpleNodes()
 
     def teardown(self):
         plt.close('all')
 
+
+class test_plotReachDF(BasePlotChecker_Mixin):
     def test_smoketest_withoutax(self):
         fig = viz.plotReachDF(self.boundary, 'x', 'y')
         nt.assert_true(isinstance(fig, plt.Figure))
         figfile = 'tests/result_images/plotreach_withoutax.png'
         fig.savefig(figfile, dpi=150)
 
-    def test_smoketest_withflipped(self):
-        fig = viz.plotReachDF(self.boundary, 'x', 'y', flip=True)
-        figfile = 'tests/result_images/plotreach_flip.png'
-        fig.savefig(figfile, dpi=150)
-
     @nt.raises(ValueError)
     def test_badinput(self):
-        viz.plotReachDF(self.boundary.values, 'x', 'y', flip=True)
+        viz.plotReachDF(self.boundary.values, 'x', 'y')
 
 
-class test_plotPygridgen(object):
-    def setup(self):
-        self.grid = testing.makeSimpleGrid()
-        plt.close('all')
-
+class test_plotPygridgen(BasePlotChecker_Mixin):
     @nt.raises(AttributeError)
     def test_bad_grid(self):
         viz.plotPygridgen('junk')
@@ -72,8 +66,26 @@ class test_plotPygridgen(object):
         viz.plotPygridgen(self.grid, ax='junk')
 
     def test_plot_smoketest(self):
-        fig, ax = viz.plotPygridgen(self.grid)
+        fig = viz.plotPygridgen(self.grid)
         fig.savefig("tests/result_images/gridsmoke.png", dpi=150)
+
+
+class test_plotCells(BasePlotChecker_Mixin):
+    def test_plot_smoke_test(self):
+        fig = viz.plotCells(self.nodes[0], self.nodes[1])
+        fig.savefig("tests/result_images/cellsmoke.png", dpi=150)
+
+    @nt.raises(ValueError)
+    def test_bad_shape(self):
+        fig = viz.plotCells(self.nodes[0][1:,:], self.nodes[1])
+
+    @nt.raises(NotImplementedError)
+    def test_not_implemented_engine(self):
+        fig = viz.plotCells(self.nodes[0], self.nodes[1], engine='bokeh')
+
+    @nt.raises(ValueError)
+    def test_bad_engine(self):
+        fig = viz.plotCells(self.nodes[0], self.nodes[1], engine='JUNK')
 
 
 @nt.raises(NotImplementedError)

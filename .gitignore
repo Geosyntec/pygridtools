@@ -21,6 +21,7 @@ Icon
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+.noseids
 
 # C extensions
 *.so

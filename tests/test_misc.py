@@ -4,7 +4,6 @@ import numpy as np
 from numpy import nan
 import matplotlib.pyplot as plt
 import pandas
-import pygridgen
 
 import nose.tools as nt
 import numpy.testing as nptest
@@ -14,6 +13,12 @@ from pygridtools import misc
 import testing
 
 np.set_printoptions(linewidth=150, nanstr='-')
+
+try:
+    import pygridgen
+    has_pgg = True
+except ImportError:
+    has_pgg = False
 
 
 def test_points_inside_poly():
@@ -160,6 +165,7 @@ class test_interpolateBathymetry(object):
             [100.5 , 100.55,    nan,    nan,    nan,    nan]
         ]))
 
+    @nptest.dec.skipif(not has_pgg)
     def test_fake_bathy(self):
         elev = misc.interpolateBathymetry(None, self.grid.x_rho, self.grid.y_rho)
         nptest.assert_array_equal(
@@ -169,6 +175,7 @@ class test_interpolateBathymetry(object):
         )
         nt.assert_tuple_equal(elev.shape, self.grid.x_rho.shape)
 
+    @nptest.dec.skipif(not has_pgg)
     def test_real_bathy(self):
         elev = misc.interpolateBathymetry(
             self.bathy, self.grid.x_rho, self.grid.y_rho

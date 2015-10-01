@@ -49,7 +49,7 @@ class ModelGrid(object):
 
     @property
     def nodes_x(self):
-        '''_PointSet object of x-nodes'''
+        """_PointSet object of x-nodes"""
         return self._nodes_x
     @nodes_x.setter
     def nodes_x(self, value):
@@ -60,12 +60,12 @@ class ModelGrid(object):
         return self._nodes_y
     @nodes_y.setter
     def nodes_y(self, value):
-        '''_PointSet object of y-nodes'''
+        """_PointSet object of y-nodes"""
         self._nodes_y = value
 
     @property
     def cells_x(self):
-        '''_PointSet object of x-cells'''
+        """_PointSet object of x-cells"""
         xc = 0.25 * (
             self.xn[1:,1:] + self.xn[1:,:-1] +
             self.xn[:-1,1:] + self.xn[:-1,:-1]
@@ -90,42 +90,42 @@ class ModelGrid(object):
 
     @property
     def xn(self):
-        '''shortcut to x-coords of nodes'''
+        """shortcut to x-coords of nodes"""
         return self.nodes_x.points
 
     @property
     def yn(self):
-        '''shortcut to y-coords of nodes'''
+        """shortcut to y-coords of nodes"""
         return self.nodes_y.points
 
     @property
     def xc(self):
-        '''shortcut to x-coords of nodes'''
+        """shortcut to x-coords of nodes"""
         return self.cells_x
 
     @property
     def yc(self):
-        '''shortcut to y-coords of nodes'''
+        """shortcut to y-coords of nodes"""
         return self.cells_y
 
     @property
     def icells(self):
-        '''rows of cells'''
+        """rows of cells"""
         return self.cell_shape[1]
 
     @property
     def jcells(self):
-        '''columns of cells'''
+        """columns of cells"""
         return self.cell_shape[0]
 
     @property
     def inodes(self):
-        '''rows of nodes'''
+        """rows of nodes"""
         return self.shape[1]
 
     @property
     def jnodes(self):
-        '''columns of nodes'''
+        """columns of nodes"""
         return self.shape[0]
 
     @property
@@ -137,7 +137,7 @@ class ModelGrid(object):
 
     @property
     def template(self):
-        '''template shapefile'''
+        """template shapefile"""
         return self._template
     @template.setter
     def template(self, value):
@@ -152,21 +152,22 @@ class ModelGrid(object):
         return self.transform(np.transpose)
 
     def fliplr(self):
-        '''reverses the columns'''
+        """reverses the columns"""
         return self.transform(np.fliplr)
 
     def flipud(self):
-        '''reverses the rows'''
+        """reverses the rows"""
         return self.transform(np.flipud)
 
     def merge(self, other, how='vert', where='+', shift=0):
-        '''Merge with another grid
+        """ Merge with another grid.
 
         Parameters
         ----------
         other : ModelGrid
             The other ModelGrid object.
-        '''
+        """
+
         self.nodes_x = self.nodes_x.merge(other.nodes_x, how=how,
                                           where=where, shift=shift)
         self.nodes_y = self.nodes_y.merge(other.nodes_y, how=how,
@@ -251,27 +252,34 @@ class ModelGrid(object):
 
     def _plot_nodes(self, boundary=None, engine='mpl', ax=None, **kwargs):
         raise NotImplementedError
-        if engine == 'mpl':
+        if engine == 'mpl': # pragma: no cover
             return viz._plot_nodes_mpl(self.xn, self.yn, boundary=boundary,
                                        ax=ax, **kwargs)
-        elif engine == 'bokeh':
+        elif engine == 'bokeh': # pragma: no cover
             return viz._plot_nodes_bokeh(self.xn, self.yn, boundary=boundary,
                                          **kwargs)
 
     def plotCells(self, engine='mpl', ax=None, usemask=True,
                   river=None, islands=None, boundary=None,
-                  bxcol='x', bycol='y', **kwargs):
+                  bxcol='x', bycol='y', **kwargs): # pragma: no cover
         if usemask:
             mask = self.cell_mask.copy()
         else:
             mask = None
 
 
+        fig, ax = viz._check_ax(ax)
         if boundary is not None:
-            fg = viz.plotReachDF(boundary, bxcol, bycol)
+            fig = viz.plotReachDF(boundary, bxcol, bycol, ax=ax)
 
-        fig, ax = viz.plotCells(self.xn, self.yn, engine=engine,
-                                ax=fg.axes[0, 0], mask=mask, **kwargs)
+        fig = viz.plotCells(
+            self.xn,
+            self.yn,
+            engine=engine,
+            ax=ax,
+            mask=mask,
+            **kwargs
+        )
 
         if river is not None or islands is not None:
             fig, ax = viz.plotBoundaries(river=river, islands=islands,
@@ -366,9 +374,8 @@ class ModelGrid(object):
 
 
 def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
-    '''
-    Generate and (optionally) visualize a grid, and create input files
-    for the GEDFC preprocessor (makes grid input files for GEFDC).
+    """ Generate and (optionally) visualize a grid, and create input
+    files for the GEDFC preprocessor (makes grid input files for GEFDC).
 
     Parameters
     ----------
@@ -447,10 +454,11 @@ def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
     --------
     pygridgen.Gridgen, pygridgen.csa, pygridtools.ModelGrid
 
-    '''
+    """
+
     try:
         import pygridgen
-    except ImportError:
+    except ImportError: # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot make grid.")
 
     # generate the grid.

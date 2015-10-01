@@ -62,8 +62,7 @@ def _check_for_same_masks(X, Y):
 def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
                               sortcol=None, upperleftcol=None,
                               filterfxn=None):
-    '''
-    Loads boundary points from a shapefile.
+    """ Loads boundary points from a shapefile.
 
     Parameters
     ----------
@@ -101,7 +100,7 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
           - reach
           - upperleft
 
-    '''
+    """
 
     # load and filter the data
     with fiona.open(shapefile, 'r') as shp:
@@ -137,8 +136,7 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
 
 
 def loadPolygonFromShapefile(shapefile, filterfxn=None, squeeze=True):
-    '''
-    Load polygons (e.g., water bodies, islands) from a shapefile
+    """ Load polygons (e.g., water bodies, islands) from a shapefile.
 
     Parameters
     ----------
@@ -164,7 +162,7 @@ def loadPolygonFromShapefile(shapefile, filterfxn=None, squeeze=True):
     Z-coordinates are also not supported. Only x-y coordinates will be
     loaded.
 
-    '''
+    """
 
     # load and filter the data
     with fiona.open(shapefile, 'r') as shp:
@@ -184,7 +182,7 @@ def loadPolygonFromShapefile(shapefile, filterfxn=None, squeeze=True):
 
 
 def dumpGridFiles(grid, filename):
-    '''
+    """
     Dump vertices from a pygridgen object to file in the standard grid.out
     format.
 
@@ -198,7 +196,8 @@ def dumpGridFiles(grid, filename):
     Returns
     -------
     None
-    '''
+
+    """
 
     with open(filename, 'w') as f:
         f.write('## {:d} x {:d}\n'.format(grid.nx, grid.ny))
@@ -210,9 +209,8 @@ def dumpGridFiles(grid, filename):
 
 def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
                        reach=0, elev=None):
-    '''
-    Saves grid-related attributes of a pygridgen.Gridgen object to a
-    shapefile with geomtype = 'Point'
+    """ Saves grid-related attributes of a pygridgen.Gridgen object to a
+    shapefile with geomtype = 'Point'.
 
     Parameters
     ----------
@@ -238,7 +236,7 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
     -------
     None
 
-    '''
+    """
 
     # check that the `mode` is a valid value
     mode = _check_mode(mode)
@@ -288,8 +286,7 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
 
 def saveGridShapefile(X, Y, mask, template, outputfile, mode,
                       river=None, reach=0, elev=None, triangles=False):
-    '''
-    Saves a shapefile of quadrilaterals representing grid cells.
+    """ Saves a shapefile of quadrilaterals representing grid cells.
 
 
     Parameters
@@ -322,7 +319,7 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
     -------
     None
 
-    '''
+    """
 
     # check that `mode` is valid
     mode = _check_mode(mode)
@@ -420,7 +417,7 @@ def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
 def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
                    writeheader=True, rowlabels=True,
                    maxcols=125, flip=True):
-    '''Writes the cell.inp input file from an array of cell definitions.
+    """Writes the cell.inp input file from an array of cell definitions.
 
     Parameters
     ----------
@@ -447,7 +444,7 @@ def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
     --------
     _make_gefdc_cells
 
-    '''
+    """
 
     if flip:
         cell_array = np.flipud(cell_array)
@@ -571,9 +568,8 @@ def _write_gridext_file(tidydf, outfile, icol='i', jcol='j',
 
 
 def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):
-    '''
-    Converts gridext.inp from the rtools to a shapefile with
-    geomtype = 'Point'
+    """ Converts gridext.inp from the rtools to a shapefile with
+    `geomtype = 'Point'`.
 
     Parameters
     ----------
@@ -593,7 +589,8 @@ def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):
     -------
     None
 
-    '''
+    """
+
     errmsg = 'file {} not found in {}'
     if not os.path.exists(inputfile):
         raise ValueError(errmsg.format(inputfile, os.getcwd()))

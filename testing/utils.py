@@ -11,12 +11,14 @@ import numpy.testing as nptest
 class fakegrid(object):
     def __init__(self):
         self.x, self.y = makeSimpleNodes()
+        self.xn, self.yn = makeSimpleNodes()
         boundary = makeSimpleBoundary()
         self.xbry = boundary['x']
         self.ybry = boundary['y']
         self.beta = boundary['beta']
         self.ny, self.nx = self.x.shape
         self.x_rho, self.y_rho = makeSimpleCells()
+        self.cell_mask = self.x_rho.mask.copy()
 
 
 def makeSimpleBoundary():
@@ -86,7 +88,7 @@ def makeSimpleNodes():
         [4.0, 4.0, 4.0, nan, nan, nan, nan],
     ])
 
-    return np.ma.masked_invalid(x, 0), np.ma.masked_invalid(y, 0)
+    return np.ma.masked_invalid(x), np.ma.masked_invalid(y)
 
 
 def makeSimpleCells():
@@ -112,7 +114,7 @@ def makeSimpleCells():
         [3.75, 3.75,  nan,  nan,  nan,  nan,],
     ])
 
-    return np.ma.masked_invalid(x, 0), np.ma.masked_invalid(y, 0)
+    return np.ma.masked_invalid(x), np.ma.masked_invalid(y)
 
 
 def compareTextFiles(baselinefile, outputfile):

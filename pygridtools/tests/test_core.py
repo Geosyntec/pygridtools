@@ -249,7 +249,7 @@ class test_ModelGrid(object):
         self.g1 = core.ModelGrid(self.xn[:, :3], self.yn[:, :3])
         self.g2 = core.ModelGrid(self.xn[2:5, 3:], self.yn[2:5, 3:])
 
-        self.template = 'tests/test_data/schema_template.shp'
+        self.template = 'pygridtools/tests/test_data/schema_template.shp'
         self.g1.template = self.template
         self.g2.template = self.template
 
@@ -488,29 +488,29 @@ class test_ModelGrid(object):
         self.g1.to_shapefile('junk', geom='Line')
 
     def test_to_shapefile_nomask_nodes_points(self):
-        outfile = 'tests/result_files/mgshp_nomask_nodes_points.shp'
-        basefile = 'tests/baseline_files/mgshp_nomask_nodes_points.shp'
+        outfile = 'pygridtools/tests/result_files/mgshp_nomask_nodes_points.shp'
+        basefile = 'pygridtools/tests/baseline_files/mgshp_nomask_nodes_points.shp'
         self.g1.to_shapefile(outfile, usemask=False, which='nodes',
                              geom='point')
         testing.compareShapefiles(outfile, basefile)
 
     def test_to_shapefile_nomask_cells_points(self):
-        outfile = 'tests/result_files/mgshp_nomask_cells_points.shp'
-        basefile = 'tests/baseline_files/mgshp_nomask_cells_points.shp'
+        outfile = 'pygridtools/tests/result_files/mgshp_nomask_cells_points.shp'
+        basefile = 'pygridtools/tests/baseline_files/mgshp_nomask_cells_points.shp'
         self.g1.to_shapefile(outfile, usemask=False, which='cells',
                              geom='point')
         testing.compareShapefiles(outfile, basefile)
 
     def test_to_shapefile_nomask_nodes_polys(self):
-        outfile = 'tests/result_files/mgshp_nomask_nodes_polys.shp'
-        basefile = 'tests/baseline_files/mgshp_nomask_cells_polys.shp'
+        outfile = 'pygridtools/tests/result_files/mgshp_nomask_nodes_polys.shp'
+        basefile = 'pygridtools/tests/baseline_files/mgshp_nomask_cells_polys.shp'
         self.g1.to_shapefile(outfile, usemask=False, which='nodes',
                              geom='polygon')
         testing.compareShapefiles(outfile, basefile)
 
     def test_to_shapefile_nomask_cells_polys(self):
-        outfile = 'tests/result_files/mgshp_nomask_cells_polys.shp'
-        basefile = 'tests/baseline_files/mgshp_nomask_cells_polys.shp'
+        outfile = 'pygridtools/tests/result_files/mgshp_nomask_cells_polys.shp'
+        basefile = 'pygridtools/tests/baseline_files/mgshp_nomask_cells_polys.shp'
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -521,8 +521,8 @@ class test_ModelGrid(object):
         testing.compareShapefiles(outfile, basefile)
 
     def test_to_shapefile_mask_cells_points(self):
-        outfile = 'tests/result_files/mgshp_mask_cells_points.shp'
-        basefile = 'tests/baseline_files/mgshp_mask_cells_points.shp'
+        outfile = 'pygridtools/tests/result_files/mgshp_mask_cells_points.shp'
+        basefile = 'pygridtools/tests/baseline_files/mgshp_mask_cells_points.shp'
         self.g1.cell_mask = self.known_mask
 
         self.g1.to_shapefile(outfile, usemask=True, which='cells',
@@ -530,8 +530,8 @@ class test_ModelGrid(object):
         testing.compareShapefiles(outfile, basefile)
 
     def test_to_shapefile_mask_cells_polys(self):
-        outfile = 'tests/result_files/mgshp_mask_cells_polys.shp'
-        basefile = 'tests/baseline_files/mgshp_mask_cells_polys.shp'
+        outfile = 'pygridtools/tests/result_files/mgshp_mask_cells_polys.shp'
+        basefile = 'pygridtools/tests/baseline_files/mgshp_mask_cells_polys.shp'
         self.g1.cell_mask = self.known_mask
 
         with warnings.catch_warnings(record=True) as w:
@@ -565,8 +565,8 @@ class test_ModelGrid(object):
         nptest.assert_array_equal(y, self.g1.yc)
 
     def test_writeGEFDCControlFile(self):
-        known_filename = 'tests/baseline_files/modelgrid_gefdc.inp'
-        result_path = 'tests/result_files'
+        known_filename = 'pygridtools/tests/baseline_files/modelgrid_gefdc.inp'
+        result_path = 'pygridtools/tests/result_files'
         result_file = 'modelgrid_gefdc.inp'
         self.mg.writeGEFDCControlFile(
             outputdir=result_path,
@@ -579,8 +579,8 @@ class test_ModelGrid(object):
         )
 
     def test_writeGEFDCCellFile(self):
-        known_filename = 'tests/baseline_files/modelgrid_cell.inp'
-        result_path = 'tests/result_files'
+        known_filename = 'pygridtools/tests/baseline_files/modelgrid_cell.inp'
+        result_path = 'pygridtools/tests/result_files'
         result_file = 'modelgrid_cell.inp'
         self.mg.writeGEFDCCellFile(
             outputdir=result_path,
@@ -592,8 +592,8 @@ class test_ModelGrid(object):
         )
 
     def test_writeGEFDCGridFile(self):
-        known_filename = 'tests/baseline_files/modelgrid_grid.out'
-        result_path = 'tests/result_files'
+        known_filename = 'pygridtools/tests/baseline_files/modelgrid_grid.out'
+        result_path = 'pygridtools/tests/result_files'
         result_file = 'modelgrid_grid.out'
         self.mg.writeGEFDCGridFile(
             outputdir=result_path,
@@ -605,8 +605,8 @@ class test_ModelGrid(object):
         )
 
     def test_writeGEFDCGridextFiles(self):
-        known_filename = 'tests/baseline_files/modelgrid_gridext.inp'
-        result_path = 'tests/result_files'
+        known_filename = 'pygridtools/tests/baseline_files/modelgrid_gridext.inp'
+        result_path = 'pygridtools/tests/result_files'
         result_file = 'modelgrid_gridext.inp'
         self.mg.writeGEFDCGridextFile(
             outputdir=result_path,

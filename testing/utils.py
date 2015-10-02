@@ -1,6 +1,5 @@
 import numpy as np
 from numpy import nan
-import matplotlib; matplotlib.use('agg')
 import pandas
 import fiona
 import nose.tools as nt
@@ -26,6 +25,13 @@ def makeSimpleBoundary():
     ybry = np.array([4, 4, 3, 2, 2, 2, 1, 1, 1, 0, 0, 1, 4])
     beta = np.array([1, 1, 0,-1, 0, 1, 1, 0,-1, 1, 1, 0, 0])
     return pandas.DataFrame({'x': xbry, 'y': ybry, 'beta': beta, 'reach': 'reach'})
+
+
+def makeSimpleIslands():
+    xbry = np.array([1.2, 1.7, 1.7, 1.2, 1.7, 3.2, 3.2, 1.7])
+    ybry = np.array([3.7, 3.7, 2.2, 2.2, 1.7, 1.7, 1.2, 1.2])
+    island = np.array(['A', 'A', 'A', 'A', 'B', 'B', 'B', 'B'])
+    return pandas.DataFrame({'x': xbry, 'y': ybry, 'island': island})
 
 
 def makeSimpleGrid():

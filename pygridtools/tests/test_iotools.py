@@ -10,7 +10,7 @@ import pandas.util.testing as pdtest
 import fiona
 
 from pygridtools import iotools
-import testing
+from pygridtools import testing
 
 
 class test__outputfile(object):

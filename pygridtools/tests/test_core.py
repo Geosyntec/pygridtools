@@ -9,9 +9,12 @@ import pandas
 import nose.tools as nt
 import numpy.testing as nptest
 import pandas.util.testing as pdtest
+from matplotlib.testing.decorators import image_comparison, cleanup
 
 from pygridtools import core
-import testing
+from pygridtools import testing
+
+
 
 try:
     import pygridgen
@@ -617,16 +620,20 @@ class test_ModelGrid(object):
             known_filename
         )
 
-    @nptest.dec.skipif(True)
-    def test_plotCells_basic(self):
-        fig, ax = self.mg.plotCells()
 
-    @nptest.dec.skipif(True)
-    def test_plotCells_boundary(self):
-        fig, ax = self.mg.plotCells(
-            boundary=testing.makeSimpleBoundary(),
-            usemask=True
-        )
+@image_comparison(
+    baseline_images=[
+        'test_ModelGrid_plots_basic',
+    ],
+    extensions=['png']
+)
+def test_ModelGrid_plots():
+    xn, yn = testing.makeSimpleNodes()
+    bounds = testing.makeSimpleBoundary()
+    mg = core.ModelGrid(xn, yn)
+    mg.cell_mask = np.ma.masked_invalid(mg.xc).mask
+
+    fig1 = mg.plotCells()
 
 
 class test_makeGrid(object):

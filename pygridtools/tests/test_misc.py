@@ -10,7 +10,8 @@ import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from pygridtools import misc
-import testing
+from pygridtools import testing
+
 
 np.set_printoptions(linewidth=150, nanstr='-')
 

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import pandas
 import fiona
 
-from . import misc
+from pygridtools import misc
 
 
 def _outputfile(outputdir, filename):

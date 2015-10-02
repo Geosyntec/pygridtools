@@ -22,6 +22,7 @@ Icon
 __pycache__/
 *.py[cod]
 .noseids
+result_images
 
 # C extensions
 *.so

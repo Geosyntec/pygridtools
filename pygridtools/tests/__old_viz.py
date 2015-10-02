@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pygridtools import viz
-import testing
+from pygridtools import _old_viz
+from pygridtools import testing
 
 import nose.tools as nt
 import numpy.testing as nptest
@@ -17,12 +17,12 @@ class test__check_ax(object):
         plt.close(self.fig)
 
     def test_with_ax(self):
-        fig, ax = viz._check_ax(self.ax)
+        fig, ax = _old_viz._check_ax(self.ax)
         nt.assert_equal(self.fig, fig)
         nt.assert_equal(self.ax, ax)
 
     def test_without_ax(self):
-        fig, ax = viz._check_ax(None)
+        fig, ax = _old_viz._check_ax(None)
         nt.assert_not_equals(self.fig, fig)
         nt.assert_not_equals(self.ax, ax)
 
@@ -31,7 +31,7 @@ class test__check_ax(object):
 
     @nt.raises(AttributeError)
     def test_bad_ax(self):
-        viz._check_ax('junk')
+        _old_viz._check_ax('junk')
 
 
 class BasePlotChecker_Mixin(object):
@@ -46,67 +46,67 @@ class BasePlotChecker_Mixin(object):
 
 class test_plotReachDF(BasePlotChecker_Mixin):
     def test_smoketest_withoutax(self):
-        fig = viz.plotReachDF(self.boundary, 'x', 'y')
+        fig = _old_viz.plotReachDF(self.boundary, 'x', 'y')
         nt.assert_true(isinstance(fig, plt.Figure))
-        figfile = 'tests/result_images/plotreach_withoutax.png'
+        figfile = 'pygridtools/tests/result_images/plotreach_withoutax.png'
         fig.savefig(figfile, dpi=150)
 
     @nt.raises(ValueError)
     def test_badinput(self):
-        viz.plotReachDF(self.boundary.values, 'x', 'y')
+        _old_viz.plotReachDF(self.boundary.values, 'x', 'y')
 
 
 class test_plotPygridgen(BasePlotChecker_Mixin):
     @nt.raises(AttributeError)
     def test_bad_grid(self):
-        viz.plotPygridgen('junk')
+        _old_viz.plotPygridgen('junk')
 
     @nt.raises(AttributeError)
     def test_bad_axes(self):
-        viz.plotPygridgen(self.grid, ax='junk')
+        _old_viz.plotPygridgen(self.grid, ax='junk')
 
     def test_plot_smoketest(self):
-        fig = viz.plotPygridgen(self.grid)
-        fig.savefig("tests/result_images/gridsmoke.png", dpi=150)
+        fig = _old_viz.plotPygridgen(self.grid)
+        fig.savefig("pygridtools/tests/result_images/gridsmoke.png", dpi=150)
 
 
 class test_plotCells(BasePlotChecker_Mixin):
     def test_plot_smoke_test(self):
-        fig = viz.plotCells(self.nodes[0], self.nodes[1])
-        fig.savefig("tests/result_images/cellsmoke.png", dpi=150)
+        fig = _old_viz.plotCells(self.nodes[0], self.nodes[1])
+        fig.savefig("pygridtools/tests/result_images/cellsmoke.png", dpi=150)
 
     @nt.raises(ValueError)
     def test_bad_shape(self):
-        fig = viz.plotCells(self.nodes[0][1:,:], self.nodes[1])
+        fig = _old_viz.plotCells(self.nodes[0][1:,:], self.nodes[1])
 
     @nt.raises(NotImplementedError)
     def test_not_implemented_engine(self):
-        fig = viz.plotCells(self.nodes[0], self.nodes[1], engine='bokeh')
+        fig = _old_viz.plotCells(self.nodes[0], self.nodes[1], engine='bokeh')
 
     @nt.raises(ValueError)
     def test_bad_engine(self):
-        fig = viz.plotCells(self.nodes[0], self.nodes[1], engine='JUNK')
+        fig = _old_viz.plotCells(self.nodes[0], self.nodes[1], engine='JUNK')
 
 
 @nt.raises(NotImplementedError)
 def test__plot_cells_bokeh():
     x, y = testing.makeSimpleNodes()
-    p = viz._plot_cells_bokeh(x, y)
+    p = _old_viz._plot_cells_bokeh(x, y)
 
 
 def test__plot_cell_mpl():
     x, y = testing.makeSimpleNodes()
-    fig, ax = viz._plot_cells_mpl(x, y)
+    fig, ax = _old_viz._plot_cells_mpl(x, y)
     nt.assert_true(isinstance(fig, plt.Figure))
 
 
 @nt.raises(NotImplementedError)
 def test_plotCells_bokeh():
     x, y = testing.makeSimpleNodes()
-    p = viz.plotCells(x, y, engine='bokeh')
+    p = _old_viz.plotCells(x, y, engine='bokeh')
 
 
 def test_plotCells_mpl():
     x, y = testing.makeSimpleNodes()
-    p = viz.plotCells(x, y, engine='mpl')
+    p = _old_viz.plotCells(x, y, engine='mpl')
 

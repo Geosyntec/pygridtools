@@ -10,7 +10,7 @@ import pandas.util.testing as pdtest
 import fiona
 
 from pygridtools import iotools
-import testing
+from pygridtools import testing
 
 
 class test__outputfile(object):
@@ -105,7 +105,7 @@ class test__check_for_same_masks(object):
 
 class test_loadBoundaryFromShapefile(object):
     def setup(self):
-        self.shapefile = 'tests/test_data/simple_boundary.shp'
+        self.shapefile = 'pygridtools/tests/test_data/simple_boundary.shp'
         self.known_df_columns = ['x', 'y', 'beta', 'upperleft',
         					     'reach', 'order']
         self.known_points_in_boundary = 19
@@ -128,7 +128,7 @@ class test_loadBoundaryFromShapefile(object):
 
 class test_loadPolygonFromShapefile(object):
     def setup(self):
-        self.shpfile = 'tests/test_data/simple_islands.shp'
+        self.shpfile = 'pygridtools/tests/test_data/simple_islands.shp'
         self.filter = lambda x: x['properties']['name'] == 'keeper'
         self.known_islands = [
             np.array([
@@ -166,15 +166,15 @@ class test_loadPolygonFromShapefile(object):
 
 def test_dumpGridFile():
     grid = testing.makeSimpleGrid()
-    outputfile = 'tests/result_files/grid.out'
+    outputfile = 'pygridtools/tests/result_files/grid.out'
     iotools.dumpGridFiles(grid, outputfile)
 
     if sys.platform == 'win32':
-        baselinefile = 'tests/baseline_files/grid_win.out'
+        baselinefile = 'pygridtools/tests/baseline_files/grid_win.out'
     elif sys.platform == 'darwin':
-        baselinefile = 'tests/baseline_files/grid_osx.out'
+        baselinefile = 'pygridtools/tests/baseline_files/grid_osx.out'
     else:
-        baselinefile = 'tests/baseline_files/grid.out'
+        baselinefile = 'pygridtools/tests/baseline_files/grid.out'
 
     testing.compareTextFiles(outputfile, baselinefile)
 
@@ -199,9 +199,9 @@ class test_savePointShapefile(object):
             [1, 0, 0],
             [1, 0, 0]
         ])
-        self.template = 'tests/test_data/schema_template.shp'
-        self.outputdir = 'tests/result_files'
-        self.baselinedir = 'tests/baseline_files'
+        self.template = 'pygridtools/tests/test_data/schema_template.shp'
+        self.outputdir = 'pygridtools/tests/result_files'
+        self.baselinedir = 'pygridtools/tests/baseline_files'
         self.river = 'test'
 
     @nt.raises(ValueError)
@@ -245,9 +245,9 @@ class test_saveGridShapefile(object):
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1],
         ])
-        self.template = 'tests/test_data/schema_template.shp'
-        self.outputdir = 'tests/result_files'
-        self.baselinedir = 'tests/baseline_files'
+        self.template = 'pygridtools/tests/test_data/schema_template.shp'
+        self.outputdir = 'pygridtools/tests/result_files'
+        self.baselinedir = 'pygridtools/tests/baseline_files'
         self.river = 'test'
         self.maxDiff=None
 
@@ -287,11 +287,11 @@ class test_write_cellinp(object):
             [9, 4, 5, 5, 1, 9, 9, 9, 9],
             [9, 9, 9, 9, 9, 9, 0, 0, 0],
         ])
-        self.basic_output = 'tests/result_files/cell_basic.inp'
-        self.known_basic_output = 'tests/baseline_files/cell_basic.inp'
+        self.basic_output = 'pygridtools/tests/result_files/cell_basic.inp'
+        self.known_basic_output = 'pygridtools/tests/baseline_files/cell_basic.inp'
 
-        self.chunked_output = 'tests/result_files/cell_chunked.inp'
-        self.known_chunked_output = 'tests/baseline_files/cell_chunked.inp'
+        self.chunked_output = 'pygridtools/tests/result_files/cell_chunked.inp'
+        self.known_chunked_output = 'pygridtools/tests/baseline_files/cell_chunked.inp'
 
     def test_basic(self):
         iotools._write_cellinp(self.cells, self.basic_output)
@@ -310,10 +310,10 @@ class test_write_cellinp(object):
 
 class test_gridextToShapefile(object):
     def setup(self):
-        self.gridextfile = 'tests/test_data/gridext.inp'
-        self.template = 'tests/test_data/schema_template.shp'
-        self.outputfile = 'tests/result_files/gridext.shp'
-        self.baselinefile = 'tests/baseline_files/gridext.shp'
+        self.gridextfile = 'pygridtools/tests/test_data/gridext.inp'
+        self.template = 'pygridtools/tests/test_data/schema_template.shp'
+        self.outputfile = 'pygridtools/tests/result_files/gridext.shp'
+        self.baselinefile = 'pygridtools/tests/baseline_files/gridext.shp'
         self.river = 'test'
         self.reach = 1
 
@@ -336,15 +336,15 @@ class test_gridextToShapefile(object):
 
 
 def test__write_gefdc_control_file():
-    known_filename = 'tests/baseline_files/maingefdc.inp'
-    result_filename = 'tests/result_files/maingefdc.inp'
+    known_filename = 'pygridtools/tests/baseline_files/maingefdc.inp'
+    result_filename = 'pygridtools/tests/result_files/maingefdc.inp'
     iotools._write_gefdc_control_file(result_filename, 'Test Input File', 100, 25, 0)
     testing.compareTextFiles(result_filename, known_filename)
 
 
 def test__write_gridext_file():
-    known_filename = 'tests/baseline_files/testgridext.inp'
-    result_filename = 'tests/result_files/testgridext.inp'
+    known_filename = 'pygridtools/tests/baseline_files/testgridext.inp'
+    result_filename = 'pygridtools/tests/result_files/testgridext.inp'
     df = pandas.DataFrame(np.array([
         [1.25, 3, 4, 3.75],
         [1.75, 4, 4, 3.25],
@@ -358,8 +358,8 @@ def test__write_gridext_file():
 
 class test__write_gridout_file(object):
     def setup(self):
-        self.known_filename = 'tests/baseline_files/testgrid.out'
-        self.result_filename = 'tests/result_files/testgrid.out'
+        self.known_filename = 'pygridtools/tests/baseline_files/testgrid.out'
+        self.result_filename = 'pygridtools/tests/result_files/testgrid.out'
 
         self.x, self.y = testing.makeSimpleNodes()
 
@@ -374,8 +374,8 @@ class test__write_gridout_file(object):
 
 class test_readGridShapefile(object):
     def setup(self):
-        self.point_file = "tests/baseline_files/array_point.shp"
-        self.cell_file = "tests/baseline_files/array_grid.shp"
+        self.point_file = "pygridtools/tests/baseline_files/array_point.shp"
+        self.cell_file = "pygridtools/tests/baseline_files/array_grid.shp"
         index = pandas.MultiIndex.from_product(
             [[0, 1, 2, 3], [0, 1, 2]],
             names=list('ji')

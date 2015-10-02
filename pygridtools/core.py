@@ -5,9 +5,9 @@ import warnings
 import numpy as np
 import pandas
 
-from . import misc
-from . import iotools
-from . import viz
+from pygridtools import misc
+from pygridtools import iotools
+from pygridtools import viz
 
 
 class _PointSet(object):
@@ -46,6 +46,10 @@ class ModelGrid(object):
         self._nodes_y = _PointSet(nodes_y)
         self._template = None
         self._cell_mask = np.zeros(self.cell_shape, dtype=bool)
+
+        self._domain = None
+        self._extent = None
+        self._islands = None
 
     @property
     def nodes_x(self):
@@ -142,6 +146,27 @@ class ModelGrid(object):
     @template.setter
     def template(self, value):
         self._template = value
+
+    @property
+    def domain(self):
+        return self._domain
+    @domain.setter
+    def domain(self, value):
+        self._domain = value
+
+    @property
+    def extent(self):
+        return self._extent
+    @extent.setter
+    def extent(self, value):
+        self._extent = value
+
+    @property
+    def islands(self):
+        return self._islands
+    @islands.setter
+    def islands(self, value):
+        self._islands = value
 
     def transform(self, fxn, *args, **kwargs):
         self.nodes_x = self.nodes_x.transform(fxn, *args, **kwargs)
@@ -250,42 +275,26 @@ class ModelGrid(object):
         iotools._write_gridext_file(df, outfile)
         return df
 
-    def _plot_nodes(self, boundary=None, engine='mpl', ax=None, **kwargs):
-        raise NotImplementedError
-        if engine == 'mpl': # pragma: no cover
-            return viz._plot_nodes_mpl(self.xn, self.yn, boundary=boundary,
-                                       ax=ax, **kwargs)
-        elif engine == 'bokeh': # pragma: no cover
-            return viz._plot_nodes_bokeh(self.xn, self.yn, boundary=boundary,
-                                         **kwargs)
+    def plotCells(self, engine='mpl', ax=None,
+                  usemask=True, cell_kws=None,
+                  domain_kws=None, extent_kws=None,
+                  showisland=True, island_kws=None):
 
-    def plotCells(self, engine='mpl', ax=None, usemask=True,
-                  river=None, islands=None, boundary=None,
-                  bxcol='x', bycol='y', **kwargs): # pragma: no cover
-        if usemask:
-            mask = self.cell_mask.copy()
-        else:
-            mask = None
+        if cell_kws is None:
+            cell_kws = {}
+        fig = viz.plotCells(self.xn, self.yn, engine=engine, ax=ax,
+                            mask=self.cell_mask, **cell_kws)
 
+        if domain_kws is not None:
+            fig = viz.plotDomain(data=self.domain, engine=engine, ax=ax, **domain_kws)
 
-        fig, ax = viz._check_ax(ax)
-        if boundary is not None:
-            fig = viz.plotReachDF(boundary, bxcol, bycol, ax=ax)
+        if extent_kws:
+            fig = viz.plotBoundaries(extent=self.extent, engine=engine, ax=ax, **extent_kws)
 
-        fig = viz.plotCells(
-            self.xn,
-            self.yn,
-            engine=engine,
-            ax=ax,
-            mask=mask,
-            **kwargs
-        )
+        if island_kws:
+            fig = viz.plotBoundaries(islands=self.islands, engine=engine, ax=ax, **island_kws)
 
-        if river is not None or islands is not None:
-            fig, ax = viz.plotBoundaries(river=river, islands=islands,
-                                         engine=engine, ax=ax)
-
-        return fig, ax
+        return fig
 
     def as_dataframe(self, usemask=False, which='nodes'):
 

@@ -5,9 +5,9 @@ import warnings
 import numpy as np
 import pandas
 
-from . import misc
-from . import iotools
-from . import viz
+from pygridtools import misc
+from pygridtools import iotools
+from pygridtools import viz
 
 
 class _PointSet(object):

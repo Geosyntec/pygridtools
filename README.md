@@ -10,7 +10,7 @@ This package aims to provide a convenient interface to
   + grid creation
   + merging grids together
   + attaching bathymetry or model output to grids for...
-  + visualizing grids (via [matplotlib](www.matplotlib.org) or
+  + visualizing grids (via [matplotlib](www.matplotlib.org) or eventually
     [bokeh](http://bokeh.pydata.org/en/latest/))
 
 ## Installation
@@ -27,12 +27,13 @@ Then clone this directory and do `pip install .`
 
 ## Python versions.
 Currently tested on:
-  - 2.7
+  - Legacy Python
   - 3.4
 
 ## Examples
   1. [Basic grid generation and focusing](http://nbviewer.ipython.org/github/phobson/pygridtools/blob/master/examples/1%20-%20Gridgen%20Basics.ipynb)
   2. [Masking dry (land) cells and GIS output](http://nbviewer.ipython.org/github/phobson/pygridtools/blob/master/examples/2%20-%20Shapefiles%20and%20masking%20cells.ipynb)
+  3. [Merging grids together](http://nbviewer.ipython.org/github/Geosyntec/pygridtools/blob/master/examples/3%20-%20Merging%20Grids.ipynb)
 
 
 ## Contributing

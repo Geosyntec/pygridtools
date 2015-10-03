@@ -8,7 +8,7 @@ import matplotlib.mlab as mlab
 import pandas
 
 
-def points_inside_poly(points, polyverts):
+def points_inside_polygon(points, polyverts):
     return mpath.Path(polyverts).contains_points(points)
 
 

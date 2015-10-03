@@ -29,7 +29,7 @@ def test_points_inside_poly():
 
     known_result = np.array([True, True, False, False])
     nptest.assert_array_equal(
-        misc.points_inside_poly(points, polyverts),
+        misc.points_inside_polygon(points, polyverts),
         known_result
     )
 

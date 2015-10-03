@@ -638,53 +638,45 @@ def test_ModelGrid_plots():
 
 class test_makeGrid(object):
     def setup(self):
-        self.coords = testing.makeSimpleBoundary()
+        self.domain = testing.makeSimpleBoundary()
         self.bathy = testing.makeSimpleBathy()
+        self.nx = 9
+        self.ny = 7
         self.gridparams = {
-            'nx': 9,
-            'ny': 7,
             'nnodes': 12,
             'verbose': False,
             'ul_idx': 0
         }
 
     @nptest.dec.skipif(not has_pgg)
-    def test_with_coords_and_bathy(self):
+    def test_with_and_bathy(self):
         grid = core.makeGrid(
-            coords=self.coords,
+            self.ny, self.nx,
+            domain=self.domain,
             bathydata=self.bathy.dropna(),
             **self.gridparams
         )
         nt.assert_true(isinstance(grid, pygridgen.Gridgen))
 
     @nptest.dec.skipif(not has_pgg)
-    def test_with_coords_and_bathy_verbose(self):
+    def test_with_bathy_verbose(self):
         params = self.gridparams.copy()
         params['verbose'] = True
         grid = core.makeGrid(
-            coords=self.coords,
+            self.ny, self.nx,
+            domain=self.domain,
             bathydata=self.bathy.dropna(),
             **self.gridparams
         )
         nt.assert_true(isinstance(grid, pygridgen.Gridgen))
 
     @nptest.dec.skipif(not has_pgg)
-    @nt.raises(ValueError)
-    def test_makegrid_no_nx(self):
-        nx = self.gridparams.pop('nx')
+    def test_as_ModelGrid(self):
         grid = core.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
+            self.ny, self.nx,
+            domain=self.domain,
+            rawgrid=False,
             **self.gridparams
         )
-
-    @nptest.dec.skipif(not has_pgg)
-    @nt.raises(ValueError)
-    def test_makegrid_no_ny(self):
-        ny = self.gridparams.pop('ny')
-        grid = core.makeGrid(
-            coords=self.coords,
-            bathydata=self.bathy,
-            **self.gridparams
-        )
+        nt.assert_true(isinstance(grid, core.ModelGrid))
 

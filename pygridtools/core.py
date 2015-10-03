@@ -382,13 +382,17 @@ class ModelGrid(object):
         return ModelGrid(gridgen.x, gridgen.y)
 
 
-def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
+def makeGrid(ny, nx, domain, bathydata=None, verbose=False,
+             rawgrid=True, **gparams):
     """ Generate and (optionally) visualize a grid, and create input
     files for the GEDFC preprocessor (makes grid input files for GEFDC).
 
     Parameters
     ----------
-    coords : optional pandas.DataFrame or None (default)
+    ny, nx : int
+        The number of rows and columns that will make up the grid's
+        *nodes*. Note the final grid *cells* will be (ny-1) by (nx-1).
+    domain : optional pandas.DataFrame or None (default)
         Defines the boundary of the model area. Must be provided if
         `makegrid` = True. Required columns:
           - 'x' (easting)
@@ -401,9 +405,12 @@ def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
           - 'x' (easting)
           - 'y' (northing),
           - 'z' (elevation)
+    rawgrid : bool (default = True)
+        When True, returns a pygridgen.Gridgen object. Otherwise, a
+        pygridtools.ModelGrid object is returned.
     **gparams : optional kwargs
         Parameters to be passed to the pygridgen.grid.Gridgen constructor.
-        Only used if `makegrid` = True and `coords` is not None.
+        Only used if `makegrid` = True and `domain` is not None.
         `ny` and `nx` are absolutely required. Optional values include:
 
         ul_idx : optional int (default = 0)
@@ -470,20 +477,17 @@ def makeGrid(coords=None, bathydata=None, verbose=False, **gparams):
     except ImportError: # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot make grid.")
 
-    # generate the grid.
-    try:
-        shape = (gparams.pop('ny'), gparams.pop('nx'))
-    except KeyError:
-        raise ValueError('you must provide `nx` and `ny` to generate a grid')
     if verbose:
         print('generating grid')
 
-    grid = pygridgen.Gridgen(coords.x, coords.y, coords.beta, shape, **gparams)
+    grid = pygridgen.Gridgen(domain.x, domain.y, domain.beta, (ny, nx), **gparams)
 
     if verbose:
         print('interpolating bathymetry')
 
     newbathy = misc.interpolateBathymetry(bathydata, grid.x_rho, grid.y_rho,
                                           xcol='x', ycol='y', zcol='z')
-
-    return grid
+    if rawgrid:
+        return grid
+    else:
+        return ModelGrid.from_Gridgen(grid)

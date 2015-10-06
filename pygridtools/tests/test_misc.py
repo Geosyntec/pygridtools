@@ -22,18 +22,6 @@ except ImportError:
     has_pgg = False
 
 
-def test_points_inside_poly():
-    polyverts = np.array([[0, 0], [0, 1], [1, 1], [1, 0]])
-
-    points = np.array([[0.2, 0.2], [0.5, 0.5], [1.2, 1.2], [1.5, 0.5]])
-
-    known_result = np.array([True, True, False, False])
-    nptest.assert_array_equal(
-        misc.points_inside_polygon(points, polyverts),
-        known_result
-    )
-
-
 class test_makePolyCoords(object):
     def setup(self):
         x1 = 1
@@ -383,6 +371,41 @@ class test_padded_stack(object):
     @nt.raises(ValueError)
     def test_bad_where(self):
         misc.padded_stack(self.g1, self.g3, how='v', where='junk', shift=2)
+
+
+class test_mask_with_polygon(object):
+    def setup(self):
+        self.y, self.x = np.mgrid[:5, :5]
+        self.polyverts = [
+            (0.5, 2.5),
+            (3.5, 2.5),
+            (3.5, 0.5),
+            (0.5, 0.5),
+        ]
+
+        self.known_inside_mask = np.array([
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+        ], dtype=bool)
+
+        self.known_outside_mask = np.array([
+            [1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 1],
+            [1, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+        ], dtype=bool)
+
+    def test_default_inside(self):
+        mask = misc.mask_with_polygon(self.x, self.y, self.polyverts)
+        nptest.assert_array_equal(mask, self.known_inside_mask)
+
+    def test_outside(self):
+        mask = misc.mask_with_polygon(self.x, self.y, self.polyverts, inside=False)
+        nptest.assert_array_equal(mask, self.known_outside_mask)
 
 
 class base_make_gefdc_cells(object):

@@ -104,12 +104,12 @@ class ModelGrid(object):
 
     @property
     def xc(self):
-        """shortcut to x-coords of nodes"""
+        """shortcut to x-coords of cells/centroids"""
         return self.cells_x
 
     @property
     def yc(self):
-        """shortcut to y-coords of nodes"""
+        """shortcut to y-coords of cells/centroids"""
         return self.cells_y
 
     @property
@@ -185,12 +185,68 @@ class ModelGrid(object):
         return self.transform(np.flipud)
 
     def merge(self, other, how='vert', where='+', shift=0):
-        """ Merge with another grid.
+        """ Merge with another grid using pygridtools.misc.padded_stack.
 
         Parameters
         ----------
         other : ModelGrid
             The other ModelGrid object.
+        how : optional string (default = 'vert')
+            The method through wich the arrays should be stacked.
+            `'Vert'` is analogous to `np.vstack`. `'Horiz'` maps to
+            `np.hstack`.
+        where : optional string (default = '+')
+            The placement of the arrays relative to each other. Keeping
+            in mind that the origin of an array's index is in the
+            upper-left corner, `'+'` indicates that the second array
+            will be placed at higher index relative to the first array.
+            Essentially:
+              - if how == 'vert'
+                - `'+'` -> `a` is above (higher index) `b`
+                - `'-'` -> `a` is below (lower index) `b`
+              - if how == 'horiz'
+                - `'+'` -> `a` is to the left of `b`
+                - `'-'` -> `a` is to the right of `b`
+            See the examples and pygridtools.misc.padded_stack for more
+            info.
+        shift : int (default = 0)
+            The number of indices the second array should be shifted in
+            axis other than the one being merged. In other words,
+            vertically stacked arrays can be shifted horizontally,
+            and horizontally stacked arrays can be shifted vertically.
+
+        Returns
+        -------
+        self (operates in-place)
+
+        Notes
+        -----
+        The ``cell_mask`` attribute is not automatically updated
+        following merge operates. See the Examples section on handling
+        this manually.
+
+        Examples
+        --------
+        >>> domain1 = pandas.DataFrame({
+            'x': [2, 5, 5, 2],
+            'y': [6, 6, 4, 4],
+            'beta': [1, 1, 1, 1]
+        })
+        >>> domain2 = pandas.DataFrame({
+            'x': [6, 11, 11, 5],
+            'y': [5, 5, 3, 3],
+            'beta': [1, 1, 1, 1]
+        })
+        >>> grid1 = pgt.makeGrid(domain=domain1, nx=6, ny=5, rawgrid=False)
+        >>> grid2 = pgt.makeGrid(domain=domain2, nx=8, ny=7, rawgrid=False)
+        >>> grid1.merge(grid2, how='horiz')
+        >>> # update the cell mask to include new NA points:
+        >>> grid1.cell_mask = np.ma.masked_invalid(grid1.xc).mask
+
+        See Also
+        --------
+        pygridtools.padded_stack
+
         """
 
         self.nodes_x = self.nodes_x.merge(other.nodes_x, how=how,
@@ -199,43 +255,72 @@ class ModelGrid(object):
                                           where=where, shift=shift)
         return self
 
-    def mask_cells_with_polygon(self, polyverts, use_cells=True,
-                                inside=True, triangles=False,
-                                min_nodes=3, inplace=True):
-        polyverts = np.asarray(polyverts)
-        if polyverts.ndim != 2:
-            raise ValueError('polyverts must be a 2D array, or a '
-                             'similar sequence')
+    def mask_cells_with_polygon(self, polyverts, use_centroids=True,
+                                min_nodes=3, inside=True,
+                                use_existing=True, triangles=False,
+                                inplace=True):
 
-        if polyverts.shape[1] != 2:
-            raise ValueError('polyverts must be two columns of points')
+        """ Create mask for the cells of the ModelGrid with a polygon.
 
-        if polyverts.shape[0] < 3:
-            raise ValueError('polyverts must contain at least 3 points')
+        Parameters
+        ----------
+        polyverts : sequence of a polygon's vertices
+            A sequence of x-y pairs for each vertex of the polygon.
+        use_centroids : bool (default = True)
+            When True, the cell centroid will be used to determine
+            whether the cell is "inside" the polygon. If False, the
+            nodes are used instead.
+        min_nodes : int (default = 3)
+            Only used when ``use_centroids`` is False. This is the
+            minimum number of nodes inside the polygon required to mark
+            the cell as "inside". Must be greater than 0, but no more
+            than 4.
+        inside : bool (default = True)
+            Toggles masking of cells either *inside* (True) or *outside*
+            (False) the polygon.
+        triangles : bool
+            Not yet implemented.
+        use_existing : bool (default = True)
+            When True, the newly computed mask is combined (via a
+            bit-wise `or` opteration) with the existing ``cell_mask``
+            attribute of the MdoelGrid.
+        inplace : bool (default = True):
+            If True, the ``cell_mask`` attribute of the ModelGrid is set
+            to the returned masked and None is returned. Otherwise, the
+            a new mask is returned the ``cell_mask`` attribute of the
+            ModelGrid is unchanged.
 
-        if use_cells:
-            cells = self.as_coord_pairs(which='cells')
-            cell_mask = misc.points_inside_poly(
-                cells, polyverts
-            ).reshape(self.cell_shape)
+        Returns
+        -------
+        cell_mask : np.array of bools
+            The final mask to be applied to the cells of the ModelGrid.
+
+        """
+
+        if triangles:
+            raise NotImplementedError("triangles are not yet implemented.")
+
+        if use_centroids:
+            cell_mask = misc.mask_with_polygon(self.xc, self.yc, polyverts, inside=inside)
         else:
-            nodes = self.as_coord_pairs(which='nodes')
-            _node_mask = misc.points_inside_poly(
-                nodes, polyverts
-            ).reshape(self.shape)
+            if min_nodes <= 0 or min_nodes > 4:
+                raise ValueError("`min_nodes` must be greater than 0 and no more than 4.")
 
+            _node_mask = misc.mask_with_polygon(self.xn, self.yn, polyverts, inside=inside).astype(int)
             cell_mask = (
                 _node_mask[1:, 1:] + _node_mask[:-1, :-1] +
                 _node_mask[:-1, 1:] + _node_mask[1:, :-1]
-            ) < min_nodes,
-        if not inside:
-            cell_mask = ~cell_mask
+            ) >= min_nodes
+            cell_mask = cell_mask.astype(bool)
+
+
+        if use_existing:
+            cell_mask = np.bitwise_or(self.cell_mask, cell_mask)
 
         if inplace:
-            self.cell_mask = np.bitwise_or(self.cell_mask, cell_mask)
+            self.cell_mask = cell_mask
 
-        else:
-            return cell_mask
+        return cell_mask
 
     def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
                               bathyrows=0, title='test'):

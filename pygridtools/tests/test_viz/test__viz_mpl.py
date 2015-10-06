@@ -9,36 +9,6 @@ from matplotlib.testing.decorators import image_comparison, cleanup
 import pygridtools.testing as pgtest
 
 
-class test__check_ax(object):
-    def setup(self):
-        self.fig, self.ax = plt.subplots()
-
-    @cleanup
-    def teardown(self):
-        self.ax.clear()
-        plt.close(self.fig)
-
-    @cleanup
-    def test_with_ax(self):
-        fig, ax = _viz_mpl._check_ax(self.ax)
-        nt.assert_equal(self.fig, fig)
-        nt.assert_equal(self.ax, ax)
-
-    @cleanup
-    def test_without_ax(self):
-        fig, ax = _viz_mpl._check_ax(None)
-        nt.assert_not_equals(self.fig, fig)
-        nt.assert_not_equals(self.ax, ax)
-
-        nt.assert_true(isinstance(fig, plt.Figure))
-        nt.assert_true(isinstance(ax, plt.Axes))
-
-    @cleanup
-    @nt.raises(AttributeError)
-    def test_bad_ax(self):
-        _viz_mpl._check_ax('junk')
-
-
 @image_comparison(
     baseline_images=[
         'test_domain_without_beta_df',

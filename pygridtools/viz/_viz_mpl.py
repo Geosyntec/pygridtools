@@ -3,16 +3,7 @@ import matplotlib.pyplot as plt
 import pandas
 
 from pygridtools import misc
-
-
-def _check_ax(ax):
-    if ax is None:
-        fig, ax = plt.subplots()
-    else:
-        fig = ax.figure
-
-    ax.set_aspect('equal')
-    return fig, ax
+from pygridtools import qa
 
 
 def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None):
@@ -33,7 +24,7 @@ def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None):
 
     """
     # setup the figure
-    fig, ax = _check_ax(ax)
+    fig, ax = qa._check_ax(ax)
 
     # coerce values into a dataframe if necessary
     if data is not None:
@@ -72,7 +63,7 @@ def _plot_boundaries(extent_x=None, extent_y=None, extent=None, islands_x=None,
     """
 
     # setup the figure
-    fig, ax = _check_ax(ax)
+    fig, ax = qa._check_ax(ax)
 
     if extent is not None:
         extent_x, extent_y = extent[extent_x], extent[extent_y]
@@ -101,14 +92,14 @@ def _plot_points(x, y, ax=None, **plot_opts):
 
     """
 
-    fig, ax = _check_ax(ax)
+    fig, ax = qa._check_ax(ax)
     ax.plot(x, y, 'ko', **plot_opts)
     ax.margins(0.1, 0.1)
     return fig
 
 
 def _plot_cells(x, y, mask=None, ax=None, **plot_opts):
-    fig, ax = _check_ax(ax)
+    fig, ax = qa._check_ax(ax)
 
     rows, cols = x.shape
     if mask is None:

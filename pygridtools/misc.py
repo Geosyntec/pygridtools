@@ -4,12 +4,9 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
-import matplotlib.mlab as mlab
 import pandas
 
-
-def points_inside_poly(points, polyverts):
-    return mpath.Path(polyverts).contains_points(points)
+from pygridtools import qa
 
 
 def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
@@ -272,6 +269,39 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
         raise ValueError('`where` must be either "+" or "-"')
 
     return stacked
+
+
+def mask_with_polygon(x, y, polyverts, inside=True):
+    """ Mask x-y arrays inside or outside a polygon
+
+    Parameters
+    ----------
+    x, y : array-like
+        NxM arrays of x- and y-coordinates.
+    polyverts : sequence of a polygon's vertices
+        A sequence of x-y pairs for each vertex of the polygon.
+    inside : bool (default = True)
+        Toggles returning a mask *inside* or *outside* the polygon.
+
+    Returns
+    -------
+    mask : bool array
+        The NxM mask that can be applied to ``x`` and ``y``.
+
+    """
+
+    # validate input
+    polyverts = qa._validate_polygon(polyverts)
+    points = qa._validate_xy_array(x, y, as_pairs=True)
+
+    # compute the mask
+    mask = mpath.Path(polyverts).contains_points(points).reshape(x.shape)
+
+    # invert if we're masking things outside the polygon
+    if not inside:
+        mask = ~mask
+
+    return mask
 
 
 def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):

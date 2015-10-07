@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/Geosyntec/pygridtools.svg?branch=master)](https://travis-ci.org/Geosyntec/pygridtools)
-[![Coverage Status](https://coveralls.io/repos/Geosyntec/pygridtools/badge.svg)](https://coveralls.io/r/Geosyntec/pygridtools)
+[![Build Status](https://travis-ci.org/phobson/pygridtools.svg?branch=master)](https://travis-ci.org/phobson/pygridtools)
+[![Coverage Status](https://coveralls.io/repos/Geosyntec/pygridtools/badge.svg?branch=master&service=github)](https://coveralls.io/github/Geosyntec/pygridtools?branch=master)
 
 # pygridtools
 Miscellaneous utilities to accompany [`pygridgen`](https://github.com/hetland/pygridgen)

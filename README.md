@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/phobson/pygridtools.svg?branch=master)](https://travis-ci.org/phobson/pygridtools)
+[![Build Status](https://travis-ci.org/Geosyntec/pygridtools.svg?branch=master)](https://travis-ci.org/Geosyntec/pygridtools)
 [![Coverage Status](https://coveralls.io/repos/Geosyntec/pygridtools/badge.svg?branch=master&service=github)](https://coveralls.io/github/Geosyntec/pygridtools?branch=master)
 
 # pygridtools
@@ -18,7 +18,7 @@ Use [`conda`](http://conda.pydata.org/) and grab the dependecies
 in my channel via:
 
 ```bash
-conda creat --name=grid python=3.4 seaborn fiona nose 
+conda create --name=grid python=3.4 seaborn fiona nose 
 source activate grid
 conda install --channel=IOOS pygridgen
 ```

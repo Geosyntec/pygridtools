@@ -381,7 +381,25 @@ class ModelGrid(object):
 
         return fig
 
-    def as_dataframe(self, usemask=False, which='nodes'):
+    def _get_x_y(self, which, usemask=False):
+        if which.lower() == 'nodes':
+            if usemask:
+                raise ValueError("can only mask cells, not nodes")
+            else:
+                x, y = self.xn, self.yn
+
+        elif which.lower() == 'cells':
+            x, y = self.xc, self.yc
+            if usemask:
+                x = np.ma.masked_array(x, self.cell_mask)
+                y = np.ma.masked_array(y, self.cell_mask)
+
+        else:
+            raise ValueError('`which` must be either "nodes" or "cells"')
+
+        return x, y
+
+    def to_dataframe(self, usemask=False, which='nodes'):
 
         x, y = self._get_x_y(which, usemask=usemask)
 
@@ -400,7 +418,7 @@ class ModelGrid(object):
         northing = pandas.DataFrame(y, index=index, columns=northing_cols)
         return easting.join(northing)
 
-    def as_coord_pairs(self, usemask=False, which='nodes'):
+    def to_coord_pairs(self, usemask=False, which='nodes'):
         x, y = self._get_x_y(which, usemask=usemask)
         return np.array(list(zip(x.flatten(), y.flatten())))
 
@@ -432,24 +450,6 @@ class ModelGrid(object):
                 warnings.warn("polygons always constructed from nodes")
         else:
             raise ValueError("geom must be either 'Point' or 'Polygon'")
-
-    def _get_x_y(self, which, usemask=False):
-        if which.lower() == 'nodes':
-            if usemask:
-                raise ValueError("can only mask cells, not nodes")
-            else:
-                x, y = self.xn, self.yn
-
-        elif which.lower() == 'cells':
-            x, y = self.xc, self.yc
-            if usemask:
-                x = np.ma.masked_array(x, self.cell_mask)
-                y = np.ma.masked_array(y, self.cell_mask)
-
-        else:
-            raise ValueError('`which` must be either "nodes" or "cells"')
-
-        return x, y
 
     @staticmethod
     def from_dataframes(df_x, df_y, icol='i'):

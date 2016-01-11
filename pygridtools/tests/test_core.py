@@ -14,8 +14,6 @@ from matplotlib.testing.decorators import image_comparison, cleanup
 from pygridtools import core
 from pygridtools import testing
 
-
-
 try:
     import pygridgen
     has_pgg = True
@@ -414,48 +412,48 @@ class test_ModelGrid(object):
 
         self.g1.template = self.template
 
-    def test_as_dataframe_nomask_nodes(self):
+    def test_to_dataframe_nomask_nodes(self):
         pdtest.assert_frame_equal(
-            self.g1.as_dataframe(usemask=False, which='nodes'),
+            self.g1.to_dataframe(usemask=False, which='nodes'),
             self.known_df,
             check_names=False
         )
 
         pdtest.assert_index_equal(
-            self.g1.as_dataframe().columns,
+            self.g1.to_dataframe().columns,
             self.known_df.columns,
         )
 
-    def test_as_coord_pairs_nomask_nodes(self):
+    def test_to_coord_pairs_nomask_nodes(self):
         nptest.assert_array_equal(
-            self.g1.as_coord_pairs(usemask=False, which='nodes'),
+            self.g1.to_coord_pairs(usemask=False, which='nodes'),
             self.known_coord_pairs
         )
 
     @nt.raises(ValueError)
-    def test_as_dataframe_mask_nodes(self):
-        self.g1.as_dataframe(usemask=True, which='nodes')
+    def test_to_dataframe_mask_nodes(self):
+        self.g1.to_dataframe(usemask=True, which='nodes')
 
     @nt.raises(ValueError)
-    def test_as_coord_pairs_mask_nodes(self):
-        self.g1.as_coord_pairs(usemask=True, which='nodes')
+    def test_to_coord_pairs_mask_nodes(self):
+        self.g1.to_coord_pairs(usemask=True, which='nodes')
 
-    def test_as_coord_pairs_nomask_cells(self):
+    def test_to_coord_pairs_nomask_cells(self):
         nptest.assert_array_equal(
-            self.g1.as_coord_pairs(usemask=False, which='cells'),
+            self.g1.to_coord_pairs(usemask=False, which='cells'),
             self.known_node_pairs
         )
 
-    def test_as_coord_pairs_mask_cells(self):
+    def test_to_coord_pairs_mask_cells(self):
         self.g1.cell_mask = self.known_mask
         nptest.assert_array_equal(
-            self.g1.as_coord_pairs(usemask=True, which='cells'),
+            self.g1.to_coord_pairs(usemask=True, which='cells'),
             self.known_node_pairs_masked
         )
 
-    def test_as_dataframe_mask_cells(self):
+    def test_to_dataframe_mask_cells(self):
         self.g1.cell_mask = self.known_mask
-        df = self.g1.as_dataframe(usemask=True, which='cells')
+        df = self.g1.to_dataframe(usemask=True, which='cells')
         pdtest.assert_frame_equal(df, self.known_masked_cell_df,
                                   check_names=False)
 
@@ -701,6 +699,7 @@ class test_ModelGrid(object):
             os.path.join(result_path, result_file),
             known_filename
         )
+
 
 @image_comparison(
     baseline_images=[

@@ -354,7 +354,7 @@ class ModelGrid(object):
 
     def writeGEFDCGridextFile(self, outputdir, shift=2, filename='gridext.inp'):
         outfile = iotools._outputfile(outputdir, filename)
-        df = self.as_dataframe().stack(level='i', dropna=True).reset_index()
+        df = self.to_dataframe().stack(level='i', dropna=True).reset_index()
         df['i'] += shift
         df['j'] += shift
         iotools._write_gridext_file(df, outfile)
@@ -452,9 +452,9 @@ class ModelGrid(object):
             raise ValueError("geom must be either 'Point' or 'Polygon'")
 
     @staticmethod
-    def from_dataframes(df_x, df_y, icol='i'):
-        nodes_x = df_x.unstack(level='i')
-        nodes_y = df_y.unstack(level='i')
+    def from_dataframe(df, xcol='easting', ycol='northing', icol='i'):
+        nodes_x = df_x[xcol].unstack(level='i')
+        nodes_y = df_y[ycol].unstack(level='i')
         return ModelGrid(nodes_x, nodes_y)
 
     @staticmethod

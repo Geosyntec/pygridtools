@@ -67,8 +67,9 @@ def _plot_boundaries(extent_x=None, extent_y=None, extent=None, islands_x=None,
 
     if extent is not None:
         extent_x, extent_y = extent[extent_x], extent[extent_y]
-
-    ax.plot(extent_x, extent_y, 'k-', label='extent')
+        
+    if extent_x is not None:
+        ax.plot(extent_x, extent_y, 'k-', label='extent')
 
     if islands is not None:
         islands_x, islands_y = islands[islands_x], islands[islands_y]

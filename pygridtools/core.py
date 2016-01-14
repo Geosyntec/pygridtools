@@ -448,20 +448,20 @@ class ModelGrid(object):
         else:
             raise ValueError("geom must be either 'Point' or 'Polygon'")
 
-    @staticmethod
-    def from_dataframe(df, xcol='easting', ycol='northing', icol='i'):
+    @classmethod
+    def from_dataframe(cls, df, xcol='easting', ycol='northing', icol='i'):
         nodes_x = df[xcol].unstack(level='i')
         nodes_y = df[ycol].unstack(level='i')
-        return ModelGrid(nodes_x, nodes_y)
+        return cls(nodes_x, nodes_y)
 
-    @staticmethod
-    def from_shapefile(shapefile, icol='ii', jcol='jj'):
+    @classmethod
+    def from_shapefile(cls, shapefile, icol='ii', jcol='jj'):
         df = iotools.readGridShapefile(shapefile, icol=icol, jcol=jcol)
-        return ModelGrid.from_dataframes(df['easting'], df['northing'])
+        return cls.from_dataframes(df['easting'], df['northing'])
 
-    @staticmethod
-    def from_Gridgen(gridgen):
-        return ModelGrid(gridgen.x, gridgen.y)
+    @classmethod
+    def from_Gridgen(cls, gridgen):
+        return cls(gridgen.x, gridgen.y)
 
 
 def makeGrid(ny, nx, domain, bathydata=None, verbose=False,

@@ -19,46 +19,6 @@ def _outputfile(outputdir, filename):
     return os.path.join(outputdir, filename)
 
 
-def _check_mode(mode):
-    if mode.lower() not in ['a', 'w']:
-        raise ValueError('`mode` must be either "a" (append) or "w" (write)')
-
-    return mode.lower()
-
-
-def _check_elev_or_mask(X, other, array_name=None, offset=1, failNone=False):
-    if array_name is None:
-        array_name = 'other'
-
-    if other is None:
-        if failNone:
-            raise ValueError('`{}` cannot be `None`'.format(array_name))
-        else:
-            return np.zeros_like(X)
-    else:
-        if (
-                other.shape[0] != X.shape[0] - offset or
-                other.shape[1] != X.shape[1] - offset
-        ):
-            raise ValueError('`{}` not compatible with `X`'.format(array_name))
-
-        else:
-            return other
-
-
-def _check_for_same_masks(X, Y):
-    X = np.ma.masked_invalid(X)
-    Y = np.ma.masked_invalid(Y)
-
-    if X.shape != Y.shape:
-        raise ValueError('X, Y are not the same shape')
-
-    if not np.all(X.mask == Y.mask):
-        raise ValueError('X, Y masks are not the same')
-    else:
-        return X, Y
-
-
 def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
                               sortcol=None, upperleftcol=None,
                               filterfxn=None):

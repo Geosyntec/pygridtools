@@ -20,11 +20,9 @@ except ImportError:
     has_pgg = False
 
 
-class TestNodeOperations(object):
+class Test_transform(object):
     def setup(self):
         self.A = np.arange(12).reshape(4, 3) * 1.0
-        self.B = np.arange(8).reshape(2, 4) * 1.0
-        self.C = np.arange(25).reshape(5, 5) * 1.0
 
         self.known_flipped_A_points = np.array([
             [ 2.,  1., 0.],
@@ -33,22 +31,121 @@ class TestNodeOperations(object):
             [11., 10., 9.]
         ])
 
+    def test_transform_flip(self):
+        nptest.assert_array_equal(
+            self.known_flipped_A_points,
+            core.transform(self.A, np.fliplr)
+        )
+
+    def test_transform_transpose(self):
+        nptest.assert_array_equal(
+            self.A.T,
+            core.transform(self.A, np.transpose)
+        )
+
+
+class Test_split(object):
+    def setup(self):
+        self.C = np.arange(25).reshape(5, 5) * 1.0
+        self.known_top = np.array([
+            [ 0.,  1.,  2.,  3.,  4.],
+            [ 5.,  6.,  7.,  8.,  9.],
+            [10., 11., 12., 13., 14.],
+        ])
+
+        self.known_bottom = np.array([
+            [15., 16., 17., 18., 19.],
+            [20., 21., 22., 23., 24.],
+        ])
+
+        self.known_left= np.array([
+            [ 0.,  1.],
+            [ 5.,  6.],
+            [10., 11.],
+            [15., 16.],
+            [20., 21.],
+        ])
+
+        self.known_right = np.array([
+            [ 2.,  3.,  4.],
+            [ 7.,  8.,  9.],
+            [12., 13., 14.],
+            [17., 18., 19.],
+            [22., 23., 24.],
+        ])
+
+    def test_split_axis0(self):
+        top, bottom = core.split(self.C, 3, axis=0)
+        nptest.assert_array_equal(top, self.known_top)
+        nptest.assert_array_equal(bottom, self.known_bottom)
+
+    def test_split_axis1(self):
+
+        left, right = core.split(self.C, 2, axis=1)
+        nptest.assert_array_equal(left, self.known_left)
+        nptest.assert_array_equal(right, self.known_right)
+
+
+    @nt.raises(ValueError)
+    def test_split_at_bottom_edge_raises(self):
+        left, right = core.split(self.C, 5, axis=0)
+
+    @nt.raises(ValueError)
+    def test_split_at_right_edge_raises(self):
+        left, right = core.split(self.C, 5, axis=1)
+
+
+class Test_interp_between_vectors(object):
+    def setup(self):
+        self.index = np.arange(0, 4)
+        self.vector1 = -1 * self.index**2 - 1
+        self.vector2 = 2 * self.index**2 + 2
+
+        self.known_insert_1 = np.array([
+            [ -1.0 , 0.5,  2.0],
+            [ -2.0 , 1.0 , 4.0],
+            [ -5.0 , 2.5, 10.0],
+            [-10.0 , 5.0, 20.0],
+        ])
+
+        self.known_insert_3 = np.array([
+            [ -1.0, -0.25, 0.5,  1.25,  2.0],
+            [ -2.0, -0.50, 1.0,  2.50,  4.0],
+            [ -5.0, -1.25, 2.5,  6.25, 10.0],
+            [-10.0, -2.50, 5.0, 12.50, 20.0],
+        ])
+
+    def test_insert_1(self):
+        result = core.interp_between_vectors(self.vector1, self.vector2, n_points=1)
+        nptest.assert_array_equal(result, self.known_insert_1)
+
+    def test_insert_3(self):
+        result = core.interp_between_vectors(self.vector1, self.vector2, n_points=3)
+        nptest.assert_array_equal(result, self.known_insert_3)
+
+
+class Test_merge(object):
+    def setup(self):
+        self.A = np.arange(12).reshape(4, 3) * 1.0
+        self.B = np.arange(8).reshape(2, 4) * 1.0
+        self.C = np.arange(25).reshape(5, 5) * 1.0
+
         self.known_AB_vplus_0 = np.array([
-            [ 0.,   1.,   2., nan],
-            [ 3.,   4.,   5., nan],
-            [ 6.,   7.,   8., nan],
-            [ 9.,  10.,  11., nan],
-            [ 0.,   1.,   2.,  3.],
-            [ 4.,   5.,   6.,  7.]
+            [0.,  1.,  2., nan],
+            [3.,  4.,  5., nan],
+            [6.,  7.,  8., nan],
+            [9., 10., 11., nan],
+            [0.,  1.,  2.,  3.],
+            [4.,  5.,  6.,  7.]
         ])
 
         self.known_AB_vminus_0 = np.array([
-            [ 0.,   1.,   2.,  3.],
-            [ 4.,   5.,   6.,  7.],
-            [ 0.,   1.,   2., nan],
-            [ 3.,   4.,   5., nan],
-            [ 6.,   7.,   8., nan],
-            [ 9.,  10.,  11., nan]
+            [0.,  1.,  2.,  3.],
+            [4.,  5.,  6.,  7.],
+            [0.,  1.,  2., nan],
+            [3.,  4.,  5., nan],
+            [6.,  7.,  8., nan],
+            [9., 10., 11., nan]
         ])
 
         self.known_AB_vplus_2 = np.array([
@@ -131,18 +228,6 @@ class TestNodeOperations(object):
             [nan, nan, nan, nan,  9., 10., 11.]
         ])
 
-    def test_transform_flip(self):
-        nptest.assert_array_equal(
-            self.known_flipped_A_points,
-            core.transform(self.A, np.fliplr)
-        )
-
-    def test_transform_transpose(self):
-        nptest.assert_array_equal(
-            self.A.T,
-            core.transform(self.A, np.transpose)
-        )
-
     def test_merge_vplus_0(self):
         nptest.assert_array_equal(
             self.known_AB_vplus_0,
@@ -214,54 +299,6 @@ class TestNodeOperations(object):
             self.known_AB_hminus_neg1,
             core.merge(self.A, self.B, how='h', where='-', shift=-1),
         )
-
-    def test_split_axis0(self):
-        known_top = np.array([
-            [ 0.,  1.,  2.,  3.,  4.],
-            [ 5.,  6.,  7.,  8.,  9.],
-            [10., 11., 12., 13., 14.],
-        ])
-
-        known_bottom = np.array([
-            [15., 16., 17., 18., 19.],
-            [20., 21., 22., 23., 24.],
-        ])
-
-        top, bottom = core.split(self.C, 3, axis=0)
-        nptest.assert_array_equal(top, known_top)
-        nptest.assert_array_equal(bottom, known_bottom)
-
-    def test_split_axis1(self):
-        known_left= np.array([
-            [ 0.,  1.],
-            [ 5.,  6.],
-            [10., 11.],
-            [15., 16.],
-            [20., 21.],
-        ])
-
-        known_right = np.array([
-            [ 2.,  3.,  4.],
-            [ 7.,  8.,  9.],
-            [12., 13., 14.],
-            [17., 18., 19.],
-            [22., 23., 24.],
-        ])
-
-        left, right = core.split(self.C, 2, axis=1)
-        nptest.assert_array_equal(left, known_left)
-        nptest.assert_array_equal(right, known_right)
-
-    @nt.raises(ValueError)
-    def test_split_at_bottom_edge_raises(self):
-        left, right = core.split(self.C, 5, axis=0)
-
-    @nt.raises(ValueError)
-    def test_split_at_right_edge_raises(self):
-        left, right = core.split(self.C, 5, axis=1)
-
-
-
 
 
 class Test_ModelGrid(object):

@@ -19,6 +19,9 @@ def merge(nodes, other_nodes, how='vert', where='+', shift=0):
                      where=where, shift=shift)
 
 
+def split(nodes, index, axis=0):
+    if index + 1 >= nodes.shape[axis]:
+        raise ValueError("cannot split grid at or beyond its edges")
 
     if axis == 0:
         n1, n2 = nodes[:index, :], nodes[index:, :]
@@ -174,6 +177,11 @@ class ModelGrid(object):
     def flipud(self):
         """reverses the rows"""
         return self.transform(np.flipud)
+
+    def split(self, index, axis=0):
+        x1, x2 = split(self.nodes_x, index, axis=axis)
+        y1, y2 = split(self.nodes_y, index, axis=axis)
+        return ModelGrid(x1, y1), ModelGrid(x2, y2)
 
     def merge(self, other, how='vert', where='+', shift=0):
         """ Merge with another grid using pygridtools.misc.padded_stack.

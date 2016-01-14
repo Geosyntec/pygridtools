@@ -215,6 +215,54 @@ class TestNodeOperations(object):
             core.merge(self.A, self.B, how='h', where='-', shift=-1),
         )
 
+    def test_split_axis0(self):
+        known_top = np.array([
+            [ 0.,  1.,  2.,  3.,  4.],
+            [ 5.,  6.,  7.,  8.,  9.],
+            [10., 11., 12., 13., 14.],
+        ])
+
+        known_bottom = np.array([
+            [15., 16., 17., 18., 19.],
+            [20., 21., 22., 23., 24.],
+        ])
+
+        top, bottom = core.split(self.C, 3, axis=0)
+        nptest.assert_array_equal(top, known_top)
+        nptest.assert_array_equal(bottom, known_bottom)
+
+    def test_split_axis1(self):
+        known_left= np.array([
+            [ 0.,  1.],
+            [ 5.,  6.],
+            [10., 11.],
+            [15., 16.],
+            [20., 21.],
+        ])
+
+        known_right = np.array([
+            [ 2.,  3.,  4.],
+            [ 7.,  8.,  9.],
+            [12., 13., 14.],
+            [17., 18., 19.],
+            [22., 23., 24.],
+        ])
+
+        left, right = core.split(self.C, 2, axis=1)
+        nptest.assert_array_equal(left, known_left)
+        nptest.assert_array_equal(right, known_right)
+
+    @nt.raises(ValueError)
+    def test_split_at_bottom_edge_raises(self):
+        left, right = core.split(self.C, 5, axis=0)
+
+    @nt.raises(ValueError)
+    def test_split_at_right_edge_raises(self):
+        left, right = core.split(self.C, 5, axis=1)
+
+
+
+
 
 class Test_ModelGrid(object):
     def setup(self):

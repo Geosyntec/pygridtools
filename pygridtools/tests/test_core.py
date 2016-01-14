@@ -3,13 +3,12 @@ import warnings
 
 import numpy as np
 from numpy import nan
-import matplotlib.pyplot as plt
 import pandas
 
 import nose.tools as nt
 import numpy.testing as nptest
 import pandas.util.testing as pdtest
-from matplotlib.testing.decorators import image_comparison, cleanup
+from matplotlib.testing.decorators import image_comparison
 
 from pygridtools import core
 from pygridtools import testing
@@ -21,25 +20,17 @@ except ImportError:
     has_pgg = False
 
 
-class test__PointSet(object):
+class TestNodeOperations(object):
     def setup(self):
-        from numpy import nan
-        self.A = core._PointSet(np.arange(12).reshape(4, 3) * 1.0)
-        self.B = core._PointSet(np.arange(8).reshape(2, 4) * 1.0)
-        self.C = core._PointSet(np.arange(18).reshape(3, 6) * 1.0)
+        self.A = np.arange(12).reshape(4, 3) * 1.0
+        self.B = np.arange(8).reshape(2, 4) * 1.0
+        self.C = np.arange(25).reshape(5, 5) * 1.0
 
         self.known_flipped_A_points = np.array([
-            [ 2.,  1.,  0.],
-            [ 5.,  4.,  3.],
-            [ 8.,  7.,  6.],
-            [11., 10.,  9.]
-        ])
-
-
-        self.known_transposed_transformed_A_points = np.array([
-            [2., 5., 8., 11.],
-            [1., 4., 7., 10.],
-            [0., 3., 6.,  9.],
+            [ 2.,  1., 0.],
+            [ 5.,  4., 3.],
+            [ 8.,  7., 6.],
+            [11., 10., 9.]
         ])
 
         self.known_AB_vplus_0 = np.array([
@@ -140,109 +131,92 @@ class test__PointSet(object):
             [nan, nan, nan, nan,  9., 10., 11.]
         ])
 
-    def test_points_and_setter(self):
-        set_val = np.arange(16).reshape(4, 4) * 1
-        self.A.points = set_val
-        nptest.assert_array_equal(set_val, self.A.points)
-
-    def test_transform(self):
+    def test_transform_flip(self):
         nptest.assert_array_equal(
             self.known_flipped_A_points,
-            self.A.transform(np.fliplr).points
-        )
-
-    def test_transpose(self):
-        nptest.assert_array_equal(
-            self.A.points.T,
-            self.A.transpose().points
-        )
-
-    def test_transpose_transform(self):
-        nptest.assert_array_equal(
-            self.known_transposed_transformed_A_points,
-            self.A.transpose().transform(np.flipud).points
+            core.transform(self.A, np.fliplr)
         )
 
     def test_transform_transpose(self):
         nptest.assert_array_equal(
-            self.known_transposed_transformed_A_points,
-            self.A.transpose().transform(np.flipud).points
+            self.A.T,
+            core.transform(self.A, np.transpose)
         )
 
     def test_merge_vplus_0(self):
         nptest.assert_array_equal(
             self.known_AB_vplus_0,
-            self.A.merge(self.B, how='v', where='+', shift=0).points,
+            core.merge(self.A, self.B, how='v', where='+', shift=0),
         )
 
     def test_merge_vminus_0(self):
         nptest.assert_array_equal(
             self.known_AB_vminus_0,
-            self.A.merge(self.B, how='v', where='-', shift=0).points,
+            core.merge(self.A, self.B, how='v', where='-', shift=0),
         )
 
     def test_merge_vplus_2(self):
         nptest.assert_array_equal(
             self.known_AB_vplus_2,
-            self.A.merge(self.B, how='v', where='+', shift=2).points,
+            core.merge(self.A, self.B, how='v', where='+', shift=2),
         )
 
     def test_merge_vminus_2(self):
         nptest.assert_array_equal(
             self.known_AB_vminus_2,
-            self.A.merge(self.B, how='v', where='-', shift=2).points,
+            core.merge(self.A, self.B, how='v', where='-', shift=2),
         )
 
     def test_merge_vplus_neg1(self):
         nptest.assert_array_equal(
             self.known_AB_vplus_neg1,
-            self.A.merge(self.B, how='v', where='+', shift=-1).points,
+            core.merge(self.A, self.B, how='v', where='+', shift=-1),
         )
 
     def test_merge_vminus_neg1(self):
         nptest.assert_array_equal(
             self.known_AB_vminus_neg1,
-            self.A.merge(self.B, how='v', where='-', shift=-1).points,
+            core.merge(self.A, self.B, how='v', where='-', shift=-1),
         )
 
     def test_merge_hplus_0(self):
         nptest.assert_array_equal(
             self.known_AB_hplus_0,
-            self.A.merge(self.B, how='h', where='+', shift=0).points,
+            core.merge(self.A, self.B, how='h', where='+', shift=0),
         )
 
     def test_merge_hminus_0(self):
         nptest.assert_array_equal(
             self.known_AB_hminus_0,
-            self.A.merge(self.B, how='h', where='-', shift=0).points,
+            core.merge(self.A, self.B, how='h', where='-', shift=0),
         )
 
     def test_merge_hplus_2(self):
         nptest.assert_array_equal(
             self.known_AB_hplus_2,
-            self.A.merge(self.B, how='h', where='+', shift=2).points,
+            core.merge(self.A, self.B, how='h', where='+', shift=2),
         )
 
     def test_merge_hminus_2(self):
         nptest.assert_array_equal(
             self.known_AB_hminus_2,
-            self.A.merge(self.B, how='h', where='-', shift=2).points,
+            core.merge(self.A, self.B, how='h', where='-', shift=2),
         )
 
     def test_merge_hplus_neg1(self):
         nptest.assert_array_equal(
             self.known_AB_hplus_neg1,
-            self.A.merge(self.B, how='h', where='+', shift=-1).points,
+            core.merge(self.A, self.B, how='h', where='+', shift=-1),
         )
 
     def test_merge_hminus_neg1(self):
         nptest.assert_array_equal(
             self.known_AB_hminus_neg1,
-            self.A.merge(self.B, how='h', where='-', shift=-1).points,
+            core.merge(self.A, self.B, how='h', where='-', shift=-1),
         )
 
 
-class test_ModelGrid(object):
+class Test_ModelGrid(object):
     def setup(self):
         self.xn, self.yn = testing.makeSimpleNodes()
         self.xc, self.yc = testing.makeSimpleCells()
@@ -341,11 +315,11 @@ class test_ModelGrid(object):
 
     def test_nodes_x(self):
         nt.assert_true(hasattr(self.g1, 'nodes_x'))
-        nt.assert_true(isinstance(self.g1.nodes_x, core._PointSet))
+        nt.assert_true(isinstance(self.g1.nodes_x, np.ndarray))
 
     def test_nodes_y(self):
         nt.assert_true(hasattr(self.g1, 'nodes_y'))
-        nt.assert_true(isinstance(self.g1.nodes_y, core._PointSet))
+        nt.assert_true(isinstance(self.g1.nodes_y, np.ndarray))
 
     def test_cells_x(self):
         nt.assert_true(hasattr(self.g1, 'cells_x'))
@@ -716,7 +690,7 @@ def test_ModelGrid_plots():
     fig1 = mg.plotCells()
 
 
-class test_makeGrid(object):
+class Test_makeGrid(object):
     def setup(self):
         self.domain = testing.makeSimpleBoundary()
         self.bathy = testing.makeSimpleBathy()

@@ -10,31 +10,22 @@ from pygridtools import iotools
 from pygridtools import viz
 
 
-class _PointSet(object):
-    def __init__(self, array):
-        self._points = np.asarray(array)
+def transform(nodes, fxn, *args, **kwargs):
+    return fxn(nodes, *args, **kwargs)
 
-    @property
-    def points(self):
-        return self._points
-    @points.setter
-    def points(self, value):
-        self._points = np.asarray(value)
 
-    @property
-    def shape(self):
-        return self.points.shape
+def merge(nodes, other_nodes, how='vert', where='+', shift=0):
+    return transform(nodes, misc.padded_stack, other_nodes, how=how,
+                     where=where, shift=shift)
 
-    def transform(self, fxn, *args, **kwargs):
-        self.points = fxn(self.points, *args, **kwargs)
-        return self
 
-    def transpose(self):
-        return self.transform(np.transpose)
 
-    def merge(self, other, how='vert', where='+', shift=0):
-        return self.transform(misc.padded_stack, other.points, how=how,
-                              where=where, shift=shift)
+    if axis == 0:
+        n1, n2 = nodes[:index, :], nodes[index:, :]
+    elif axis == 1:
+        n1, n2 = nodes[:, :index], nodes[:, index:]
+
+    return n1, n2
 
 
 class ModelGrid(object):
@@ -42,8 +33,8 @@ class ModelGrid(object):
         if not np.all(nodes_x.shape == nodes_y.shape):
             raise ValueError('input arrays must have the same shape')
 
-        self._nodes_x = _PointSet(nodes_x)
-        self._nodes_y = _PointSet(nodes_y)
+        self._nodes_x = np.asarray(nodes_x)
+        self._nodes_y = np.asarray(nodes_y)
         self._template = None
         self._cell_mask = np.zeros(self.cell_shape, dtype=bool)
 
@@ -53,7 +44,7 @@ class ModelGrid(object):
 
     @property
     def nodes_x(self):
-        """_PointSet object of x-nodes"""
+        """Array object of x-nodes"""
         return self._nodes_x
     @nodes_x.setter
     def nodes_x(self, value):
@@ -64,12 +55,12 @@ class ModelGrid(object):
         return self._nodes_y
     @nodes_y.setter
     def nodes_y(self, value):
-        """_PointSet object of y-nodes"""
+        """Array object of y-nodes"""
         self._nodes_y = value
 
     @property
     def cells_x(self):
-        """_PointSet object of x-cells"""
+        """Array object of x-cells"""
         xc = 0.25 * (
             self.xn[1:, 1:] + self.xn[1:, :-1] +
             self.xn[:-1, 1:] + self.xn[:-1, :-1]
@@ -95,12 +86,12 @@ class ModelGrid(object):
     @property
     def xn(self):
         """shortcut to x-coords of nodes"""
-        return self.nodes_x.points
+        return self.nodes_x
 
     @property
     def yn(self):
         """shortcut to y-coords of nodes"""
-        return self.nodes_y.points
+        return self.nodes_y
 
     @property
     def xc(self):
@@ -169,8 +160,8 @@ class ModelGrid(object):
         self._islands = value
 
     def transform(self, fxn, *args, **kwargs):
-        self.nodes_x = self.nodes_x.transform(fxn, *args, **kwargs)
-        self.nodes_y = self.nodes_y.transform(fxn, *args, **kwargs)
+        self.nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
+        self.nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
         return self
 
     def transpose(self):
@@ -249,10 +240,10 @@ class ModelGrid(object):
 
         """
 
-        self.nodes_x = self.nodes_x.merge(other.nodes_x, how=how,
-                                          where=where, shift=shift)
-        self.nodes_y = self.nodes_y.merge(other.nodes_y, how=how,
-                                          where=where, shift=shift)
+        self.nodes_x = merge(self.nodes_x, other.nodes_x, how=how,
+                             where=where, shift=shift)
+        self.nodes_y = merge(self.nodes_y, other.nodes_y, how=how,
+                             where=where, shift=shift)
         return self
 
     def mask_cells_with_polygon(self, polyverts, use_centroids=True,

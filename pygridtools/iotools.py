@@ -1,16 +1,14 @@
 from __future__ import division
 
 import os
-import re
-import pdb
 from collections import OrderedDict
 
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas
 import fiona
 
 from pygridtools import misc
+from pygridtools import validate
 
 
 def _outputfile(outputdir, filename):
@@ -84,7 +82,7 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
             'x': record['geometry']['coordinates'][0],
             'y': record['geometry']['coordinates'][1],
             'beta': _get_col_val(record, betacol, default=0),
-            'order': _get_col_val(record, sortcol, default=n*5),
+            'order': _get_col_val(record, sortcol, default=n * 5),
             'reach': _get_col_val(record, reachcol, default='main'),
             'upperleft': _get_col_val(record, upperleftcol, default=False),
         })
@@ -199,13 +197,13 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
     """
 
     # check that the `mode` is a valid value
-    mode = _check_mode(mode)
+    mode = validate.file_mode(mode)
 
     # check that X and Y are have the same shape, NaN cells
-    X, Y = _check_for_same_masks(X, Y)
+    X, Y = validate.equivalent_masks(X, Y)
 
     # check elev shape
-    elev = _check_elev_or_mask(X, elev, 'elev', offset=0)
+    elev = validate.elev_or_mask(X, elev, 'elev', offset=0)
 
     # load the template
     with fiona.open(template, 'r') as src:
@@ -240,7 +238,7 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
                     )
 
                     # append to the output file
-                    record = misc.makeRecord(row, coords, 'Point', props)
+                    record = misc.make_record(row, coords, 'Point', props)
                     out.write(record)
 
 
@@ -282,16 +280,16 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
     """
 
     # check that `mode` is valid
-    mode = _check_mode(mode)
+    mode = validate.file_mode(mode)
 
     # check X, Y shapes
-    Y = _check_elev_or_mask(X, Y, 'Y', offset=0)
+    Y = validate.elev_or_mask(X, Y, 'Y', offset=0)
 
     # check elev shape
-    elev = _check_elev_or_mask(X, elev, 'elev', offset=0)
+    elev = validate.elev_or_mask(X, elev, 'elev', offset=0)
 
     # check the mask shape
-    mask = _check_elev_or_mask(X, mask, 'mask', offset=1)
+    mask = validate.elev_or_mask(X, mask, 'mask', offset=1)
 
     X = np.ma.masked_invalid(X)
     Y = np.ma.masked_invalid(Y)
@@ -320,7 +318,7 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
                     row += 1
                     Z = elev[jj, ii]
                     # build the array or coordinates
-                    coords = misc.makePolyCoords(
+                    coords = misc.make_poly_coords(
                         xarr=X[jj:jj+2, ii:ii+2],
                         yarr=Y[jj:jj+2, ii:ii+2],
                         zpnt=Z, triangles=triangles
@@ -336,7 +334,7 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
                     # append to file is coordinates are not masked
                     # (masked = beyond the river boundary)
                     if coords is not None:
-                        record = misc.makeRecord(row, coords, 'Polygon', props)
+                        record = misc.make_record(row, coords, 'Polygon', props)
                         out.write(record)
 
 
@@ -581,7 +579,7 @@ def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):
             ii=int(row.i), jj=int(row.j), elev=0,
             ii_jj='{:03d}_{:03d}'.format(int(row.i), int(row.j))
         )
-        record = misc.makeRecord(int(row.name), coords, 'Point', props)
+        record = misc.make_record(int(row.name), coords, 'Point', props)
         try:
             outfile.write(record)
             return 1

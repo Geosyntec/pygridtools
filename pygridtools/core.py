@@ -71,16 +71,16 @@ class ModelGrid(object):
     def cells_x(self):
         """_PointSet object of x-cells"""
         xc = 0.25 * (
-            self.xn[1:,1:] + self.xn[1:,:-1] +
-            self.xn[:-1,1:] + self.xn[:-1,:-1]
+            self.xn[1:, 1:] + self.xn[1:, :-1] +
+            self.xn[:-1, 1:] + self.xn[:-1, :-1]
         )
         return xc
 
     @property
     def cells_y(self):
         yc = 0.25 * (
-            self.yn[1:,1:] + self.yn[1:,:-1] +
-            self.yn[:-1,1:] + self.yn[:-1,:-1]
+            self.yn[1:, 1:] + self.yn[1:, :-1] +
+            self.yn[:-1, 1:] + self.yn[:-1, :-1]
         )
         return yc
 
@@ -313,7 +313,6 @@ class ModelGrid(object):
             ) >= min_nodes
             cell_mask = cell_mask.astype(bool)
 
-
         if use_existing:
             cell_mask = np.bitwise_or(self.cell_mask, cell_mask)
 
@@ -344,7 +343,7 @@ class ModelGrid(object):
         outfile = iotools._outputfile(outputdir, filename)
 
         iotools._write_cellinp(cells, outputfile=outfile,
-                                  flip=True, maxcols=maxcols)
+                               flip=True, maxcols=maxcols)
         return cells
 
     def writeGEFDCGridFile(self, outputdir=None, filename='grid.out'):
@@ -426,15 +425,14 @@ class ModelGrid(object):
                      river=None, reach=0, elev=None, template=None,
                      geom='Polygon', mode='w', triangles=False):
 
-
         if template is None:
             template = self.template
 
         if geom.lower() == 'point':
             x, y = self._get_x_y(which, usemask=usemask)
             iotools.savePointShapefile(x, y, template, outputfile,
-                                  mode=mode, river=river, reach=reach,
-                                  elev=elev)
+                                       mode=mode, river=river, reach=reach,
+                                       elev=elev)
 
         elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
             if usemask:
@@ -443,9 +441,9 @@ class ModelGrid(object):
                 mask = None
             x, y = self._get_x_y('nodes', usemask=False)
             iotools.saveGridShapefile(x, y, mask, template,
-                                 outputfile, mode=mode, river=river,
-                                 reach=reach, elev=elev,
-                                 triangles=triangles)
+                                      outputfile, mode=mode, river=river,
+                                      reach=reach, elev=elev,
+                                      triangles=triangles)
             if which == 'cells':
                 warnings.warn("polygons always constructed from nodes")
         else:
@@ -453,8 +451,8 @@ class ModelGrid(object):
 
     @staticmethod
     def from_dataframe(df, xcol='easting', ycol='northing', icol='i'):
-        nodes_x = df_x[xcol].unstack(level='i')
-        nodes_y = df_y[ycol].unstack(level='i')
+        nodes_x = df[xcol].unstack(level='i')
+        nodes_y = df[ycol].unstack(level='i')
         return ModelGrid(nodes_x, nodes_y)
 
     @staticmethod
@@ -559,7 +557,7 @@ def makeGrid(ny, nx, domain, bathydata=None, verbose=False,
 
     try:
         import pygridgen
-    except ImportError: # pragma: no cover
+    except ImportError:  # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot make grid.")
 
     if verbose:
@@ -570,8 +568,8 @@ def makeGrid(ny, nx, domain, bathydata=None, verbose=False,
     if verbose:
         print('interpolating bathymetry')
 
-    newbathy = misc.interpolateBathymetry(bathydata, grid.x_rho, grid.y_rho,
-                                          xcol='x', ycol='y', zcol='z')
+    newbathy = misc.interpolate_bathymetry(bathydata, grid.x_rho, grid.y_rho,
+                                           xcol='x', ycol='y', zcol='z')
     if rawgrid:
         return grid
     else:

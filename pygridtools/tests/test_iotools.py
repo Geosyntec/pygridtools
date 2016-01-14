@@ -4,10 +4,8 @@ import sys
 import nose.tools as nt
 import numpy as np
 import numpy.testing as nptest
-import matplotlib.pyplot as plt
 import pandas
 import pandas.util.testing as pdtest
-import fiona
 
 from pygridtools import iotools
 from pygridtools import testing
@@ -30,8 +28,10 @@ class test__outputfile(object):
 class test_loadBoundaryFromShapefile(object):
     def setup(self):
         self.shapefile = 'pygridtools/tests/test_data/simple_boundary.shp'
-        self.known_df_columns = ['x', 'y', 'beta', 'upperleft',
-        					     'reach', 'order']
+        self.known_df_columns = [
+            'x', 'y', 'beta', 'upperleft',
+            'reach', 'order'
+        ]
         self.known_points_in_boundary = 19
         self.test_reach = 1
         self.known_points_in_testreach = 10

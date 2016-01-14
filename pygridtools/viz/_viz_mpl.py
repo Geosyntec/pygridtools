@@ -1,9 +1,8 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import pandas
+from matplotlib import pyplot
 
 from pygridtools import misc
-from pygridtools import qa
+from pygridtools import validate
 
 
 def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None):
@@ -24,7 +23,7 @@ def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None):
 
     """
     # setup the figure
-    fig, ax = qa._check_ax(ax)
+    fig, ax = validate.mpl_ax(ax)
 
     # coerce values into a dataframe if necessary
     if data is not None:
@@ -46,7 +45,7 @@ def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None):
         ax.plot(domain_x[beta_zero], domain_y[beta_zero], 'o',
                 linestyle='none', label="neutral")
 
-        # plot positve turns
+        # plot positive turns
         beta_pos1 = beta == 1
         ax.plot(domain_x[beta_pos1], domain_y[beta_pos1], '^',
                 linestyle='none', label="positive")
@@ -63,11 +62,11 @@ def _plot_boundaries(extent_x=None, extent_y=None, extent=None, islands_x=None,
     """
 
     # setup the figure
-    fig, ax = qa._check_ax(ax)
+    fig, ax = validate.mpl_ax(ax)
 
     if extent is not None:
         extent_x, extent_y = extent[extent_x], extent[extent_y]
-        
+
     if extent_x is not None:
         ax.plot(extent_x, extent_y, 'k-', label='extent')
 
@@ -81,7 +80,7 @@ def _plot_boundaries(extent_x=None, extent_y=None, extent=None, islands_x=None,
         for name in np.unique(islands_name):
             subset = islands_name == name
             coords = list(zip(islands_x[subset], islands_y[subset]))
-            patch = plt.Polygon(coords, facecolor='0.25')
+            patch = pyplot.Polygon(coords, facecolor='0.25')
             ax.add_patch(patch)
 
     ax.margins(0.1, 0.1)
@@ -93,14 +92,14 @@ def _plot_points(x, y, ax=None, **plot_opts):
 
     """
 
-    fig, ax = qa._check_ax(ax)
+    fig, ax = validate.mpl_ax(ax)
     ax.plot(x, y, 'ko', **plot_opts)
     ax.margins(0.1, 0.1)
     return fig
 
 
 def _plot_cells(x, y, mask=None, ax=None, **plot_opts):
-    fig, ax = qa._check_ax(ax)
+    fig, ax = validate.mpl_ax(ax)
 
     rows, cols = x.shape
     if mask is None:
@@ -115,14 +114,14 @@ def _plot_cells(x, y, mask=None, ax=None, **plot_opts):
                 coords = None
 
             else:
-                coords = misc.makePolyCoords(
-                    x[jj:jj+2, ii:ii+2],
-                    y[jj:jj+2, ii:ii+2],
+                coords = misc.make_poly_coords(
+                    x[jj:jj + 2, ii:ii + 2],
+                    y[jj:jj + 2, ii:ii + 2],
                 )
 
             if coords is not None:
-                rect = plt.Polygon(coords, edgecolor='0.125', linewidth=0.75,
-                                   zorder=0, facecolor='0.875')
+                rect = pyplot.Polygon(coords, edgecolor='0.125', linewidth=0.75,
+                                      zorder=0, facecolor='0.875')
                 ax.add_patch(rect)
 
     ax.margins(0.1, 0.1)

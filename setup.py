@@ -1,15 +1,6 @@
 import os
 from setuptools import setup, find_packages
 
-
-def getDataFiles(submodule, folder):
-    datadir = os.path.join('pygridtools', submodule, folder)
-    files = [d for d in map(
-        lambda x: os.path.join(datadir, x),
-        os.listdir(datadir)
-    )]
-    return files
-
 DESCRIPTION = "utilities to facilitate grid generation"
 LONG_DESCRIPTION = DESCRIPTION
 NAME = "pygridtools"
@@ -32,7 +23,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.4',
 ]
-INSTALL_REQUIRES = ['numpy', 'matplotlib', 'fiona', 'pandas']
+INSTALL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'fiona', 'pandas']
 PACKAGE_DATA = {}
 DATA_FILES = []
 

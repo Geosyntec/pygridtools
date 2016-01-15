@@ -208,6 +208,9 @@ class ModelGrid(object):
         y1, y2 = split(self.nodes_y, index, axis=axis)
         return ModelGrid(x1, y1), ModelGrid(x2, y2)
 
+    def refine(self, index, axis=0, n_points=1):
+        return self.transform(refine, index, axis=axis, n_points=n_points)
+
     def merge(self, other, how='vert', where='+', shift=0):
         """ Merge with another grid using pygridtools.misc.padded_stack.
 

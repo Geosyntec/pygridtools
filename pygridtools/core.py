@@ -12,11 +12,57 @@ from pygridtools import viz
 
 
 def transform(nodes, fxn, *args, **kwargs):
+    """
+    Apply an arbitrary function to an array of node coordinates.
+
+    Parameters
+    ----------
+    nodes : numpy.ndarray
+        An N x M array of individual node coordinates (i.e., the
+        x-coords or the y-coords only)
+    fxn : callable
+        The transformation to be applied to the whole ``nodes`` array
+    args, kwargs
+        Additional positional and keyword arguments that are passed to
+        ``fxn``. The final call will be ``fxn(nodes, *args, **kwargs)``.
+
+    Returns
+    -------
+    transformed : numpy.ndarray
+        The transformed array.
+
+    """
+
     return fxn(nodes, *args, **kwargs)
 
 
 def split(nodes, index, axis=0):
-    if index + 1 >= nodes.shape[axis]:
+    """
+    Split a array of nodes into two separate, non-overlapping arrays.
+
+    Parameters
+    ----------
+    nodes : numpy.ndarray
+        An N x M array of individual node coordinates (i.e., the
+        x-coords or the y-coords only)
+    index : int
+        The leading edge of where the split should occur.
+    axis : int, optional
+        The axis along which ``nodes`` will be split. Use `axis = 0`
+        to split along rows and `axis = 1` for columns.
+
+    Raises
+    ------
+    ValueError
+        Trying to split ``nodes`` at the edge (i.e., resulting in the
+        original array and an empty array) will raise an error.
+
+    Returns
+    -------
+    n1, n2 : numpy.ndarrays
+        The two non-overlapping sides of the original array.
+    """
+    if index + 1 >= nodes.shape[axis] or index == 0:
         raise ValueError("cannot split grid at or beyond its edges")
 
     if axis == 0:
@@ -28,6 +74,44 @@ def split(nodes, index, axis=0):
 
 
 def merge(nodes, other_nodes, how='vert', where='+', shift=0):
+    """
+    Merge two sets of nodes together.
+
+    Parameters
+    ----------
+    nodes, other_nodes : numpy.ndarrays
+        The sets of nodes that will be merged.
+    how : string, optional (default = 'vert')
+        The method through wich the arrays should be stacked.
+        `'Vert'` is analogous to `np.vstack`. `'Horiz'` maps to
+        `np.hstack`.
+    where : string, optional (default = '+')
+        The placement of the arrays relative to each other. Keeping
+        in mind that the origin of an array's index is in the
+        upper-left corner, `'+'` indicates that the second array
+        will be placed at higher index relative to the first array.
+        Essentially:
+          - if how == 'vert'
+            - `'+'` -> `a` is above (higher index) `b`
+            - `'-'` -> `a` is below (lower index) `b`
+          - if how == 'horiz'
+            - `'+'` -> `a` is to the left of `b`
+            - `'-'` -> `a` is to the right of `b`
+        See the examples and :func:~`pygridtools.misc.padded_stack` for
+        more info.
+    shift : int, optional (default = 0)
+        The number of indices the second array should be shifted in
+        axis other than the one being merged. In other words,
+        vertically stacked arrays can be shifted horizontally,
+        and horizontally stacked arrays can be shifted vertically.
+
+    Returns
+    -------
+    merged : numpy.ndarrays
+        The unified nodes coordinates
+
+    """
+
     return transform(nodes, misc.padded_stack, other_nodes, how=how,
                      where=where, shift=shift)
 
@@ -309,7 +393,7 @@ class ModelGrid(object):
             Not yet implemented.
         use_existing : bool (default = True)
             When True, the newly computed mask is combined (via a
-            bit-wise `or` opteration) with the existing ``cell_mask``
+            bit-wise `or` operation) with the existing ``cell_mask``
             attribute of the MdoelGrid.
         inplace : bool (default = True):
             If True, the ``cell_mask`` attribute of the ModelGrid is set

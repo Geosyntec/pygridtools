@@ -101,6 +101,10 @@ def _plot_points(x, y, ax=None, **plot_opts):
 def _plot_cells(x, y, mask=None, ax=None, **plot_opts):
     fig, ax = validate.mpl_ax(ax)
 
+    ec = plot_opts.pop('edgecolor', None) or plot_opts.pop('ec', '0.125')
+    fc = plot_opts.pop('facecolor', None) or plot_opts.pop('fc', '0.875')
+    lw = plot_opts.pop('linewidth', None) or plot_opts.pop('lw', 0.75)
+
     rows, cols = x.shape
     if mask is None:
         if hasattr(x, 'mask'):
@@ -120,8 +124,8 @@ def _plot_cells(x, y, mask=None, ax=None, **plot_opts):
                 )
 
             if coords is not None:
-                rect = pyplot.Polygon(coords, edgecolor='0.125', linewidth=0.75,
-                                      zorder=0, facecolor='0.875')
+                rect = pyplot.Polygon(coords, edgecolor=ec, facecolor=fc,
+                                      linewidth=lw, **plot_opts)
                 ax.add_patch(rect)
 
     ax.margins(0.1, 0.1)

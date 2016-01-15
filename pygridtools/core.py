@@ -3,6 +3,7 @@ from __future__ import division
 import warnings
 
 import numpy as np
+from scipy import interpolate
 import pandas
 
 from pygridtools import misc
@@ -12,11 +13,6 @@ from pygridtools import viz
 
 def transform(nodes, fxn, *args, **kwargs):
     return fxn(nodes, *args, **kwargs)
-
-
-def merge(nodes, other_nodes, how='vert', where='+', shift=0):
-    return transform(nodes, misc.padded_stack, other_nodes, how=how,
-                     where=where, shift=shift)
 
 
 def split(nodes, index, axis=0):
@@ -29,6 +25,35 @@ def split(nodes, index, axis=0):
         n1, n2 = nodes[:, :index], nodes[:, index:]
 
     return n1, n2
+
+
+def merge(nodes, other_nodes, how='vert', where='+', shift=0):
+    return transform(nodes, misc.padded_stack, other_nodes, how=how,
+                     where=where, shift=shift)
+
+
+def _interp_between_vectors(vector1, vector2, n_points=1):
+    if n_points < 1:
+        raise ValueError("number of interpolated points must be at least 1")
+
+    array = np.vstack([vector1, vector2]).T
+    old_index = np.arange(2)
+    interp = interpolate.interp1d(old_index, array, kind='linear')
+
+    new_index = np.linspace(0, 1, num=n_points + 2)
+    return interp(new_index).T
+
+
+def refine(nodes, index, axis=0, n_points=1):
+    if axis == 1:
+        refined = refine(nodes.T, index, axis=0, n_points=n_points).T
+    else:
+        top, bottom = split(nodes, index, axis=0)
+        edge1, edge2 = top[-1, :], bottom[0, :]
+        middle = _interp_between_vectors(edge1, edge2, n_points=n_points)
+        refined = np.vstack([top, middle[1:-1], bottom])
+
+    return refined
 
 
 class ModelGrid(object):

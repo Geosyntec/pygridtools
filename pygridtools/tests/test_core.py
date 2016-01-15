@@ -47,6 +47,7 @@ class Test_transform(object):
 class Test_split(object):
     def setup(self):
         self.C = np.arange(25).reshape(5, 5) * 1.0
+
         self.known_top = np.array([
             [ 0.,  1.,  2.,  3.,  4.],
             [ 5.,  6.,  7.,  8.,  9.],
@@ -95,33 +96,95 @@ class Test_split(object):
         left, right = core.split(self.C, 5, axis=1)
 
 
-class Test_interp_between_vectors(object):
+class Test__interp_between_vectors(object):
     def setup(self):
         self.index = np.arange(0, 4)
         self.vector1 = -1 * self.index**2 - 1
         self.vector2 = 2 * self.index**2 + 2
 
         self.known_insert_1 = np.array([
-            [ -1.0 , 0.5,  2.0],
-            [ -2.0 , 1.0 , 4.0],
-            [ -5.0 , 2.5, 10.0],
-            [-10.0 , 5.0, 20.0],
+            [ -1. ,  -2. ,  -5. , -10. ],
+            [  0.5,   1. ,   2.5,   5. ],
+            [  2. ,   4. ,  10. ,  20. ],
         ])
 
         self.known_insert_3 = np.array([
-            [ -1.0, -0.25, 0.5,  1.25,  2.0],
-            [ -2.0, -0.50, 1.0,  2.50,  4.0],
-            [ -5.0, -1.25, 2.5,  6.25, 10.0],
-            [-10.0, -2.50, 5.0, 12.50, 20.0],
+            [ -1.  ,  -2.  ,  -5.  , -10.  ],
+            [ -0.25,  -0.5 ,  -1.25,  -2.5 ],
+            [  0.5 ,   1.  ,   2.5 ,   5.  ],
+            [  1.25,   2.5 ,   6.25,  12.5 ],
+            [  2.  ,   4.  ,  10.  ,  20.  ],
         ])
 
     def test_insert_1(self):
-        result = core.interp_between_vectors(self.vector1, self.vector2, n_points=1)
+        result = core._interp_between_vectors(self.vector1, self.vector2, n_points=1)
         nptest.assert_array_equal(result, self.known_insert_1)
 
     def test_insert_3(self):
-        result = core.interp_between_vectors(self.vector1, self.vector2, n_points=3)
+        result = core._interp_between_vectors(self.vector1, self.vector2, n_points=3)
         nptest.assert_array_equal(result, self.known_insert_3)
+
+    @nt.raises(ValueError)
+    def test_bad_points(self):
+        core._interp_between_vectors(self.vector1, self.vector2, n_points=0)
+
+
+class Test_refine(object):
+    def setup(self):
+        self.nodes = np.arange(25, dtype=float).reshape(5, 5)
+
+        self.known_n1_ax0 = np.array([
+            [ 0.0,  1.0,  2.0,  3.0,  4.0],
+            [ 5.0,  6.0,  7.0,  8.0,  9.0],
+            [ 7.5,  8.5,  9.5, 10.5, 11.5],
+            [10.0, 11.0, 12.0, 13.0, 14.0],
+            [15.0, 16.0, 17.0, 18.0, 19.0],
+            [20.0, 21.0, 22.0, 23.0, 24.0],
+        ])
+
+        self.known_n4_ax0 = np.array([
+            [ 0.,  1.,  2.,  3.,  4.],
+            [ 5.,  6.,  7.,  8.,  9.],
+            [ 6.,  7.,  8.,  9., 10.],
+            [ 7.,  8.,  9., 10., 11.],
+            [ 8.,  9., 10., 11., 12.],
+            [ 9., 10., 11., 12., 13.],
+            [10., 11., 12., 13., 14.],
+            [15., 16., 17., 18., 19.],
+            [20., 21., 22., 23., 24.],
+        ])
+
+        self.known_n1_ax1 = np.array([
+            [ 0.,  1.,  1.5,  2.,  3.,  4.],
+            [ 5.,  6.,  6.5,  7.,  8.,  9.],
+            [10., 11., 11.5, 12., 13., 14.],
+            [15., 16., 16.5, 17., 18., 19.],
+            [20., 21., 21.5, 22., 23., 24.],
+        ])
+
+        self.known_n3_ax1 = np.array([
+            [ 0.,  1.,  1.25,  1.50,  1.75,  2.,  3.,  4.],
+            [ 5.,  6.,  6.25,  6.50,  6.75,  7.,  8.,  9.],
+            [10., 11., 11.25, 11.50, 11.75, 12., 13., 14.],
+            [15., 16., 16.25, 16.50, 16.75, 17., 18., 19.],
+            [20., 21., 21.25, 21.50, 21.75, 22., 23., 24.],
+        ])
+
+    def test_n1_ax0(self):
+        result = core.refine(self.nodes, 2, axis=0, n_points=1)
+        nptest.assert_array_equal(result, self.known_n1_ax0)
+
+    def test_n4_ax0(self):
+        result = core.refine(self.nodes, 2, axis=0, n_points=4)
+        nptest.assert_array_equal(result, self.known_n4_ax0)
+
+    def test_n1_ax1(self):
+        result = core.refine(self.nodes, 2, axis=1, n_points=1)
+        nptest.assert_array_equal(result, self.known_n1_ax1)
+
+    def test_n3_ax1(self):
+        result = core.refine(self.nodes, 2, axis=1, n_points=3)
+        nptest.assert_array_equal(result, self.known_n3_ax1)
 
 
 class Test_merge(object):

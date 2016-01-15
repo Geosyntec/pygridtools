@@ -1,13 +1,8 @@
-import os
-
 import numpy as np
 from numpy import nan
-import matplotlib.pyplot as plt
-import pandas
 
 import nose.tools as nt
 import numpy.testing as nptest
-import pandas.util.testing as pdtest
 
 from pygridtools import misc
 from pygridtools import testing
@@ -22,7 +17,7 @@ except ImportError:
     has_pgg = False
 
 
-class test_makePolyCoords(object):
+class Test_make_poly_coords(object):
     def setup(self):
         x1 = 1
         x2 = 2
@@ -46,31 +41,31 @@ class test_makePolyCoords(object):
         self.known_triangle = np.array([[x1, y1], [x2, y2], [x1, y2]])
 
     def test_base(self):
-        coords = misc.makePolyCoords(self.xarr, self.yarr)
+        coords = misc.make_poly_coords(self.xarr, self.yarr)
         nptest.assert_array_equal(coords, self.known_base)
 
     def test_no_masked(self):
         xarr = np.ma.MaskedArray(self.xarr, mask=False)
         yarr = np.ma.MaskedArray(self.yarr, mask=False)
-        coords = misc.makePolyCoords(xarr, yarr)
+        coords = misc.make_poly_coords(xarr, yarr)
         nptest.assert_array_equal(coords, self.known_no_masked)
 
     def test_masked(self):
         xarr = np.ma.MaskedArray(self.xarr, mask=self.mask)
         yarr = np.ma.MaskedArray(self.yarr, mask=self.mask)
-        coords = misc.makePolyCoords(xarr, yarr)
+        coords = misc.make_poly_coords(xarr, yarr)
         nptest.assert_array_equal(coords, self.known_masked)
 
     def test_with_z(self):
-        coords = misc.makePolyCoords(self.xarr, self.yarr, zpnt=self.zpnt)
+        coords = misc.make_poly_coords(self.xarr, self.yarr, zpnt=self.zpnt)
         nptest.assert_array_equal(coords, self.known_with_z)
 
     def test_triangles(self):
-        coords = misc.makePolyCoords(self.x_tri, self.y_tri, triangles=True)
+        coords = misc.make_poly_coords(self.x_tri, self.y_tri, triangles=True)
         nptest.assert_array_equal(coords, self.known_triangle)
 
 
-class test_makeRecord(object):
+class Test_make_record(object):
     def setup(self):
         self.point = [1, 2]
         self.point_array = np.array(self.point)
@@ -110,35 +105,35 @@ class test_makeRecord(object):
         }
 
     def test_point(self):
-        record = misc.makeRecord(1, self.point, 'Point', self.props)
+        record = misc.make_record(1, self.point, 'Point', self.props)
         nt.assert_dict_equal(record, self.known_point)
 
     def test_point_array(self):
-        record = misc.makeRecord(1, self.point_array, 'Point', self.props)
+        record = misc.make_record(1, self.point_array, 'Point', self.props)
         nt.assert_dict_equal(record, self.known_point)
 
     def test_line(self):
-        record = misc.makeRecord(1, self.non_point, 'LineString', self.props)
+        record = misc.make_record(1, self.non_point, 'LineString', self.props)
         nt.assert_dict_equal(record, self.known_line)
 
     def test_line_array(self):
-        record = misc.makeRecord(1, self.non_point_array, 'LineString', self.props)
+        record = misc.make_record(1, self.non_point_array, 'LineString', self.props)
         nt.assert_dict_equal(record, self.known_line)
 
     def test_polygon(self):
-        record = misc.makeRecord(1, self.non_point, 'Polygon', self.props)
+        record = misc.make_record(1, self.non_point, 'Polygon', self.props)
         nt.assert_dict_equal(record, self.known_polygon)
 
     def test_polygon_array(self):
-        record = misc.makeRecord(1, self.non_point_array, 'Polygon', self.props)
+        record = misc.make_record(1, self.non_point_array, 'Polygon', self.props)
         nt.assert_dict_equal(record, self.known_polygon)
 
     @nt.raises(ValueError)
     def test_bad_geom(self):
-        record = misc.makeRecord(1, self.non_point_array, 'Circle', self.props)
+        misc.make_record(1, self.non_point_array, 'Circle', self.props)
 
 
-class test_interpolateBathymetry(object):
+class Test_interpolate_bathymetry(object):
     def setup(self):
         self.bathy = testing.makeSimpleBathy()
         self.grid = testing.makeSimpleGrid()
@@ -156,7 +151,7 @@ class test_interpolateBathymetry(object):
 
     @nptest.dec.skipif(not has_pgg)
     def test_fake_bathy(self):
-        elev = misc.interpolateBathymetry(None, self.grid.x_rho, self.grid.y_rho)
+        elev = misc.interpolate_bathymetry(None, self.grid.x_rho, self.grid.y_rho)
         nptest.assert_array_equal(
             elev,
             np.ma.MaskedArray(data=np.zeros(self.grid.x_rho.shape),
@@ -166,7 +161,7 @@ class test_interpolateBathymetry(object):
 
     @nptest.dec.skipif(not has_pgg)
     def test_real_bathy(self):
-        elev = misc.interpolateBathymetry(
+        elev = misc.interpolate_bathymetry(
             self.bathy, self.grid.x_rho, self.grid.y_rho
         )
 
@@ -178,7 +173,7 @@ class test_interpolateBathymetry(object):
         pass
 
 
-class test_padded_stack(object):
+class Test_padded_stack(object):
 
     def setup(self):
         from numpy import nan
@@ -373,7 +368,7 @@ class test_padded_stack(object):
         misc.padded_stack(self.g1, self.g3, how='v', where='junk', shift=2)
 
 
-class test_mask_with_polygon(object):
+class Test_mask_with_polygon(object):
     def setup(self):
         self.y, self.x = np.mgrid[:5, :5]
         self.polyverts = [
@@ -408,14 +403,14 @@ class test_mask_with_polygon(object):
         nptest.assert_array_equal(mask, self.known_outside_mask)
 
 
-class base_make_gefdc_cells(object):
+class Base_make_gefdc_cells(object):
     def test_output(self):
         cells = misc.make_gefdc_cells(self.nodes, cell_mask=self.mask,
                                       triangles=self.triangles)
         nptest.assert_array_equal(cells, self.known_cells)
 
 
-class test_make_gedfc_cells_triangles(base_make_gefdc_cells):
+class Test_make_gedfc_cells_triangles(Base_make_gefdc_cells):
     def setup(self):
         self.triangles = True
         self.nodes = np.array([
@@ -437,7 +432,7 @@ class test_make_gedfc_cells_triangles(base_make_gefdc_cells):
         ])
 
 
-class test_make_gefdc_cells_simple_mask(base_make_gefdc_cells):
+class Test_make_gefdc_cells_simple_mask(Base_make_gefdc_cells):
     def setup(self):
         size = 6
         self.triangles = False
@@ -461,7 +456,7 @@ class test_make_gefdc_cells_simple_mask(base_make_gefdc_cells):
         ])
 
 
-class test_make_gefdc_cells_simple_nomask(base_make_gefdc_cells):
+class Test_make_gefdc_cells_simple_nomask(Base_make_gefdc_cells):
     def setup(self):
         size = 6
         self.triangles = False
@@ -479,7 +474,7 @@ class test_make_gefdc_cells_simple_nomask(base_make_gefdc_cells):
         ])
 
 
-class test_make_gefdc_cells_complex_nomask(base_make_gefdc_cells):
+class Test_make_gefdc_cells_complex_nomask(Base_make_gefdc_cells):
     def setup(self):
         self.triangles = False
         self.nodes  = np.array([

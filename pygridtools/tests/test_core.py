@@ -3,13 +3,12 @@ import warnings
 
 import numpy as np
 from numpy import nan
-import matplotlib.pyplot as plt
 import pandas
 
 import nose.tools as nt
 import numpy.testing as nptest
 import pandas.util.testing as pdtest
-from matplotlib.testing.decorators import image_comparison, cleanup
+from matplotlib.testing.decorators import image_comparison
 
 from pygridtools import core
 from pygridtools import testing
@@ -21,43 +20,195 @@ except ImportError:
     has_pgg = False
 
 
-class test__PointSet(object):
+class Test_transform(object):
     def setup(self):
-        from numpy import nan
-        self.A = core._PointSet(np.arange(12).reshape(4, 3) * 1.0)
-        self.B = core._PointSet(np.arange(8).reshape(2, 4) * 1.0)
-        self.C = core._PointSet(np.arange(18).reshape(3, 6) * 1.0)
+        self.A = np.arange(12).reshape(4, 3) * 1.0
 
         self.known_flipped_A_points = np.array([
-            [ 2.,  1.,  0.],
-            [ 5.,  4.,  3.],
-            [ 8.,  7.,  6.],
-            [11., 10.,  9.]
+            [ 2.,  1., 0.],
+            [ 5.,  4., 3.],
+            [ 8.,  7., 6.],
+            [11., 10., 9.]
         ])
 
+    def test_transform_flip(self):
+        nptest.assert_array_equal(
+            self.known_flipped_A_points,
+            core.transform(self.A, np.fliplr)
+        )
 
-        self.known_transposed_transformed_A_points = np.array([
-            [2., 5., 8., 11.],
-            [1., 4., 7., 10.],
-            [0., 3., 6.,  9.],
+    def test_transform_transpose(self):
+        nptest.assert_array_equal(
+            self.A.T,
+            core.transform(self.A, np.transpose)
+        )
+
+
+class Test_split(object):
+    def setup(self):
+        self.C = np.arange(25).reshape(5, 5) * 1.0
+
+        self.known_top = np.array([
+            [ 0.,  1.,  2.,  3.,  4.],
+            [ 5.,  6.,  7.,  8.,  9.],
+            [10., 11., 12., 13., 14.],
         ])
+
+        self.known_bottom = np.array([
+            [15., 16., 17., 18., 19.],
+            [20., 21., 22., 23., 24.],
+        ])
+
+        self.known_left= np.array([
+            [ 0.,  1.],
+            [ 5.,  6.],
+            [10., 11.],
+            [15., 16.],
+            [20., 21.],
+        ])
+
+        self.known_right = np.array([
+            [ 2.,  3.,  4.],
+            [ 7.,  8.,  9.],
+            [12., 13., 14.],
+            [17., 18., 19.],
+            [22., 23., 24.],
+        ])
+
+    def test_split_axis0(self):
+        top, bottom = core.split(self.C, 3, axis=0)
+        nptest.assert_array_equal(top, self.known_top)
+        nptest.assert_array_equal(bottom, self.known_bottom)
+
+    def test_split_axis1(self):
+
+        left, right = core.split(self.C, 2, axis=1)
+        nptest.assert_array_equal(left, self.known_left)
+        nptest.assert_array_equal(right, self.known_right)
+
+
+    @nt.raises(ValueError)
+    def test_split_at_bottom_edge_raises(self):
+        left, right = core.split(self.C, 5, axis=0)
+
+    @nt.raises(ValueError)
+    def test_split_at_right_edge_raises(self):
+        left, right = core.split(self.C, 5, axis=1)
+
+
+class Test__interp_between_vectors(object):
+    def setup(self):
+        self.index = np.arange(0, 4)
+        self.vector1 = -1 * self.index**2 - 1
+        self.vector2 = 2 * self.index**2 + 2
+
+        self.known_insert_1 = np.array([
+            [ -1. ,  -2. ,  -5. , -10. ],
+            [  0.5,   1. ,   2.5,   5. ],
+            [  2. ,   4. ,  10. ,  20. ],
+        ])
+
+        self.known_insert_3 = np.array([
+            [ -1.  ,  -2.  ,  -5.  , -10.  ],
+            [ -0.25,  -0.5 ,  -1.25,  -2.5 ],
+            [  0.5 ,   1.  ,   2.5 ,   5.  ],
+            [  1.25,   2.5 ,   6.25,  12.5 ],
+            [  2.  ,   4.  ,  10.  ,  20.  ],
+        ])
+
+    def test_insert_1(self):
+        result = core._interp_between_vectors(self.vector1, self.vector2, n_points=1)
+        nptest.assert_array_equal(result, self.known_insert_1)
+
+    def test_insert_3(self):
+        result = core._interp_between_vectors(self.vector1, self.vector2, n_points=3)
+        nptest.assert_array_equal(result, self.known_insert_3)
+
+    @nt.raises(ValueError)
+    def test_bad_points(self):
+        core._interp_between_vectors(self.vector1, self.vector2, n_points=0)
+
+
+class Test_refine(object):
+    def setup(self):
+        self.nodes = np.arange(25, dtype=float).reshape(5, 5)
+
+        self.known_n1_ax0 = np.array([
+            [ 0.0,  1.0,  2.0,  3.0,  4.0],
+            [ 5.0,  6.0,  7.0,  8.0,  9.0],
+            [ 7.5,  8.5,  9.5, 10.5, 11.5],
+            [10.0, 11.0, 12.0, 13.0, 14.0],
+            [15.0, 16.0, 17.0, 18.0, 19.0],
+            [20.0, 21.0, 22.0, 23.0, 24.0],
+        ])
+
+        self.known_n4_ax0 = np.array([
+            [ 0.,  1.,  2.,  3.,  4.],
+            [ 5.,  6.,  7.,  8.,  9.],
+            [ 6.,  7.,  8.,  9., 10.],
+            [ 7.,  8.,  9., 10., 11.],
+            [ 8.,  9., 10., 11., 12.],
+            [ 9., 10., 11., 12., 13.],
+            [10., 11., 12., 13., 14.],
+            [15., 16., 17., 18., 19.],
+            [20., 21., 22., 23., 24.],
+        ])
+
+        self.known_n1_ax1 = np.array([
+            [ 0.,  1.,  1.5,  2.,  3.,  4.],
+            [ 5.,  6.,  6.5,  7.,  8.,  9.],
+            [10., 11., 11.5, 12., 13., 14.],
+            [15., 16., 16.5, 17., 18., 19.],
+            [20., 21., 21.5, 22., 23., 24.],
+        ])
+
+        self.known_n3_ax1 = np.array([
+            [ 0.,  1.,  1.25,  1.50,  1.75,  2.,  3.,  4.],
+            [ 5.,  6.,  6.25,  6.50,  6.75,  7.,  8.,  9.],
+            [10., 11., 11.25, 11.50, 11.75, 12., 13., 14.],
+            [15., 16., 16.25, 16.50, 16.75, 17., 18., 19.],
+            [20., 21., 21.25, 21.50, 21.75, 22., 23., 24.],
+        ])
+
+    def test_n1_ax0(self):
+        result = core.refine(self.nodes, 2, axis=0, n_points=1)
+        nptest.assert_array_equal(result, self.known_n1_ax0)
+
+    def test_n4_ax0(self):
+        result = core.refine(self.nodes, 2, axis=0, n_points=4)
+        nptest.assert_array_equal(result, self.known_n4_ax0)
+
+    def test_n1_ax1(self):
+        result = core.refine(self.nodes, 2, axis=1, n_points=1)
+        nptest.assert_array_equal(result, self.known_n1_ax1)
+
+    def test_n3_ax1(self):
+        result = core.refine(self.nodes, 2, axis=1, n_points=3)
+        nptest.assert_array_equal(result, self.known_n3_ax1)
+
+
+class Test_merge(object):
+    def setup(self):
+        self.A = np.arange(12).reshape(4, 3) * 1.0
+        self.B = np.arange(8).reshape(2, 4) * 1.0
+        self.C = np.arange(25).reshape(5, 5) * 1.0
 
         self.known_AB_vplus_0 = np.array([
-            [ 0.,   1.,   2., nan],
-            [ 3.,   4.,   5., nan],
-            [ 6.,   7.,   8., nan],
-            [ 9.,  10.,  11., nan],
-            [ 0.,   1.,   2.,  3.],
-            [ 4.,   5.,   6.,  7.]
+            [0.,  1.,  2., nan],
+            [3.,  4.,  5., nan],
+            [6.,  7.,  8., nan],
+            [9., 10., 11., nan],
+            [0.,  1.,  2.,  3.],
+            [4.,  5.,  6.,  7.]
         ])
 
         self.known_AB_vminus_0 = np.array([
-            [ 0.,   1.,   2.,  3.],
-            [ 4.,   5.,   6.,  7.],
-            [ 0.,   1.,   2., nan],
-            [ 3.,   4.,   5., nan],
-            [ 6.,   7.,   8., nan],
-            [ 9.,  10.,  11., nan]
+            [0.,  1.,  2.,  3.],
+            [4.,  5.,  6.,  7.],
+            [0.,  1.,  2., nan],
+            [3.,  4.,  5., nan],
+            [6.,  7.,  8., nan],
+            [9., 10., 11., nan]
         ])
 
         self.known_AB_vplus_2 = np.array([
@@ -140,109 +291,80 @@ class test__PointSet(object):
             [nan, nan, nan, nan,  9., 10., 11.]
         ])
 
-    def test_points_and_setter(self):
-        set_val = np.arange(16).reshape(4, 4) * 1
-        self.A.points = set_val
-        nptest.assert_array_equal(set_val, self.A.points)
-
-    def test_transform(self):
-        nptest.assert_array_equal(
-            self.known_flipped_A_points,
-            self.A.transform(np.fliplr).points
-        )
-
-    def test_transpose(self):
-        nptest.assert_array_equal(
-            self.A.points.T,
-            self.A.transpose().points
-        )
-
-    def test_transpose_transform(self):
-        nptest.assert_array_equal(
-            self.known_transposed_transformed_A_points,
-            self.A.transpose().transform(np.flipud).points
-        )
-
-    def test_transform_transpose(self):
-        nptest.assert_array_equal(
-            self.known_transposed_transformed_A_points,
-            self.A.transpose().transform(np.flipud).points
-        )
-
     def test_merge_vplus_0(self):
         nptest.assert_array_equal(
             self.known_AB_vplus_0,
-            self.A.merge(self.B, how='v', where='+', shift=0).points,
+            core.merge(self.A, self.B, how='v', where='+', shift=0),
         )
 
     def test_merge_vminus_0(self):
         nptest.assert_array_equal(
             self.known_AB_vminus_0,
-            self.A.merge(self.B, how='v', where='-', shift=0).points,
+            core.merge(self.A, self.B, how='v', where='-', shift=0),
         )
 
     def test_merge_vplus_2(self):
         nptest.assert_array_equal(
             self.known_AB_vplus_2,
-            self.A.merge(self.B, how='v', where='+', shift=2).points,
+            core.merge(self.A, self.B, how='v', where='+', shift=2),
         )
 
     def test_merge_vminus_2(self):
         nptest.assert_array_equal(
             self.known_AB_vminus_2,
-            self.A.merge(self.B, how='v', where='-', shift=2).points,
+            core.merge(self.A, self.B, how='v', where='-', shift=2),
         )
 
     def test_merge_vplus_neg1(self):
         nptest.assert_array_equal(
             self.known_AB_vplus_neg1,
-            self.A.merge(self.B, how='v', where='+', shift=-1).points,
+            core.merge(self.A, self.B, how='v', where='+', shift=-1),
         )
 
     def test_merge_vminus_neg1(self):
         nptest.assert_array_equal(
             self.known_AB_vminus_neg1,
-            self.A.merge(self.B, how='v', where='-', shift=-1).points,
+            core.merge(self.A, self.B, how='v', where='-', shift=-1),
         )
 
     def test_merge_hplus_0(self):
         nptest.assert_array_equal(
             self.known_AB_hplus_0,
-            self.A.merge(self.B, how='h', where='+', shift=0).points,
+            core.merge(self.A, self.B, how='h', where='+', shift=0),
         )
 
     def test_merge_hminus_0(self):
         nptest.assert_array_equal(
             self.known_AB_hminus_0,
-            self.A.merge(self.B, how='h', where='-', shift=0).points,
+            core.merge(self.A, self.B, how='h', where='-', shift=0),
         )
 
     def test_merge_hplus_2(self):
         nptest.assert_array_equal(
             self.known_AB_hplus_2,
-            self.A.merge(self.B, how='h', where='+', shift=2).points,
+            core.merge(self.A, self.B, how='h', where='+', shift=2),
         )
 
     def test_merge_hminus_2(self):
         nptest.assert_array_equal(
             self.known_AB_hminus_2,
-            self.A.merge(self.B, how='h', where='-', shift=2).points,
+            core.merge(self.A, self.B, how='h', where='-', shift=2),
         )
 
     def test_merge_hplus_neg1(self):
         nptest.assert_array_equal(
             self.known_AB_hplus_neg1,
-            self.A.merge(self.B, how='h', where='+', shift=-1).points,
+            core.merge(self.A, self.B, how='h', where='+', shift=-1),
         )
 
     def test_merge_hminus_neg1(self):
         nptest.assert_array_equal(
             self.known_AB_hminus_neg1,
-            self.A.merge(self.B, how='h', where='-', shift=-1).points,
+            core.merge(self.A, self.B, how='h', where='-', shift=-1),
         )
 
 
-class test_ModelGrid(object):
+class Test_ModelGrid(object):
     def setup(self):
         self.xn, self.yn = testing.makeSimpleNodes()
         self.xc, self.yc = testing.makeSimpleCells()
@@ -281,7 +403,7 @@ class test_ModelGrid(object):
             }, ('northing', 2): {
                 0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
                 5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0}
-            })
+        })
         self.known_df.columns.names = ['coord', 'i']
         self.known_df.index.names = ['j']
 
@@ -302,7 +424,6 @@ class test_ModelGrid(object):
         })
         self.known_masked_cell_df.columns.names = ['coord', 'i']
         self.known_masked_cell_df.index.names = ['j']
-
 
         self.known_coord_pairs = np.array([
             [1. , 0. ], [1.5, 0. ], [2. , 0. ], [1. , 0.5],
@@ -341,11 +462,11 @@ class test_ModelGrid(object):
 
     def test_nodes_x(self):
         nt.assert_true(hasattr(self.g1, 'nodes_x'))
-        nt.assert_true(isinstance(self.g1.nodes_x, core._PointSet))
+        nt.assert_true(isinstance(self.g1.nodes_x, np.ndarray))
 
     def test_nodes_y(self):
         nt.assert_true(hasattr(self.g1, 'nodes_y'))
-        nt.assert_true(isinstance(self.g1.nodes_y, core._PointSet))
+        nt.assert_true(isinstance(self.g1.nodes_y, np.ndarray))
 
     def test_cells_x(self):
         nt.assert_true(hasattr(self.g1, 'cells_x'))
@@ -483,12 +604,90 @@ class test_ModelGrid(object):
         g = self.g1.flipud()
         nptest.assert_array_equal(g.xn, gx)
 
+    def test_split_ax0(self):
+        mgtop, mgbottom = self.mg.split(3, axis=0)
+        nptest.assert_array_equal(mgtop.nodes_x, self.xn[:3, :])
+        nptest.assert_array_equal(mgtop.nodes_y, self.yn[:3, :])
+        nptest.assert_array_equal(mgbottom.nodes_x, self.xn[3:, :])
+        nptest.assert_array_equal(mgbottom.nodes_y, self.yn[3:, :])
+
+    def test_split_ax0(self):
+        mgtop, mgbottom = self.mg.split(3, axis=1)
+        nptest.assert_array_equal(mgtop.nodes_x, self.xn[:, :3])
+        nptest.assert_array_equal(mgtop.nodes_y, self.yn[:, :3])
+        nptest.assert_array_equal(mgbottom.nodes_x, self.xn[:, 3:])
+        nptest.assert_array_equal(mgbottom.nodes_y, self.yn[:, 3:])
+
     def test_merge(self):
         g3 = self.g1.merge(self.g2, how='horiz', where='+', shift=2)
         g4 = core.ModelGrid(self.xn, self.yn)
 
         nptest.assert_array_equal(g3.xn, g4.xn)
         nptest.assert_array_equal(g3.xc, g4.xc)
+
+    def test_refine_3_ax0(self):
+        known_xnodes = np.ma.masked_invalid(np.array([
+            [1.0, 1.5, 2.0, nan, nan, nan, nan],
+            [1.0, 1.5, 2.0, nan, nan, nan, nan],
+            [1.0, 1.5, 2.0, nan, nan, nan, nan],
+            [1.0, 1.5, 2.0, nan, nan, nan, nan],
+            [1.0, 1.5, 2.0, nan, nan, nan, nan],
+            [1.0, 1.5, 2.0, 2.5, 3. , 3.5, 4.0],
+            [1.0, 1.5, 2.0, 2.5, 3. , 3.5, 4.0],
+            [1.0, 1.5, 2.0, 2.5, 3. , 3.5, 4.0],
+            [1.0, 1.5, 2.0, nan, nan, nan, nan],
+            [1.0, 1.5, 2.0, nan, nan, nan, nan],
+            [1.0, 1.5, 2.0, nan, nan, nan, nan],
+            [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        ]))
+
+        known_ynodes = np.ma.masked_invalid(np.array([
+            [0.000, 0.000, 0.000,   nan,   nan,   nan,   nan],
+            [0.500, 0.500, 0.500,   nan,   nan,   nan,   nan],
+            [0.625, 0.625, 0.625,   nan,   nan,   nan,   nan],
+            [0.75 , 0.75 , 0.75 ,   nan,   nan,   nan,   nan],
+            [0.875, 0.875, 0.875,   nan,   nan,   nan,   nan],
+            [1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000],
+            [1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500],
+            [2.000, 2.000, 2.000, 2.000, 2.000, 2.000, 2.000],
+            [2.500, 2.500, 2.500,   nan,   nan,   nan,   nan],
+            [3.000, 3.000, 3.000,   nan,   nan,   nan,   nan],
+            [3.500, 3.500, 3.500,   nan,   nan,   nan,   nan],
+            [4.000, 4.000, 4.000,   nan,   nan,   nan,   nan],
+        ]))
+
+        result = self.mg.refine(2, axis=0, n_points=3)
+        nptest.assert_array_equal(result.nodes_x, known_xnodes)
+        nptest.assert_array_equal(result.nodes_y, known_ynodes)
+
+    def test_refine_3_ax1(self):
+        known_xnodes = np.ma.masked_invalid(np.array([
+            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
+            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
+            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
+            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan]
+        ]))
+
+        known_ynodes = np.ma.masked_invalid(np.array([
+            [0. , 0. , 0. , 0. , 0. , 0. , nan, nan, nan, nan],
+            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, nan, nan, nan, nan],
+            [1. , 1. , 1. , 1. , 1. , 1. , 1. , 1. , 1. , 1. ],
+            [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+            [2. , 2. , 2. , 2. , 2. , 2. , 2. , 2. , 2. , 2. ],
+            [2.5, 2.5, 2.5, 2.5, 2.5, 2.5, nan, nan, nan, nan],
+            [3. , 3. , 3. , 3. , 3. , 3. , nan, nan, nan, nan],
+            [3.5, 3.5, 3.5, 3.5, 3.5, 3.5, nan, nan, nan, nan],
+            [4. , 4. , 4. , 4. , 4. , 4. , nan, nan, nan, nan],
+        ]))
+
+        result = self.mg.refine(2, axis=1, n_points=3)
+        nptest.assert_array_equal(result.nodes_x, known_xnodes)
+        nptest.assert_array_equal(result.nodes_y, known_ynodes)
 
     def test_mask_cells_with_polygon_inside_not_inplace(self):
         orig_mask = self.mg.cell_mask.copy()
@@ -510,14 +709,14 @@ class test_ModelGrid(object):
         self.mg.cell_mask = np.ma.masked_invalid(self.mg.xc).mask
         cell_mask = self.mg.mask_cells_with_polygon(self.polyverts, use_existing=True)
         known_inside_mask = np.array([
-            [False, False,  True,  True,  True,  True],
-            [False, False,  True,  True,  True,  True],
-            [False, False, False,  True,  True, False],
-            [False, False, False,  True,  True, False],
-            [False, False,  True,  True,  True,  True],
-            [False, False,  True,  True,  True,  True],
-            [False, False,  True,  True,  True,  True],
-            [False, False,  True,  True,  True,  True]
+            [False, False,  True, True, True,  True],
+            [False, False,  True, True, True,  True],
+            [False, False, False, True, True, False],
+            [False, False, False, True, True, False],
+            [False, False,  True, True, True,  True],
+            [False, False,  True, True, True,  True],
+            [False, False,  True, True, True,  True],
+            [False, False,  True, True, True,  True]
         ], dtype=bool)
         nptest.assert_array_equal(cell_mask, known_inside_mask)
         nptest.assert_array_equal(cell_mask, self.mg.cell_mask)
@@ -525,14 +724,14 @@ class test_ModelGrid(object):
     def test_mask_cells_with_polygon_outside(self):
         cell_mask = self.mg.mask_cells_with_polygon(self.polyverts, inside=False, use_existing=False)
         known_outside_mask = np.array([
-            [ True,  True,  True,  True,  True, True],
-            [ True,  True,  True,  True,  True, True],
-            [ True,  True,  True, False, False, True],
-            [ True,  True,  True, False, False, True],
-            [ True,  True,  True,  True,  True, True],
-            [ True,  True,  True,  True,  True, True],
-            [ True,  True,  True,  True,  True, True],
-            [ True,  True,  True,  True,  True, True]
+            [True, True, True,  True,  True, True],
+            [True, True, True,  True,  True, True],
+            [True, True, True, False, False, True],
+            [True, True, True, False, False, True],
+            [True, True, True,  True,  True, True],
+            [True, True, True,  True,  True, True],
+            [True, True, True,  True,  True, True],
+            [True, True, True,  True,  True, True]
         ], dtype=bool)
         nptest.assert_array_equal(cell_mask, known_outside_mask)
 
@@ -552,19 +751,19 @@ class test_ModelGrid(object):
 
     @nt.raises(ValueError)
     def test_mask_cells_with_polygon_nodes_too_few_nodes(self):
-        cell_mask = self.mg.mask_cells_with_polygon(
+        self.mg.mask_cells_with_polygon(
             self.polyverts, use_centroids=False, min_nodes=0
         )
 
     @nt.raises(ValueError)
     def test_mask_cells_with_polygon_nodes_too_many_nodes(self):
-        cell_mask = self.mg.mask_cells_with_polygon(
+        self.mg.mask_cells_with_polygon(
             self.polyverts, use_centroids=False, min_nodes=5
         )
 
     @nt.raises(NotImplementedError)
     def test_mask_cells_with_polygon_triangles(self):
-        cell_mask = self.mg.mask_cells_with_polygon(self.polyverts, triangles=True)
+        self.mg.mask_cells_with_polygon(self.polyverts, triangles=True)
 
     @nt.raises(ValueError)
     def test_to_shapefile_bad_geom(self):
@@ -709,14 +908,13 @@ class test_ModelGrid(object):
 )
 def test_ModelGrid_plots():
     xn, yn = testing.makeSimpleNodes()
-    bounds = testing.makeSimpleBoundary()
     mg = core.ModelGrid(xn, yn)
     mg.cell_mask = np.ma.masked_invalid(mg.xc).mask
 
     fig1 = mg.plotCells()
 
 
-class test_makeGrid(object):
+class Test_makeGrid(object):
     def setup(self):
         self.domain = testing.makeSimpleBoundary()
         self.bathy = testing.makeSimpleBathy()
@@ -759,4 +957,3 @@ class test_makeGrid(object):
             **self.gridparams
         )
         nt.assert_true(isinstance(grid, core.ModelGrid))
-

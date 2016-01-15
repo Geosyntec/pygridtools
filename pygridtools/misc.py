@@ -1,15 +1,13 @@
-import os
 import warnings
 
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import pandas
 
-from pygridtools import qa
+from pygridtools import validate
 
 
-def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
+def make_poly_coords(xarr, yarr, zpnt=None, triangles=False):
     """ Makes an array for coordinates suitable for building
     quadrilateral geometries in shapfiles via fiona.
 
@@ -32,7 +30,7 @@ def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
     """
 
     def process_input(array):
-        flat = np.hstack([array[0,:], array[1,::-1]])
+        flat = np.hstack([array[0, :], array[1, ::-1]])
         return flat[~np.isnan(flat)]
 
     x = process_input(xarr)
@@ -40,7 +38,7 @@ def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
     if (not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0
             or (triangles and len(x) == 3)):
         if zpnt is None:
-            coords = np.vstack([x ,y]).T
+            coords = np.vstack([x, y]).T
         else:
             z = np.array([zpnt] * x.shape[0])
             coords = np.vstack([x, y, z]).T
@@ -51,7 +49,7 @@ def makePolyCoords(xarr, yarr, zpnt=None, triangles=False):
     return coords
 
 
-def makeRecord(ID, coords, geomtype, props):
+def make_record(ID, coords, geomtype, props):
     """ Creates a record to be appended to a shapefile via fiona.
 
     Parameters
@@ -79,7 +77,7 @@ def makeRecord(ID, coords, geomtype, props):
 
     """
 
-    if not geomtype in ['Point', 'LineString', 'Polygon']:
+    if geomtype not in ['Point', 'LineString', 'Polygon']:
         raise ValueError('Geometry {} not suppered'.format(geomtype))
 
     if isinstance(coords, np.ma.MaskedArray):
@@ -99,7 +97,7 @@ def makeRecord(ID, coords, geomtype, props):
     return record
 
 
-def interpolateBathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='z'):
+def interpolate_bathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='z'):
     """ Interpolates x-y-z point data onto the grid of a Gridgen object.
     Matplotlib's nearest-neighbor interpolation schema is used to
     estimate the elevation at the grid centers.
@@ -124,7 +122,7 @@ def interpolateBathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='z
 
     try:
         import pygridgen
-    except ImportError: # pragma: no cover
+    except ImportError:  # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot interpolate bathymetry.")
 
     if bathy is None:
@@ -142,7 +140,7 @@ def interpolateBathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='z
     else:
         bathy = bathy[[xcol, ycol, zcol]]
 
-    # find where the bathy is inside our grid
+    # find where the bathymetry is inside our grid
     grididx = (
         (bathy[xcol] <= x_points.max()) &
         (bathy[xcol] >= x_points.min()) &
@@ -291,8 +289,8 @@ def mask_with_polygon(x, y, polyverts, inside=True):
     """
 
     # validate input
-    polyverts = qa._validate_polygon(polyverts)
-    points = qa._validate_xy_array(x, y, as_pairs=True)
+    polyverts = validate.polygon(polyverts)
+    points = validate.xy_array(x, y, as_pairs=True)
 
     # compute the mask
     mask = mpath.Path(polyverts).contains_points(points).reshape(x.shape)
@@ -343,17 +341,17 @@ def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
 
     # define the initial cells with everything labeled as a bank
     ny, nx = cell_mask.shape
-    cells = np.zeros((ny+2, nx+2), dtype=int) + bank_cell
+    cells = np.zeros((ny + 2, nx + 2), dtype=int) + bank_cell
 
     # loop through each *node*
-    for jj in range(1, ny+1):
-        for ii in range(1, nx+1):
+    for jj in range(1, ny + 1):
+        for ii in range(1, nx + 1):
             # pull out the 4 nodes defining the cell (call it a quad)
-            quad = node_mask[jj-1:jj+1, ii-1:ii+1]
+            quad = node_mask[jj - 1:jj + 1, ii - 1:ii + 1]
             n_wet = quad.sum()
 
             # anything that's masked is a "bank"
-            if not cell_mask[jj-1, ii-1]:
+            if not cell_mask[jj - 1, ii - 1]:
                 # if all 4 nodes are wet (=1), then the cell is 5
                 if n_wet == 4:
                     cells[jj, ii] = water_cell

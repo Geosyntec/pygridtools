@@ -4,10 +4,8 @@ import sys
 import nose.tools as nt
 import numpy as np
 import numpy.testing as nptest
-import matplotlib.pyplot as plt
 import pandas
 import pandas.util.testing as pdtest
-import fiona
 
 from pygridtools import iotools
 from pygridtools import testing
@@ -27,87 +25,13 @@ class test__outputfile(object):
         )
 
 
-class test__check_mode(object):
-    @nt.raises(ValueError)
-    def test_errors(self):
-        iotools._check_mode('z')
-
-    def test_upper(self):
-        nt.assert_equal(iotools._check_mode('A'), 'a')
-
-    def test_lower(self):
-        nt.assert_equal(iotools._check_mode('w'), 'w')
-
-
-class test__check_elev_or_mask(object):
-    def setup(self):
-        self.mainshape = (8, 7)
-        self.offset = 2
-        self.offsetshape = tuple([s - self.offset for s in self.mainshape])
-        self.X = np.zeros(self.mainshape)
-        self.Y = np.zeros(self.mainshape)
-        self.Yoffset = np.zeros(self.offsetshape)
-
-    @nt.raises(ValueError)
-    def test_failNone(self):
-        iotools._check_elev_or_mask(self.X, None, failNone=True)
-
-    @nt.raises(ValueError)
-    def test_bad_shape(self):
-        iotools._check_elev_or_mask(self.X, self.Yoffset)
-
-    def test_offset(self):
-        other = iotools._check_elev_or_mask(self.X, self.Yoffset,
-                                       offset=self.offset)
-        nptest.assert_array_equal(other, self.Yoffset)
-
-    def test_nooffset(self):
-        other = iotools._check_elev_or_mask(self.X, self.Y, offset=0)
-        nptest.assert_array_equal(other, self.Y)
-
-
-class test__check_for_same_masks(object):
-    def setup(self):
-        from numpy import nan
-        self.X = np.array([
-            1, 2, 3, nan, nan,   7,
-            1, 2, 3, nan, nan,   7,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan,   7,
-        ])
-
-        self.Y1 = np.array([
-            1, 2, 3, nan, nan,   7,
-            1, 2, 3, nan, nan,   7,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan,   7,
-        ])
-
-        self.Y2 = np.array([
-            1, 2, 3, nan, nan,   7,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan,   7,
-        ])
-
-    @nt.raises(ValueError)
-    def test_error(self):
-        iotools._check_for_same_masks(self.X, self.Y2)
-
-    def test_baseline(self):
-        x, y = iotools._check_for_same_masks(self.X, self.Y1)
-        nptest.assert_array_equal(self.X, x.data)
-        nptest.assert_array_equal(self.Y1, y.data)
-
-
 class test_loadBoundaryFromShapefile(object):
     def setup(self):
         self.shapefile = 'pygridtools/tests/test_data/simple_boundary.shp'
-        self.known_df_columns = ['x', 'y', 'beta', 'upperleft',
-        					     'reach', 'order']
+        self.known_df_columns = [
+            'x', 'y', 'beta', 'upperleft',
+            'reach', 'order'
+        ]
         self.known_points_in_boundary = 19
         self.test_reach = 1
         self.known_points_in_testreach = 10

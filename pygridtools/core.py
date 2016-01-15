@@ -3,6 +3,7 @@ from __future__ import division
 import warnings
 
 import numpy as np
+from scipy import interpolate
 import pandas
 
 from pygridtools import misc
@@ -10,31 +11,49 @@ from pygridtools import iotools
 from pygridtools import viz
 
 
-class _PointSet(object):
-    def __init__(self, array):
-        self._points = np.asarray(array)
+def transform(nodes, fxn, *args, **kwargs):
+    return fxn(nodes, *args, **kwargs)
 
-    @property
-    def points(self):
-        return self._points
-    @points.setter
-    def points(self, value):
-        self._points = np.asarray(value)
 
-    @property
-    def shape(self):
-        return self.points.shape
+def split(nodes, index, axis=0):
+    if index + 1 >= nodes.shape[axis]:
+        raise ValueError("cannot split grid at or beyond its edges")
 
-    def transform(self, fxn, *args, **kwargs):
-        self.points = fxn(self.points, *args, **kwargs)
-        return self
+    if axis == 0:
+        n1, n2 = nodes[:index, :], nodes[index:, :]
+    elif axis == 1:
+        n1, n2 = nodes[:, :index], nodes[:, index:]
 
-    def transpose(self):
-        return self.transform(np.transpose)
+    return n1, n2
 
-    def merge(self, other, how='vert', where='+', shift=0):
-        return self.transform(misc.padded_stack, other.points, how=how,
-                              where=where, shift=shift)
+
+def merge(nodes, other_nodes, how='vert', where='+', shift=0):
+    return transform(nodes, misc.padded_stack, other_nodes, how=how,
+                     where=where, shift=shift)
+
+
+def _interp_between_vectors(vector1, vector2, n_points=1):
+    if n_points < 1:
+        raise ValueError("number of interpolated points must be at least 1")
+
+    array = np.vstack([vector1, vector2]).T
+    old_index = np.arange(2)
+    interp = interpolate.interp1d(old_index, array, kind='linear')
+
+    new_index = np.linspace(0, 1, num=n_points + 2)
+    return interp(new_index).T
+
+
+def refine(nodes, index, axis=0, n_points=1):
+    if axis == 1:
+        refined = refine(nodes.T, index, axis=0, n_points=n_points).T
+    else:
+        top, bottom = split(nodes, index, axis=0)
+        edge1, edge2 = top[-1, :], bottom[0, :]
+        middle = _interp_between_vectors(edge1, edge2, n_points=n_points)
+        refined = np.vstack([top, middle[1:-1], bottom])
+
+    return refined
 
 
 class ModelGrid(object):
@@ -42,8 +61,8 @@ class ModelGrid(object):
         if not np.all(nodes_x.shape == nodes_y.shape):
             raise ValueError('input arrays must have the same shape')
 
-        self._nodes_x = _PointSet(nodes_x)
-        self._nodes_y = _PointSet(nodes_y)
+        self._nodes_x = np.asarray(nodes_x)
+        self._nodes_y = np.asarray(nodes_y)
         self._template = None
         self._cell_mask = np.zeros(self.cell_shape, dtype=bool)
 
@@ -53,7 +72,7 @@ class ModelGrid(object):
 
     @property
     def nodes_x(self):
-        """_PointSet object of x-nodes"""
+        """Array object of x-nodes"""
         return self._nodes_x
     @nodes_x.setter
     def nodes_x(self, value):
@@ -64,23 +83,23 @@ class ModelGrid(object):
         return self._nodes_y
     @nodes_y.setter
     def nodes_y(self, value):
-        """_PointSet object of y-nodes"""
+        """Array object of y-nodes"""
         self._nodes_y = value
 
     @property
     def cells_x(self):
-        """_PointSet object of x-cells"""
+        """Array object of x-cells"""
         xc = 0.25 * (
-            self.xn[1:,1:] + self.xn[1:,:-1] +
-            self.xn[:-1,1:] + self.xn[:-1,:-1]
+            self.xn[1:, 1:] + self.xn[1:, :-1] +
+            self.xn[:-1, 1:] + self.xn[:-1, :-1]
         )
         return xc
 
     @property
     def cells_y(self):
         yc = 0.25 * (
-            self.yn[1:,1:] + self.yn[1:,:-1] +
-            self.yn[:-1,1:] + self.yn[:-1,:-1]
+            self.yn[1:, 1:] + self.yn[1:, :-1] +
+            self.yn[:-1, 1:] + self.yn[:-1, :-1]
         )
         return yc
 
@@ -95,12 +114,12 @@ class ModelGrid(object):
     @property
     def xn(self):
         """shortcut to x-coords of nodes"""
-        return self.nodes_x.points
+        return self.nodes_x
 
     @property
     def yn(self):
         """shortcut to y-coords of nodes"""
-        return self.nodes_y.points
+        return self.nodes_y
 
     @property
     def xc(self):
@@ -169,8 +188,8 @@ class ModelGrid(object):
         self._islands = value
 
     def transform(self, fxn, *args, **kwargs):
-        self.nodes_x = self.nodes_x.transform(fxn, *args, **kwargs)
-        self.nodes_y = self.nodes_y.transform(fxn, *args, **kwargs)
+        self.nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
+        self.nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
         return self
 
     def transpose(self):
@@ -183,6 +202,14 @@ class ModelGrid(object):
     def flipud(self):
         """reverses the rows"""
         return self.transform(np.flipud)
+
+    def split(self, index, axis=0):
+        x1, x2 = split(self.nodes_x, index, axis=axis)
+        y1, y2 = split(self.nodes_y, index, axis=axis)
+        return ModelGrid(x1, y1), ModelGrid(x2, y2)
+
+    def refine(self, index, axis=0, n_points=1):
+        return self.transform(refine, index, axis=axis, n_points=n_points)
 
     def merge(self, other, how='vert', where='+', shift=0):
         """ Merge with another grid using pygridtools.misc.padded_stack.
@@ -249,10 +276,10 @@ class ModelGrid(object):
 
         """
 
-        self.nodes_x = self.nodes_x.merge(other.nodes_x, how=how,
-                                          where=where, shift=shift)
-        self.nodes_y = self.nodes_y.merge(other.nodes_y, how=how,
-                                          where=where, shift=shift)
+        self.nodes_x = merge(self.nodes_x, other.nodes_x, how=how,
+                             where=where, shift=shift)
+        self.nodes_y = merge(self.nodes_y, other.nodes_y, how=how,
+                             where=where, shift=shift)
         return self
 
     def mask_cells_with_polygon(self, polyverts, use_centroids=True,
@@ -313,7 +340,6 @@ class ModelGrid(object):
             ) >= min_nodes
             cell_mask = cell_mask.astype(bool)
 
-
         if use_existing:
             cell_mask = np.bitwise_or(self.cell_mask, cell_mask)
 
@@ -344,7 +370,7 @@ class ModelGrid(object):
         outfile = iotools._outputfile(outputdir, filename)
 
         iotools._write_cellinp(cells, outputfile=outfile,
-                                  flip=True, maxcols=maxcols)
+                               flip=True, maxcols=maxcols)
         return cells
 
     def writeGEFDCGridFile(self, outputdir=None, filename='grid.out'):
@@ -426,15 +452,14 @@ class ModelGrid(object):
                      river=None, reach=0, elev=None, template=None,
                      geom='Polygon', mode='w', triangles=False):
 
-
         if template is None:
             template = self.template
 
         if geom.lower() == 'point':
             x, y = self._get_x_y(which, usemask=usemask)
             iotools.savePointShapefile(x, y, template, outputfile,
-                                  mode=mode, river=river, reach=reach,
-                                  elev=elev)
+                                       mode=mode, river=river, reach=reach,
+                                       elev=elev)
 
         elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
             if usemask:
@@ -443,28 +468,28 @@ class ModelGrid(object):
                 mask = None
             x, y = self._get_x_y('nodes', usemask=False)
             iotools.saveGridShapefile(x, y, mask, template,
-                                 outputfile, mode=mode, river=river,
-                                 reach=reach, elev=elev,
-                                 triangles=triangles)
+                                      outputfile, mode=mode, river=river,
+                                      reach=reach, elev=elev,
+                                      triangles=triangles)
             if which == 'cells':
                 warnings.warn("polygons always constructed from nodes")
         else:
             raise ValueError("geom must be either 'Point' or 'Polygon'")
 
-    @staticmethod
-    def from_dataframe(df, xcol='easting', ycol='northing', icol='i'):
-        nodes_x = df_x[xcol].unstack(level='i')
-        nodes_y = df_y[ycol].unstack(level='i')
-        return ModelGrid(nodes_x, nodes_y)
+    @classmethod
+    def from_dataframe(cls, df, xcol='easting', ycol='northing', icol='i'):
+        nodes_x = df[xcol].unstack(level='i')
+        nodes_y = df[ycol].unstack(level='i')
+        return cls(nodes_x, nodes_y)
 
-    @staticmethod
-    def from_shapefile(shapefile, icol='ii', jcol='jj'):
+    @classmethod
+    def from_shapefile(cls, shapefile, icol='ii', jcol='jj'):
         df = iotools.readGridShapefile(shapefile, icol=icol, jcol=jcol)
-        return ModelGrid.from_dataframes(df['easting'], df['northing'])
+        return cls.from_dataframes(df['easting'], df['northing'])
 
-    @staticmethod
-    def from_Gridgen(gridgen):
-        return ModelGrid(gridgen.x, gridgen.y)
+    @classmethod
+    def from_Gridgen(cls, gridgen):
+        return cls(gridgen.x, gridgen.y)
 
 
 def makeGrid(ny, nx, domain, bathydata=None, verbose=False,
@@ -559,7 +584,7 @@ def makeGrid(ny, nx, domain, bathydata=None, verbose=False,
 
     try:
         import pygridgen
-    except ImportError: # pragma: no cover
+    except ImportError:  # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot make grid.")
 
     if verbose:
@@ -570,8 +595,8 @@ def makeGrid(ny, nx, domain, bathydata=None, verbose=False,
     if verbose:
         print('interpolating bathymetry')
 
-    newbathy = misc.interpolateBathymetry(bathydata, grid.x_rho, grid.y_rho,
-                                          xcol='x', ycol='y', zcol='z')
+    newbathy = misc.interpolate_bathymetry(bathydata, grid.x_rho, grid.y_rho,
+                                           xcol='x', ycol='y', zcol='z')
     if rawgrid:
         return grid
     else:

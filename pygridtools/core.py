@@ -272,30 +272,36 @@ class ModelGrid(object):
         self._islands = value
 
     def transform(self, fxn, *args, **kwargs):
-        self.nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
-        self.nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
-        return self
+        inplace = kwargs.pop('inplace', False)
+        nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
+        nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
+        if inplace:
+            self.nodes_x = nodes_x
+            self.nodes_y = nodes_y
+            return None
+        else:
+            return ModelGrid(nodes_x, nodes_y)
 
-    def transpose(self):
-        return self.transform(np.transpose)
+    def transpose(self, inplace=False):
+        return self.transform(np.transpose, inplace=inplace)
 
-    def fliplr(self):
+    def fliplr(self, inplace=False):
         """reverses the columns"""
-        return self.transform(np.fliplr)
+        return self.transform(np.fliplr, inplace=inplace)
 
-    def flipud(self):
+    def flipud(self, inplace=False):
         """reverses the rows"""
-        return self.transform(np.flipud)
+        return self.transform(np.flipud, inplace=inplace)
 
     def split(self, index, axis=0):
         x1, x2 = split(self.nodes_x, index, axis=axis)
         y1, y2 = split(self.nodes_y, index, axis=axis)
         return ModelGrid(x1, y1), ModelGrid(x2, y2)
 
-    def refine(self, index, axis=0, n_points=1):
-        return self.transform(refine, index, axis=axis, n_points=n_points)
+    def refine(self, index, axis=0, n_points=1, inplace=False):
+        return self.transform(refine, index, axis=axis, n_points=n_points, inplace=inplace)
 
-    def merge(self, other, how='vert', where='+', shift=0):
+    def merge(self, other, how='vert', where='+', shift=0, inplace=False):
         """ Merge with another grid using pygridtools.misc.padded_stack.
 
         Parameters
@@ -360,11 +366,24 @@ class ModelGrid(object):
 
         """
 
-        self.nodes_x = merge(self.nodes_x, other.nodes_x, how=how,
-                             where=where, shift=shift)
-        self.nodes_y = merge(self.nodes_y, other.nodes_y, how=how,
-                             where=where, shift=shift)
+        nodes_x = merge(self.nodes_x, other.nodes_x, how=how,
+                        where=where, shift=shift)
+        nodes_y = merge(self.nodes_y, other.nodes_y, how=how,
+                        where=where, shift=shift)
+        if inplace:
+            self.nodes_x = nodes_x
+            self.nodes_y = nodes_y
+            return None
+        else:
+            return ModelGrid(nodes_x, nodes_y)
+
+    def update_cell_mask(self, mask=None):
+        if mask is None:
+            self.cell_mask = np.ma.masked_invalid(self.xc).mask
+        else:
+            self.cell_mask = mask
         return self
+
 
     def mask_cells_with_polygon(self, polyverts, use_centroids=True,
                                 min_nodes=3, inside=True,

@@ -1,16 +1,25 @@
-.. pygridtools documentation master file, created by
-   sphinx-quickstart on Sat Jan 16 07:56:33 2016.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. include:: ../readme.rst
 
-Welcome to pygridtools's documentation!
-=======================================
 
-Contents:
+Tutorials
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   tutorial/01_GridgenBasics.rst
+   tutorial/02_ShapefilesAndCellMasks.rst
+   tutorial/03_MergingSpliting.rst
+
+API Reference
+-------------
 
 .. toctree::
    :maxdepth: 2
 
+   api/core.rst
+   api/iotools.rst
+   api/misc.rst
 
 
 Indices and tables
@@ -19,4 +28,5 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
 

@@ -2,10 +2,10 @@
 =============
 .. image:: http://i.imgur.com/2SeSNsR.png
 
-.. image:: https://travis-ci.org/phobson/pygridtools.svg?branch=master
-    :target: https://travis-ci.org/phobson/pygridtools
-.. image:: https://coveralls.io/repos/phobson/pygridtools/badge.svg?branch=master&service=github
-  :target: https://coveralls.io/github/phobson/pygridtools?branch=master
+.. image:: https://travis-ci.org/Geosyntec/pygridtools.svg?branch=master
+    :target: https://travis-ci.org/Geosyntec/pygridtools
+.. image:: https://coveralls.io/repos/Geosyntec/pygridtools/badge.svg?branch=master&service=github
+  :target: https://coveralls.io/github/Geosyntec/pygridtools?branch=master
 
 
 A high-level interface for curvilinear-orthogonal grid generation, manipulation, and visualization.
@@ -13,11 +13,22 @@ A high-level interface for curvilinear-orthogonal grid generation, manipulation,
 Depends heavily on `gridgen`_ and `pygridgen`_
 
 .. _gridgen: https://github.com/sakov/gridgen-c
-.. _pygridgen: https://phobson.github.io/pygridgen
+.. _pygridgen: https://Geosyntec.github.io/pygridgen
 
 The full documentation for this for library is `here`_.
 
-.. _here: https://phobson.github.io/pygridtools
+.. _here: https://Geosyntec.github.io/pygridtools
+
+
+Installation
+------------
+`IOOS <https:/github.com/IOOS>`_ generously maintains Linux and Mac OS X conda builds of *pygridtools*.
+
+Install with
+
+::
+
+   conda install --channel=IOOS pygridtools
 
 
 Python Dependencies

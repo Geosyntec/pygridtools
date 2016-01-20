@@ -52,6 +52,12 @@ Tests are written using the `nose` package.
 From the source tree, run them simply with by invoking ``nosetests`` in a terminal.
 
 
+Source code and Issue Tracker
+------------------------------
+
+The source code is available on Github, `Geosyntec/pygridtools <https://github.com/Geosyntec/pygridtools/>`_
+Please report bugs, issues, and ideas there.
+
 Contributing
 ------------
 1. Feedback is a huge contribution

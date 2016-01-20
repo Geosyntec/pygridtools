@@ -12,11 +12,59 @@ from pygridtools import viz
 
 
 def transform(nodes, fxn, *args, **kwargs):
+    """
+    Apply an arbitrary function to an array of node coordinates.
+
+    Parameters
+    ----------
+    nodes : numpy.ndarray
+        An N x M array of individual node coordinates (i.e., the
+        x-coords or the y-coords only)
+    fxn : callable
+        The transformation to be applied to the whole ``nodes`` array
+    args, kwargs
+        Additional positional and keyword arguments that are passed to
+        ``fxn``. The final call will be ``fxn(nodes, *args, **kwargs)``.
+
+    Returns
+    -------
+    transformed : numpy.ndarray
+        The transformed array.
+
+    """
+
     return fxn(nodes, *args, **kwargs)
 
 
 def split(nodes, index, axis=0):
-    if index + 1 >= nodes.shape[axis]:
+    """
+    Split a array of nodes into two separate, non-overlapping arrays.
+
+    Parameters
+    ----------
+    nodes : numpy.ndarray
+        An N x M array of individual node coordinates (i.e., the
+        x-coords or the y-coords only)
+    index : int
+        The leading edge of where the split should occur.
+    axis : int, optional
+        The axis along which ``nodes`` will be split. Use `axis = 0`
+        to split along rows and `axis = 1` for columns.
+
+    Raises
+    ------
+    ValueError
+        Trying to split ``nodes`` at the edge (i.e., resulting in the
+        original array and an empty array) will raise an error.
+
+    Returns
+    -------
+    n1, n2 : numpy.ndarrays
+        The two non-overlapping sides of the original array.
+
+    """
+
+    if index + 1 >= nodes.shape[axis] or index == 0:
         raise ValueError("cannot split grid at or beyond its edges")
 
     if axis == 0:
@@ -28,6 +76,49 @@ def split(nodes, index, axis=0):
 
 
 def merge(nodes, other_nodes, how='vert', where='+', shift=0):
+    """
+    Merge two sets of nodes together.
+
+    Parameters
+    ----------
+    nodes, other_nodes : numpy.ndarrays
+        The sets of nodes that will be merged.
+    how : string, optional (default = 'vert')
+        The method through wich the arrays should be stacked.
+        `'Vert'` is analogous to `np.vstack`. `'Horiz'` maps to
+        `np.hstack`.
+    where : string, optional (default = '+')
+        The placement of the arrays relative to each other. Keeping
+        in mind that the origin of an array's index is in the
+        upper-left corner, `'+'` indicates that the second array
+        will be placed at higher index relative to the first array.
+        Essentially
+
+        - if how == 'vert'
+
+          - `'+'` -> `a` is above (higher index) `b`
+          - `'-'` -> `a` is below (lower index) `b`
+
+        - if how == 'horiz'
+
+          - `'+'` -> `a` is to the left of `b`
+          - `'-'` -> `a` is to the right of `b`
+
+        See the examples and :func:~`pygridtools.misc.padded_stack` for
+        more info.
+    shift : int, optional (default = 0)
+        The number of indices the second array should be shifted in
+        axis other than the one being merged. In other words,
+        vertically stacked arrays can be shifted horizontally,
+        and horizontally stacked arrays can be shifted vertically.
+
+    Returns
+    -------
+    merged : numpy.ndarrays
+        The unified nodes coordinates
+
+    """
+
     return transform(nodes, misc.padded_stack, other_nodes, how=how,
                      where=where, shift=shift)
 
@@ -45,6 +136,28 @@ def _interp_between_vectors(vector1, vector2, n_points=1):
 
 
 def refine(nodes, index, axis=0, n_points=1):
+    """
+    Insert and linearly interpolate new nodes in an existing array.
+
+    Parameters
+    ----------
+    nodes : numpy.ndarray
+        An N x M array of individual node coordinates (i.e., the
+        x-coords or the y-coords only)
+    index : int
+        The leading edge of where the split should occur.
+    axis : int, optional
+        The axis along which ``nodes`` will be split. Use `axis = 0`
+        to split along rows and `axis = 1` for columns.
+    n_points : int, optional
+        The number of *new* rows or columns to be inserted.
+
+    Returns
+    -------
+    refined : numpy.ndarray
+
+    """
+
     if axis == 1:
         refined = refine(nodes.T, index, axis=0, n_points=n_points).T
     else:
@@ -57,6 +170,23 @@ def refine(nodes, index, axis=0, n_points=1):
 
 
 class ModelGrid(object):
+    """
+    Container for a curvilinear-orthogonal grid. Provides convenient
+    access to masking, manipulation, and visualization methods.
+
+    Although a good effort attempt is made to be consistent with the
+    terminology, in general *node* and *vertex* are used
+    interchangeably, with the former prefered over the latter.
+    Similarly, *centroids* and *cells* can be interchangeable, although
+    they are different. (Cell = the polygon created by 4 adjacent nodes
+    and centroid = the centroid point of a cell).
+
+    Parameters
+    ----------
+    nodes_x, nodes_y : numpy.ndarray
+        M-by-N arrays of node (vertex) coordinates for the grid.
+
+    """
     def __init__(self, nodes_x, nodes_y):
         if not np.all(nodes_x.shape == nodes_y.shape):
             raise ValueError('input arrays must have the same shape')
@@ -72,7 +202,7 @@ class ModelGrid(object):
 
     @property
     def nodes_x(self):
-        """Array object of x-nodes"""
+        """Array of node x-coordinates. """
         return self._nodes_x
     @nodes_x.setter
     def nodes_x(self, value):
@@ -80,6 +210,7 @@ class ModelGrid(object):
 
     @property
     def nodes_y(self):
+        """ Array of node y-coordinates. """
         return self._nodes_y
     @nodes_y.setter
     def nodes_y(self, value):
@@ -88,7 +219,7 @@ class ModelGrid(object):
 
     @property
     def cells_x(self):
-        """Array object of x-cells"""
+        """Array of cell centroid x-coordinates"""
         xc = 0.25 * (
             self.xn[1:, 1:] + self.xn[1:, :-1] +
             self.xn[:-1, 1:] + self.xn[:-1, :-1]
@@ -97,6 +228,7 @@ class ModelGrid(object):
 
     @property
     def cells_y(self):
+        """Array of cell centroid y-coordinates"""
         yc = 0.25 * (
             self.yn[1:, 1:] + self.yn[1:, :-1] +
             self.yn[:-1, 1:] + self.yn[:-1, :-1]
@@ -105,54 +237,57 @@ class ModelGrid(object):
 
     @property
     def shape(self):
+        """ Shape of the nodes arrays """
         return self.nodes_x.shape
 
     @property
     def cell_shape(self):
+        """ Shape of the cells arrays """
         return self.cells_x.shape
 
     @property
     def xn(self):
-        """shortcut to x-coords of nodes"""
+        """Shortcut to x-coords of nodes"""
         return self.nodes_x
 
     @property
     def yn(self):
-        """shortcut to y-coords of nodes"""
+        """Shortcut to y-coords of nodes"""
         return self.nodes_y
 
     @property
     def xc(self):
-        """shortcut to x-coords of cells/centroids"""
+        """ Shortcut to x-coords of cells/centroids"""
         return self.cells_x
 
     @property
     def yc(self):
-        """shortcut to y-coords of cells/centroids"""
+        """ Shortcut to y-coords of cells/centroids"""
         return self.cells_y
 
     @property
     def icells(self):
-        """rows of cells"""
+        """ Number of rows of cells"""
         return self.cell_shape[1]
 
     @property
     def jcells(self):
-        """columns of cells"""
+        """ Number of columns of cells"""
         return self.cell_shape[0]
 
     @property
     def inodes(self):
-        """rows of nodes"""
+        """Number of rows of nodes"""
         return self.shape[1]
 
     @property
     def jnodes(self):
-        """columns of nodes"""
+        """Number of columns of nodes"""
         return self.shape[0]
 
     @property
     def cell_mask(self):
+        """ Boolean mask for the cells """
         return self._cell_mask
     @cell_mask.setter
     def cell_mask(self, value):
@@ -160,7 +295,7 @@ class ModelGrid(object):
 
     @property
     def template(self):
-        """template shapefile"""
+        """ Template shapefile (schema) for export """
         return self._template
     @template.setter
     def template(self, value):
@@ -168,6 +303,7 @@ class ModelGrid(object):
 
     @property
     def domain(self):
+        """ The optional domain used to generate the raw grid """
         return self._domain
     @domain.setter
     def domain(self, value):
@@ -175,6 +311,8 @@ class ModelGrid(object):
 
     @property
     def extent(self):
+        """ The final extent of the model grid
+        (everything outside is masked). """
         return self._extent
     @extent.setter
     def extent(self, value):
@@ -182,37 +320,168 @@ class ModelGrid(object):
 
     @property
     def islands(self):
+        """ Polygons used to make holes/gaps in the grid """
         return self._islands
     @islands.setter
     def islands(self, value):
         self._islands = value
 
     def transform(self, fxn, *args, **kwargs):
-        self.nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
-        self.nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
-        return self
+        """
+        Apply an attribrary function to the grid nodes.
 
-    def transpose(self):
-        return self.transform(np.transpose)
+        Parameters
+        ----------
+        fxn : callable
+            The function to be applied to the nodes. It should accept
+            a node array as its first argument.
 
-    def fliplr(self):
-        """reverses the columns"""
-        return self.transform(np.fliplr)
+            .. note:
+               The function is applied to each node array (x and y)
+               individually.
+        inplace : bool, optional
+            Toggles the application of ``fxn`` in-place or on a copy.
+        arg, kwargs : optional arguments and keyword arguments
+            Additional values passed to ``fxn`` after the node array.
 
-    def flipud(self):
-        """reverses the rows"""
-        return self.transform(np.flipud)
+        Returns
+        -------
+        None or ModelGrid
+            `None` is returned if ``inplace`` is `True`. Otherwise,
+            a new :class:`~ModelGrid` is returned.
+
+        """
+
+        inplace = kwargs.pop('inplace', False)
+        nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
+        nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
+        if inplace:
+            self.nodes_x = nodes_x
+            self.nodes_y = nodes_y
+            return None
+        else:
+            return ModelGrid(nodes_x, nodes_y)
+
+    def transpose(self, inplace=False):
+        """
+        Transposes the node arrays of the model grid.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Toggles the application of ``fxn`` in-place or on a copy.
+
+        Returns
+        -------
+        None or ModelGrid
+            `None` is returned if ``inplace`` is `True`. Otherwise,
+            a new :class:`~ModelGrid` is returned.
+
+        """
+
+        return self.transform(np.transpose, inplace=inplace)
+
+    def fliplr(self, inplace=False):
+        """
+        Reverses the columns of the node arrays of the model grid.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Toggles the application of ``fxn`` in-place or on a copy.
+
+        Returns
+        -------
+        None or ModelGrid
+            `None` is returned if ``inplace`` is `True`. Otherwise,
+            a new :class:`~ModelGrid` is returned.
+
+        """
+
+        return self.transform(np.fliplr, inplace=inplace)
+
+    def flipud(self, inplace=False):
+        """
+        Reverses the rows of the node arrays of the model grid.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Toggles the application of ``fxn`` in-place or on a copy.
+
+        Returns
+        -------
+        None or ModelGrid
+            `None` is returned if ``inplace`` is `True`. Otherwise,
+            a new :class:`~ModelGrid` is returned.
+
+        """
+
+        return self.transform(np.flipud, inplace=inplace)
 
     def split(self, index, axis=0):
+        """
+        Splits a model grid into two separate objects.
+
+        Parameters
+        ----------
+        index : int
+            The leading edge of where the split should occur.
+        axis : int, optional
+            The axis along which ``nodes`` will be split. Use `axis = 0`
+            to split along rows and `axis = 1` for columns.
+        inplace : bool, optional
+            Toggles the application of ``fxn`` in-place or on a copy.
+
+        Raises
+        ------
+        ValueError
+            Trying to split at the edge (i.e., resulting in the
+            original array and an empty array) will raise an error.
+
+        Returns
+        -------
+        grid1, grid2 : ModelGrids
+            The two non-overlapping sides of the grid.
+
+        """
+
         x1, x2 = split(self.nodes_x, index, axis=axis)
         y1, y2 = split(self.nodes_y, index, axis=axis)
         return ModelGrid(x1, y1), ModelGrid(x2, y2)
 
-    def refine(self, index, axis=0, n_points=1):
-        return self.transform(refine, index, axis=axis, n_points=n_points)
+    def refine(self, index, axis=0, n_points=1, inplace=False):
+        """
+        Insert and linearly interpolate new nodes in an existing grid.
 
-    def merge(self, other, how='vert', where='+', shift=0):
-        """ Merge with another grid using pygridtools.misc.padded_stack.
+        Parameters
+        ----------
+        nodes : numpy.ndarray
+            An N x M array of individual node coordinates (i.e., the
+            x-coords or the y-coords only)
+        index : int
+            The leading edge of where the split should occur.
+        axis : int, optional
+            The axis along which ``nodes`` will be split. Use `axis = 0`
+            to split along rows and `axis = 1` for columns.
+        n_points : int, optional
+            The number of *new* rows or columns to be inserted.
+        inplace : bool, optional
+            Toggles the application of ``fxn`` in-place or on a copy.
+
+        Returns
+        -------
+        None or ModelGrid
+            `None` is returned if ``inplace`` is `True`. Otherwise,
+            a new :class:`~ModelGrid` is returned.
+
+        """
+
+        return self.transform(refine, index, axis=axis, n_points=n_points, inplace=inplace)
+
+    def merge(self, other, how='vert', where='+', shift=0, inplace=False):
+        """
+        Merge with another grid using pygridtools.misc.padded_stack.
 
         Parameters
         ----------
@@ -228,12 +497,17 @@ class ModelGrid(object):
             upper-left corner, `'+'` indicates that the second array
             will be placed at higher index relative to the first array.
             Essentially:
-              - if how == 'vert'
-                - `'+'` -> `a` is above (higher index) `b`
-                - `'-'` -> `a` is below (lower index) `b`
-              - if how == 'horiz'
-                - `'+'` -> `a` is to the left of `b`
-                - `'-'` -> `a` is to the right of `b`
+
+             - if how == 'vert'
+
+               - `'+'` -> `a` is above (higher index) `b`
+               - `'-'` -> `a` is below (lower index) `b`
+
+             - if how == 'horiz'
+
+               - `'+'` -> `a` is to the left of `b`
+               - `'-'` -> `a` is to the right of `b`
+
             See the examples and pygridtools.misc.padded_stack for more
             info.
         shift : int (default = 0)
@@ -241,10 +515,14 @@ class ModelGrid(object):
             axis other than the one being merged. In other words,
             vertically stacked arrays can be shifted horizontally,
             and horizontally stacked arrays can be shifted vertically.
+        inplace : bool, optional
+            Toggles the application of ``fxn`` in-place or on a copy.
 
         Returns
         -------
-        self (operates in-place)
+        None or ModelGrid
+            `None` is returned if ``inplace`` is `True`. Otherwise,
+            a new :class:`~ModelGrid` is returned.
 
         Notes
         -----
@@ -276,11 +554,40 @@ class ModelGrid(object):
 
         """
 
-        self.nodes_x = merge(self.nodes_x, other.nodes_x, how=how,
-                             where=where, shift=shift)
-        self.nodes_y = merge(self.nodes_y, other.nodes_y, how=how,
-                             where=where, shift=shift)
+        nodes_x = merge(self.nodes_x, other.nodes_x, how=how,
+                        where=where, shift=shift)
+        nodes_y = merge(self.nodes_y, other.nodes_y, how=how,
+                        where=where, shift=shift)
+        if inplace:
+            self.nodes_x = nodes_x
+            self.nodes_y = nodes_y
+            return None
+        else:
+            return ModelGrid(nodes_x, nodes_y)
+
+    def update_cell_mask(self, mask=None):
+        """
+        Regenerate the cell mask based on either the NaN cells
+        or a user-provided mask. This is usefull after splitting,
+        merging, or anything other transformation.
+
+        Parameters
+        ----------
+        mask : numpy.ndarray of bools, optional
+            The custom make to apply. If ommited, the mask will be
+            determined by the missing values in the cells arrays.
+
+        Returns
+        -------
+        self
+            So you can method-chain this.
+        """
+        if mask is None:
+            self.cell_mask = np.ma.masked_invalid(self.xc).mask
+        else:
+            self.cell_mask = mask
         return self
+
 
     def mask_cells_with_polygon(self, polyverts, use_centroids=True,
                                 min_nodes=3, inside=True,
@@ -309,7 +616,7 @@ class ModelGrid(object):
             Not yet implemented.
         use_existing : bool (default = True)
             When True, the newly computed mask is combined (via a
-            bit-wise `or` opteration) with the existing ``cell_mask``
+            bit-wise `or` operation) with the existing ``cell_mask``
             attribute of the MdoelGrid.
         inplace : bool (default = True):
             If True, the ``cell_mask`` attribute of the ModelGrid is set
@@ -350,6 +657,28 @@ class ModelGrid(object):
 
     def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
                               bathyrows=0, title='test'):
+        """
+        Generates the GEFDC control (gefdc.inp) file for the EFDC grid
+        preprocessor.
+
+        Parameters
+        ----------
+        outputdir : str, optional
+            The path to where the should be saved.
+        filename : str, optional
+            The name of the output file.
+        bathyrows : int, optional
+            The number of rows in the grid's bathymetry data file.
+        title : str, optional
+            The title of the grid as portrayed in ``filename``.
+
+        Returns
+        -------
+        gefdc : str
+            The text of the output file.
+
+        """
+
         outfile = iotools._outputfile(outputdir, filename)
 
         gefdc = iotools._write_gefdc_control_file(
@@ -363,6 +692,36 @@ class ModelGrid(object):
 
     def writeGEFDCCellFile(self, outputdir=None, filename='cell.inp',
                            triangles=False, maxcols=125):
+        """
+        Generates the cell definition/ASCII-art file for GEFDC.
+
+        .. warning:
+           This whole thing is probably pretty buggy.
+
+        Parameters
+        ----------
+        outputdir : str, optional
+            The path to where the should be saved.
+        filename : str, optional
+            The name of the output file.
+        triangles : bool, optional
+            Toggles the inclusion of triangular cells.
+
+            .. warning:
+               This is experimental and probably buggy if it has been
+               implmented at all.
+
+        maxcols : int, optional
+            The maximum number of columns to write to each row. Cells
+            beyond this number will be writted in separate section at
+            the bottom of the file.
+
+        Returns
+        -------
+        cells : str
+            The text of the output file.
+
+        """
 
         cells = misc.make_gefdc_cells(
             ~np.isnan(self.xn), self.cell_mask, triangles=triangles
@@ -374,11 +733,48 @@ class ModelGrid(object):
         return cells
 
     def writeGEFDCGridFile(self, outputdir=None, filename='grid.out'):
+        """
+        Writes to the nodes as coordinate pairs for GEFDC.
+
+        Parameters
+        ----------
+        outputdir : str, optional
+            The path to where the should be saved.
+        filename : str, optional
+            The name of the output file.
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            The dataframe of node coordinate pairs.
+
+        """
+
         outfile = iotools._outputfile(outputdir, filename)
         df = iotools._write_gridout_file(self.xn, self.yn, outfile)
         return df
 
-    def writeGEFDCGridextFile(self, outputdir, shift=2, filename='gridext.inp'):
+    def writeGEFDCGridextFile(self, outputdir, filename='gridext.inp', shift=2):
+        """
+        Writes to the nodes and I/J cell index as to a file for GEFDC.
+
+        Parameters
+        ----------
+        outputdir : str, optional
+            The path to where the should be saved.
+        filename : str, optional
+            The name of the output file.
+        shift : int, optional
+            The shift that should be applied to the I/J index. The
+            default value to 2 means that the first cell is at (2, 2)
+            instead of (0, 0).
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            The dataframe of coordinates and I/J index.
+
+        """
         outfile = iotools._outputfile(outputdir, filename)
         df = self.to_dataframe().stack(level='i', dropna=True).reset_index()
         df['i'] += shift
@@ -390,6 +786,31 @@ class ModelGrid(object):
                   usemask=True, cell_kws=None,
                   domain_kws=None, extent_kws=None,
                   showisland=True, island_kws=None):
+        """
+        Creates a figure of the cells, boundary, domain, and islands.
+
+        Parameters
+        ----------
+        engine : str
+            The plotting engine to be used. Right now, only `'mpl'` has
+            been implemented. Interactive figures via `'bokeh'` are
+            planned.
+        ax : matplotlib.Axes, optional
+            The axes onto which the data will be drawn. If not provided,
+            a new one will be created. Applies only to the *mpl* engine.
+        usemask : bool, optional
+            Whether or not cells should have the ModelGrid's mask
+            applied to them.
+        cell_kws, domain_kws, extent_kws, island_kws : dict
+            Dictionaries of plotting options for each element
+            of the figure.
+
+            .. note:
+            ``cell_kws`` and ``island_kws`` are feed to
+            :func:`~matplotlib.pyplot.Polygon`. All others are sent
+            to :meth:`~ax.plot`.
+
+        """
 
         if cell_kws is None:
             cell_kws = {}
@@ -426,6 +847,23 @@ class ModelGrid(object):
         return x, y
 
     def to_dataframe(self, usemask=False, which='nodes'):
+        """
+        Converts a grid to a wide dataframe of coordinates.
+
+        Parameters
+        ----------
+        usemask : bool, optional
+            Toggles the ommission of masked values (as determined by
+            :meth:`~cell_mask`.
+        which : str, optional ('nodes')
+            This can be "nodes" (default) or "cells". Specifies which
+            coordinates should be used.
+
+        Returns
+        -------
+        pandas.DataFrame
+
+        """
 
         x, y = self._get_x_y(which, usemask=usemask)
 
@@ -445,12 +883,74 @@ class ModelGrid(object):
         return easting.join(northing)
 
     def to_coord_pairs(self, usemask=False, which='nodes'):
+        """
+        Converts a grid to a long array of coordinates pairs.
+
+        Parameters
+        ----------
+        usemask : bool, optional
+            Toggles the ommission of masked values (as determined by
+            :meth:`~cell_mask`.
+        which : str, optional ('nodes')
+            This can be "nodes" (default) or "cells". Specifies which
+            coordinates should be used.
+
+        Returns
+        -------
+        numpy.ndarray
+
+        """
+
         x, y = self._get_x_y(which, usemask=usemask)
         return np.array(list(zip(x.flatten(), y.flatten())))
 
     def to_shapefile(self, outputfile, usemask=True, which='cells',
                      river=None, reach=0, elev=None, template=None,
                      geom='Polygon', mode='w', triangles=False):
+        """
+        Converts a grid to a shapefile via the *fiona* package.
+
+        Parameters
+        ----------
+        outputfile : str
+            The name of the shapefile where the data will be saved.
+        usemask : bool, optional
+            Toggles the ommission of masked values (as determined by
+            :meth:`~cell_mask`.
+        which : str, optional
+            This can be "nodes" (default) or "cells". Specifies which
+            coordinates should be used.
+        river : str, optional
+            Identifier of the river.
+        reach : int or str, optional
+            Indetifier of the reach of ``river``.
+        elev : numpy.ndarray, optional
+            Bathymetry data to be assigned to each record in the
+            shapefile.
+        template : str, optional
+            The shapefile schema template. If not provided, the
+            ``template`` attribute of the ModelGrid object is used.
+        geom : str, optional
+            The type of geometry to use. If "Point", either the grid
+            nodes or the centroids of the can be used (see the
+            ``which`` parameter). However, if "Polygon" is specified,
+            cells will be generated from the nodes, regardless of the
+            value of ``which``.
+        mode : str, optional
+            The mode in which ``outputfile`` will be opened. Should be
+            either 'w' (write) or 'a' (append).
+        triangles : bool, optional
+            Toggles the inclusion of triangular cells.
+
+            .. warning:
+               This is experimental and probably buggy if it has been
+               implmented at all.
+
+        Returns
+        -------
+        None
+
+        """
 
         if template is None:
             template = self.template
@@ -477,25 +977,76 @@ class ModelGrid(object):
             raise ValueError("geom must be either 'Point' or 'Polygon'")
 
     @classmethod
-    def from_dataframe(cls, df, xcol='easting', ycol='northing', icol='i'):
-        nodes_x = df[xcol].unstack(level='i')
-        nodes_y = df[ycol].unstack(level='i')
+    def from_dataframe(cls, df, xcol='easting', ycol='northing', ilevel='ii'):
+        """
+        Build a ModelGrid from a DataFrame of I/J indexes and x/y
+        columns.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Must have a MultiIndex of I/J cell index values.
+        xcol, ycol : str, optional
+            The names of the columns for the x and y coordinates.
+        ilevel : str, optional
+            The index level specifying the I-index of the grid.
+
+        Returns
+        -------
+        ModelGrid
+
+        """
+
+        nodes_x = df[xcol].unstack(level=ilevel)
+        nodes_y = df[ycol].unstack(level=ilevel)
         return cls(nodes_x, nodes_y)
 
     @classmethod
     def from_shapefile(cls, shapefile, icol='ii', jcol='jj'):
+        """
+        Build a ModelGrid from a shapefile of *nodes*.
+
+        Parameters
+        ----------
+        outputfile : str
+            The name of the shapefile of the grid *nodes*.
+        icol, jcol : str, optional
+            The names of the columns in the shapefile containing the
+            I/J index of the nodes.
+
+        Returns
+        -------
+        ModelGrid
+
+        """
+
         df = iotools.readGridShapefile(shapefile, icol=icol, jcol=jcol)
         return cls.from_dataframes(df['easting'], df['northing'])
 
     @classmethod
     def from_Gridgen(cls, gridgen):
+        """
+        Build a ModelGrid from a :class:`~pygridgen.Gridgen` object.
+
+        Parameters
+        ----------
+        gridgen : pygridgen.Gridgen
+
+        Returns
+        -------
+        ModelGrid
+
+        """
         return cls(gridgen.x, gridgen.y)
 
 
 def makeGrid(ny, nx, domain, bathydata=None, verbose=False,
              rawgrid=True, **gparams):
-    """ Generate and (optionally) visualize a grid, and create input
-    files for the GEDFC preprocessor (makes grid input files for GEFDC).
+    """
+    Generate a :class:`~pygridgen.Gridgen` or :class:`~ModelGrid`
+    from scratch. This can take a large number of parameters passed
+    directly to the ``Gridgen`` constructor. See the
+    `Other Parameters` section.
 
     Parameters
     ----------
@@ -505,70 +1056,74 @@ def makeGrid(ny, nx, domain, bathydata=None, verbose=False,
     domain : optional pandas.DataFrame or None (default)
         Defines the boundary of the model area. Must be provided if
         `makegrid` = True. Required columns:
+
           - 'x' (easting)
           - 'y' (northing),
           - 'beta' (turning points, must sum to 1)
+
     bathydata : optional pandas.DataFrame or None (default)
         Point bathymetry/elevation data. Will be interpolated unto the
         grid if provided. If None, a default value of 0 will be used.
         Required columns:
+
           - 'x' (easting)
           - 'y' (northing),
           - 'z' (elevation)
+
+    verbose : bool, optional
+        Toggles on the printing of status updates.
     rawgrid : bool (default = True)
         When True, returns a pygridgen.Gridgen object. Otherwise, a
         pygridtools.ModelGrid object is returned.
-    **gparams : optional kwargs
-        Parameters to be passed to the pygridgen.grid.Gridgen constructor.
-        Only used if `makegrid` = True and `domain` is not None.
-        `ny` and `nx` are absolutely required. Optional values include:
 
-        ul_idx : optional int (default = 0)
-            The index of the what should be considered the upper left
-            corner of the grid boundary in the `xbry`, `ybry`, and
-            `beta` inputs. This is actually more arbitrary than it
-            sounds. Put it some place convenient for you, and the
-            algorthim will conceptually rotate the boundary to place
-            this point in the upper left corner. Keep that in mind when
-            specifying the shape of the grid.
-        focus : optional pygridgen.Focus instance or None (default)
-            A focus object to tighten/loosen the grid in certain
-            sections.
-        proj : option pyproj projection or None (default)
-            A pyproj projection to be used to convert lat/lon
-            coordinates to a projected (Cartesian) coordinate system
-            (e.g., UTM, state plane).
-        nnodes : optional int (default = 14)
-            The number of nodes used in grid generation. This affects
-            the precision and computation time. A rule of thumb is that
-            this should be equal to or slightly larger than
-            -log10(precision).
-        precision : optional float (default = 1.0e-12)
-            The precision with which the grid is generated. The default
-            value is good for lat/lon coordinate (i.e., smaller
-            magnitudes of boundary coordinates). You can relax this to
-            e.g., 1e-3 when working in state plane or UTM grids and
-            you'll typically get better performance.
-        nppe : optional int (default = 3)
-            The number of points per internal edge. Lower values will
-            coarsen the image.
-        newton : optional bool (default = True)
-            Toggles the use of Gauss-Newton solver with Broyden update
-            to determine the sigma values of the grid domains. If False
-            simple iterations will be used instead.
-        thin : optional bool (default = True)
-            Toggle to True when the (some portion of) the grid is
-            generally narrow in one dimension compared to another.
-        checksimplepoly : optional bool (default = True)
-            Toggles a check to confirm that the boundary inputs form a
-            valid geometry.
-        verbose : optional bool (default = True)
-            Toggles the printing of console statements to track the
-            progress of the grid generation.
+    Other Parameters
+    ----------------
+    ul_idx : optional int (default = 0)
+        The index of the what should be considered the upper left
+        corner of the grid boundary in the `xbry`, `ybry`, and
+        `beta` inputs. This is actually more arbitrary than it
+        sounds. Put it some place convenient for you, and the
+        algorthim will conceptually rotate the boundary to place
+        this point in the upper left corner. Keep that in mind when
+        specifying the shape of the grid.
+    focus : optional pygridgen.Focus instance or None (default)
+        A focus object to tighten/loosen the grid in certain
+        sections.
+    proj : option pyproj projection or None (default)
+        A pyproj projection to be used to convert lat/lon
+        coordinates to a projected (Cartesian) coordinate system
+        (e.g., UTM, state plane).
+    nnodes : optional int (default = 14)
+        The number of nodes used in grid generation. This affects
+        the precision and computation time. A rule of thumb is that
+        this should be equal to or slightly larger than
+        -log10(precision).
+    precision : optional float (default = 1.0e-12)
+        The precision with which the grid is generated. The default
+        value is good for lat/lon coordinate (i.e., smaller
+        magnitudes of boundary coordinates). You can relax this to
+        e.g., 1e-3 when working in state plane or UTM grids and
+        you'll typically get better performance.
+    nppe : optional int (default = 3)
+        The number of points per internal edge. Lower values will
+        coarsen the image.
+    newton : optional bool (default = True)
+        Toggles the use of Gauss-Newton solver with Broyden update
+        to determine the sigma values of the grid domains. If False
+        simple iterations will be used instead.
+    thin : optional bool (default = True)
+        Toggle to True when the (some portion of) the grid is
+        generally narrow in one dimension compared to another.
+    checksimplepoly : optional bool (default = True)
+        Toggles a check to confirm that the boundary inputs form a
+        valid geometry.
+    verbose : optional bool (default = True)
+        Toggles the printing of console statements to track the
+        progress of the grid generation.
 
     Returns
     -------
-    grid : pygridgen.grid.Gridgen obejct
+    grid : pygridgen.Gridgen or ModelGrid
 
     Notes
     -----

@@ -157,7 +157,7 @@ def interpolate_bathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='
     yy[np.isnan(y_points)] = y_points.max() + 5
 
     # use cubic-spline approximation to interpolate the grid
-    csa = pygridgen.csa(gridbathy[xcol], gridbathy[ycol], gridbathy[zcol])
+    csa = pygridgen.csa(gridbathy[xcol].values, gridbathy[ycol].values, gridbathy[zcol].values)
     return csa(xx, yy)
 
 

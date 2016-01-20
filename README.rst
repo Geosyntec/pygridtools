@@ -55,7 +55,8 @@ From the source tree, run them simply with by invoking ``nosetests`` in a termin
 Source code and Issue Tracker
 ------------------------------
 
-The source code is available on Github, `Geosyntec/pygridtools <https://github.com/Geosyntec/pygridtools/>`_
+The source code is available on Github at `Geosyntec/pygridtools <https://github.com/Geosyntec/pygridtools/>`_.
+
 Please report bugs, issues, and ideas there.
 
 Contributing

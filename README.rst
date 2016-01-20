@@ -1,5 +1,7 @@
 `pygridtools`
 =============
+.. image:: http://i.imgur.com/2SeSNsR.png
+
 .. image:: https://travis-ci.org/phobson/pygridtools.svg?branch=master
     :target: https://travis-ci.org/phobson/pygridtools
 .. image:: https://coveralls.io/repos/phobson/pygridtools/badge.svg?branch=master&service=github

@@ -1,6 +1,6 @@
 `pygridtools`
 =============
-.. image:: http://i.imgur.com/2SeSNsR.png
+.. image:: http://i.imgur.com/JWdgAKk.png
 
 .. image:: https://travis-ci.org/Geosyntec/pygridtools.svg?branch=master
     :target: https://travis-ci.org/Geosyntec/pygridtools

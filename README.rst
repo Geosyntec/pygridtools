@@ -45,6 +45,17 @@ Provided that all of the shared C libraries are installed, the remaining python 
 * fiona (for shapfile I/O)
 * pandas (for easy data I/O and manipulation)
 
+Grid Generation
+~~~~~~~~~~~~~~~
+
+If you wish to generate new grids from scratch, you'll need `pygridgen <https://github.com/phobson/pygridgen>`_, which is also available through the IOOS conda channel.
+
+::
+
+   conda install --channel=IOOS pygridgen
+   
+The documentation `pygridgen` has a `more detailed tutorial <http://phobson.github.io/pygridgen/tutorial/basics.html>`_ on generating new grids.
+
 Testing
 ~~~~~~~
 

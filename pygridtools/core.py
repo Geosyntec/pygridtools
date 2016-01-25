@@ -1,6 +1,7 @@
 from __future__ import division
 
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from scipy import interpolate
@@ -9,6 +10,7 @@ import pandas
 from pygridtools import misc
 from pygridtools import iotools
 from pygridtools import viz
+from pygridtools import validate
 
 
 def transform(nodes, fxn, *args, **kwargs):
@@ -115,7 +117,7 @@ def merge(nodes, other_nodes, how='vert', where='+', shift=0):
     Returns
     -------
     merged : numpy.ndarrays
-        The unified nodes coordinates
+        The unified nodes coordinates.
 
     """
 
@@ -123,50 +125,76 @@ def merge(nodes, other_nodes, how='vert', where='+', shift=0):
                      where=where, shift=shift)
 
 
-def _interp_between_vectors(vector1, vector2, n_points=1):
-    if n_points < 1:
+def _interp_between_vectors(vector1, vector2, n_nodes=1):
+    if n_nodes < 1:
         raise ValueError("number of interpolated points must be at least 1")
 
     array = np.vstack([vector1, vector2]).T
     old_index = np.arange(2)
     interp = interpolate.interp1d(old_index, array, kind='linear')
 
-    new_index = np.linspace(0, 1, num=n_points + 2)
+    new_index = np.linspace(0, 1, num=n_nodes + 2)
     return interp(new_index).T
 
 
-def refine(nodes, index, axis=0, n_points=1):
-    """
-    Insert and linearly interpolate new nodes in an existing array.
+def insert(nodes, index, axis=0, n_nodes=1):
+    """ Inserts new rows or columns between existing nodes.
 
     Parameters
     ----------
     nodes : numpy.ndarray
-        An N x M array of individual node coordinates (i.e., the
-        x-coords or the y-coords only)
+        The the array to be inserted.
     index : int
-        The leading edge of where the split should occur.
-    axis : int, optional
-        The axis along which ``nodes`` will be split. Use `axis = 0`
-        to split along rows and `axis = 1` for columns.
-    n_points : int, optional
-        The number of *new* rows or columns to be inserted.
+        The index within the array that will be inserted.
+    axis : int
+        Either 0 to insert rows or 1 to insert columns.
+    n_nodes : int
+        The number of new nodes to be inserted. In other words,
+        ``n_nodes = 1`` implies that the given row to columns will
+        be split in half. Similarly, ``n_nodes = 2`` will divide
+        into thirds, ``n_nodes = 3`` implies quarters, and so on.
 
     Returns
     -------
-    refined : numpy.ndarray
+    inserted : numpy.ndarray
+        The modified node array.
 
     """
 
     if axis == 1:
-        refined = refine(nodes.T, index, axis=0, n_points=n_points).T
+        inserted = insert(nodes.T, index, axis=0, n_nodes=n_nodes).T
     else:
         top, bottom = split(nodes, index, axis=0)
         edge1, edge2 = top[-1, :], bottom[0, :]
-        middle = _interp_between_vectors(edge1, edge2, n_points=n_points)
-        refined = np.vstack([top, middle[1:-1], bottom])
+        middle = _interp_between_vectors(edge1, edge2, n_nodes=n_nodes)
+        inserted = np.vstack([top, middle[1:-1], bottom])
 
-    return refined
+    return inserted
+
+
+def extract(nodes, jstart=None, istart=None, jend=None, iend=None):
+    """
+    Extracts a subset of an array into new array.
+
+    Parameters
+    ----------
+    jstart, jend : int, optional
+        Start and end of the selection along the j-index
+    istart, iend : int, optional
+        Start and end of the selection along the i-index
+
+    Returns
+    -------
+    subset : array
+        The extracted subset of a copy of the original array.
+
+    Notes
+    -----
+    Calling this without any [j|i][start|end] arguments effectively
+    just makes a copy of the array.
+
+    """
+    return deepcopy(nodes[jstart:jend, istart:iend])
 
 
 class ModelGrid(object):
@@ -199,6 +227,26 @@ class ModelGrid(object):
         self._domain = None
         self._extent = None
         self._islands = None
+
+    @property
+    def nodes_x(self):
+        """Array of node x-coordinates. """
+        return self._nodes_x
+
+    @nodes_x.setter
+    def nodes_x(self, value):
+        self._nodes_x = value
+
+    @property
+    def nodes_y(self):
+        """ Array of node y-coordinates. """
+        return self._nodes_y
+
+    @nodes_y.setter
+    def nodes_y(self, value):
+        """Array object of y-nodes"""
+        self._nodes_y = value
+
     @property
     def cells_x(self):
         """Array of cell centroid x-coordinates"""
@@ -271,6 +319,7 @@ class ModelGrid(object):
     def cell_mask(self):
         """ Boolean mask for the cells """
         return self._cell_mask
+
     @cell_mask.setter
     def cell_mask(self, value):
         self._cell_mask = value
@@ -279,6 +328,7 @@ class ModelGrid(object):
     def template(self):
         """ Template shapefile (schema) for export """
         return self._template
+
     @template.setter
     def template(self, value):
         self._template = value
@@ -287,6 +337,7 @@ class ModelGrid(object):
     def domain(self):
         """ The optional domain used to generate the raw grid """
         return self._domain
+
     @domain.setter
     def domain(self, value):
         self._domain = value
@@ -296,6 +347,7 @@ class ModelGrid(object):
         """ The final extent of the model grid
         (everything outside is masked). """
         return self._extent
+
     @extent.setter
     def extent(self, value):
         self._extent = value
@@ -304,6 +356,7 @@ class ModelGrid(object):
     def islands(self):
         """ Polygons used to make holes/gaps in the grid """
         return self._islands
+
     @islands.setter
     def islands(self, value):
         self._islands = value
@@ -431,9 +484,9 @@ class ModelGrid(object):
         y1, y2 = split(self.nodes_y, index, axis=axis)
         return ModelGrid(x1, y1), ModelGrid(x2, y2)
 
-    def refine(self, index, axis=0, n_points=1):
+    def insert(self, index, axis=0, n_nodes=1):
         """
-        Insert and linearly interpolate new nodes in an existing grid.
+        Inserts and linearly interpolates new nodes in an existing grid.
 
         Parameters
         ----------
@@ -445,7 +498,7 @@ class ModelGrid(object):
         axis : int, optional
             The axis along which ``nodes`` will be split. Use `axis = 0`
             to split along rows and `axis = 1` for columns.
-        n_points : int, optional
+        n_nodes : int, optional
             The number of *new* rows or columns to be inserted.
 
         Returns
@@ -454,8 +507,34 @@ class ModelGrid(object):
             A new :class:`~ModelGrid` is returned.
 
         """
+        return self.transform(insert, index, axis=axis, n_nodes=n_nodes)
 
-        return self.transform(refine, index, axis=axis, n_points=n_points)
+    def extract(self, jstart=0, istart=0, jend=-1, iend=-1):
+        """
+        Extracts a subset of an array into new grid.
+
+        Parameters
+        ----------
+        jstart, jend : int, optional
+            Start and end of the selection along the j-index
+        istart, iend : int, optional
+            Start and end of the selection along the i-index
+
+        Returns
+        -------
+        subset : grid
+            The extracted subset of a copy of the original grid.
+
+        Notes
+        -----
+        Calling this without any [j|i][start|end] arguments effectively
+        just makes a copy of the grid.
+
+        """
+        return self.transform(extract, jstart=jstart, istart=istart, jend=jend, iend=iend)
+
+    def copy(self):
+        return deepcopy(self)
 
     def merge(self, other, how='vert', where='+', shift=0):
         """
@@ -554,7 +633,6 @@ class ModelGrid(object):
 
         masked = self.copy()
         masked.cell_mask = mask
-
         return masked
 
     def mask_cells_with_polygon(self, polyverts, use_centroids=True,

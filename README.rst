@@ -12,7 +12,7 @@
 
 A high-level interface for curvilinear-orthogonal grid generation, manipulation, and visualization.
 
-Depends heavily on `gridgen <https://github.com/sakov/gridgen-c>`_ and Geosyntec's fork of `pygridgen <https://Geosyntec.github.io/pygridgen>`_
+Depends heavily on `gridgen <https://github.com/sakov/gridgen-c>`_ and Paul Hobson's fork of `pygridgen <https://phobson.github.io/pygridgen>`_
 
 The full documentation for this for library is `here <https://Geosyntec.github.io/pygridtools>`_.
 

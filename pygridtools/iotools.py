@@ -26,10 +26,11 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
     ----------
     shapefile : string
         Path to the shapefile containaing boundary points.
-        Expected schema of the shapefile:
-            order: numeric sort order of the points
-            beta: the 'beta' parameter used in grid generation to define
-                  turning points
+        Expected schema of the shapefile...
+
+        - order: numeric sort order of the points
+        - beta: the 'beta' parameter used in grid generation to define turning points
+
     betacol : string (default='beta')
         Column in the attribute table specifying the beta parameter's
         value at each point.
@@ -51,12 +52,13 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
     -------
     df : pandas.DataFrame
         A DataFrame of the boundary points with the following columns:
-          - x (easting)
-          - y (northing)
-          - beta (turning parameter)
-          - order (for sorting)
-          - reach
-          - upperleft
+
+        - x (easting)
+        - y (northing)
+        - beta (turning parameter)
+        - order (for sorting)
+        - reach
+        - upperleft
 
     """
 

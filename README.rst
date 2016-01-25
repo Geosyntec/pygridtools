@@ -1,24 +1,20 @@
 `pygridtools`
 =============
+
 .. image:: http://i.imgur.com/JWdgAKk.png
+
+
 
 .. image:: https://travis-ci.org/Geosyntec/pygridtools.svg?branch=master
     :target: https://travis-ci.org/Geosyntec/pygridtools
 .. image:: https://coveralls.io/repos/Geosyntec/pygridtools/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/Geosyntec/pygridtools?branch=master
 
-
 A high-level interface for curvilinear-orthogonal grid generation, manipulation, and visualization.
 
-Depends heavily on `gridgen`_ and `pygridgen`_
+Depends heavily on `gridgen <https://github.com/sakov/gridgen-c>`_ and Geosyntec's fork of `pygridgen <https://Geosyntec.github.io/pygridgen>`_
 
-.. _gridgen: https://github.com/sakov/gridgen-c
-.. _pygridgen: https://Geosyntec.github.io/pygridgen
-
-The full documentation for this for library is `here`_.
-
-.. _here: https://Geosyntec.github.io/pygridtools
-
+The full documentation for this for library is `here <https://Geosyntec.github.io/pygridtools>`_.
 
 Installation
 ------------
@@ -29,15 +25,17 @@ Install with
 ::
 
    conda install --channel=IOOS pygridtools
+   
+Building (``gridgen-c``) on Windows has been a touch nut to crack and help is very much wanted in that department.
 
 
-Python Dependencies
--------------------
+Other Python Dependencies
+-------------------------
 
 Basics
 ~~~~~~
 
-Provided that all of the shared C libraries are installed, the remaining python depedencies are the following:
+The remaining python depedencies are the following:
 
 * numpy
 * matplotlib, seaborn

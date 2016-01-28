@@ -26,7 +26,7 @@ Install with
 
    conda install --channel=IOOS pygridtools
    
-Building (``gridgen-c``) on Windows has been a touch nut to crack and help is very much wanted in that department.
+Building (``gridgen-c``) on Windows has been a tough nut to crack and help is very much wanted in that department.
 
 
 Other Python Dependencies

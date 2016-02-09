@@ -27,7 +27,12 @@ Install with
    conda install --channel=IOOS pygridtools
    
 Building (``gridgen-c``) on Windows has been a tough nut to crack and help is very much wanted in that department.
+Until we figure that out, you can do the following in the source directory.
 
+::
+
+    conda install seaborn fiona=1.5
+    pip install -e .
 
 Other Python Dependencies
 -------------------------

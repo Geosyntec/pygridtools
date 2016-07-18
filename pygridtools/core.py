@@ -191,32 +191,14 @@ class ModelGrid(object):
         if not np.all(nodes_x.shape == nodes_y.shape):
             raise ValueError('input arrays must have the same shape')
 
-        self._nodes_x = np.asarray(nodes_x)
-        self._nodes_y = np.asarray(nodes_y)
+        self.nodes_x = np.asarray(nodes_x)
+        self.nodes_y = np.asarray(nodes_y)
         self._template = None
         self._cell_mask = np.zeros(self.cell_shape, dtype=bool)
 
         self._domain = None
         self._extent = None
         self._islands = None
-
-    @property
-    def nodes_x(self):
-        """Array of node x-coordinates. """
-        return self._nodes_x
-    @nodes_x.setter
-    def nodes_x(self, value):
-        self._nodes_x = value
-
-    @property
-    def nodes_y(self):
-        """ Array of node y-coordinates. """
-        return self._nodes_y
-    @nodes_y.setter
-    def nodes_y(self, value):
-        """Array object of y-nodes"""
-        self._nodes_y = value
-
     @property
     def cells_x(self):
         """Array of cell centroid x-coordinates"""
@@ -339,85 +321,86 @@ class ModelGrid(object):
             .. note:
                The function is applied to each node array (x and y)
                individually.
-        inplace : bool, optional
-            Toggles the application of ``fxn`` in-place or on a copy.
         arg, kwargs : optional arguments and keyword arguments
             Additional values passed to ``fxn`` after the node array.
 
         Returns
         -------
-        None or ModelGrid
-            `None` is returned if ``inplace`` is `True`. Otherwise,
-            a new :class:`~ModelGrid` is returned.
+        modelgrid
+            A new :class:`~ModelGrid` is returned.
 
         """
 
-        inplace = kwargs.pop('inplace', False)
         nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
         nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
-        if inplace:
-            self.nodes_x = nodes_x
-            self.nodes_y = nodes_y
-            return None
-        else:
-            return ModelGrid(nodes_x, nodes_y)
+        return ModelGrid(nodes_x, nodes_y)
 
-    def transpose(self, inplace=False):
+    def copy(self):
+        """
+        Copies to nodes to a new model grid.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        modelgrid
+            A new :class:`~ModelGrid` is returned.
+
+        """
+        return self.transform(lambda x: x.copy())
+
+    def transpose(self):
         """
         Transposes the node arrays of the model grid.
 
         Parameters
         ----------
-        inplace : bool, optional
-            Toggles the application of ``fxn`` in-place or on a copy.
+        None
 
         Returns
         -------
-        None or ModelGrid
-            `None` is returned if ``inplace`` is `True`. Otherwise,
-            a new :class:`~ModelGrid` is returned.
+        modelgrid
+            A new :class:`~ModelGrid` is returned.
 
         """
 
-        return self.transform(np.transpose, inplace=inplace)
+        return self.transform(np.transpose)
 
-    def fliplr(self, inplace=False):
+    def fliplr(self):
         """
         Reverses the columns of the node arrays of the model grid.
 
         Parameters
         ----------
-        inplace : bool, optional
-            Toggles the application of ``fxn`` in-place or on a copy.
+        None
 
         Returns
         -------
-        None or ModelGrid
-            `None` is returned if ``inplace`` is `True`. Otherwise,
-            a new :class:`~ModelGrid` is returned.
+        modelgrid
+            A new :class:`~ModelGrid` is returned.
 
         """
 
-        return self.transform(np.fliplr, inplace=inplace)
+        return self.transform(np.fliplr)
 
-    def flipud(self, inplace=False):
+    def flipud(self):
         """
         Reverses the rows of the node arrays of the model grid.
 
         Parameters
         ----------
-        inplace : bool, optional
-            Toggles the application of ``fxn`` in-place or on a copy.
+        None
 
         Returns
         -------
-        None or ModelGrid
-            `None` is returned if ``inplace`` is `True`. Otherwise,
-            a new :class:`~ModelGrid` is returned.
+        modelgrid
+            A new :class:`~ModelGrid` is returned.
 
         """
 
-        return self.transform(np.flipud, inplace=inplace)
+        return self.transform(np.flipud)
 
     def split(self, index, axis=0):
         """
@@ -430,8 +413,6 @@ class ModelGrid(object):
         axis : int, optional
             The axis along which ``nodes`` will be split. Use `axis = 0`
             to split along rows and `axis = 1` for columns.
-        inplace : bool, optional
-            Toggles the application of ``fxn`` in-place or on a copy.
 
         Raises
         ------
@@ -450,7 +431,7 @@ class ModelGrid(object):
         y1, y2 = split(self.nodes_y, index, axis=axis)
         return ModelGrid(x1, y1), ModelGrid(x2, y2)
 
-    def refine(self, index, axis=0, n_points=1, inplace=False):
+    def refine(self, index, axis=0, n_points=1):
         """
         Insert and linearly interpolate new nodes in an existing grid.
 
@@ -466,20 +447,17 @@ class ModelGrid(object):
             to split along rows and `axis = 1` for columns.
         n_points : int, optional
             The number of *new* rows or columns to be inserted.
-        inplace : bool, optional
-            Toggles the application of ``fxn`` in-place or on a copy.
 
         Returns
         -------
-        None or ModelGrid
-            `None` is returned if ``inplace`` is `True`. Otherwise,
-            a new :class:`~ModelGrid` is returned.
+        modelgrid
+            A new :class:`~ModelGrid` is returned.
 
         """
 
-        return self.transform(refine, index, axis=axis, n_points=n_points, inplace=inplace)
+        return self.transform(refine, index, axis=axis, n_points=n_points)
 
-    def merge(self, other, how='vert', where='+', shift=0, inplace=False):
+    def merge(self, other, how='vert', where='+', shift=0):
         """
         Merge with another grid using pygridtools.misc.padded_stack.
 
@@ -515,20 +493,12 @@ class ModelGrid(object):
             axis other than the one being merged. In other words,
             vertically stacked arrays can be shifted horizontally,
             and horizontally stacked arrays can be shifted vertically.
-        inplace : bool, optional
-            Toggles the application of ``fxn`` in-place or on a copy.
 
         Returns
         -------
-        None or ModelGrid
-            `None` is returned if ``inplace`` is `True`. Otherwise,
-            a new :class:`~ModelGrid` is returned.
+        modelgrid
+            A new :class:`~ModelGrid` is returned.
 
-        Notes
-        -----
-        The ``cell_mask`` attribute is not automatically updated
-        following merge operates. See the Examples section on handling
-        this manually.
 
         Examples
         --------
@@ -544,7 +514,7 @@ class ModelGrid(object):
         })
         >>> grid1 = pgt.makeGrid(domain=domain1, nx=6, ny=5, rawgrid=False)
         >>> grid2 = pgt.makeGrid(domain=domain2, nx=8, ny=7, rawgrid=False)
-        >>> grid1.merge(grid2, how='horiz')
+        >>> merged = grid1.merge(grid2, how='horiz')
         >>> # update the cell mask to include new NA points:
         >>> grid1.cell_mask = np.ma.masked_invalid(grid1.xc).mask
 
@@ -558,12 +528,8 @@ class ModelGrid(object):
                         where=where, shift=shift)
         nodes_y = merge(self.nodes_y, other.nodes_y, how=how,
                         where=where, shift=shift)
-        if inplace:
-            self.nodes_x = nodes_x
-            self.nodes_y = nodes_y
-            return None
-        else:
-            return ModelGrid(nodes_x, nodes_y)
+        merged = ModelGrid(nodes_x, nodes_y).update_cell_mask()
+        return merged
 
     def update_cell_mask(self, mask=None):
         """
@@ -577,22 +543,23 @@ class ModelGrid(object):
             The custom make to apply. If ommited, the mask will be
             determined by the missing values in the cells arrays.
 
-        Returns
-        -------
-        self
-            So you can method-chain this.
-        """
-        if mask is None:
-            self.cell_mask = np.ma.masked_invalid(self.xc).mask
-        else:
-            self.cell_mask = mask
-        return self
+        masked : ModelGrid
+            A new :class:`~ModelGrid` wit the final mask to be applied
+            to the cells.
 
+        """
+
+        if mask is None:
+            mask = np.ma.masked_invalid(self.xc).mask
+
+        masked = self.copy()
+        masked.cell_mask = mask
+
+        return masked
 
     def mask_cells_with_polygon(self, polyverts, use_centroids=True,
                                 min_nodes=3, inside=True,
-                                use_existing=True, triangles=False,
-                                inplace=True):
+                                use_existing=True, triangles=False):
 
         """ Create mask for the cells of the ModelGrid with a polygon.
 
@@ -618,16 +585,12 @@ class ModelGrid(object):
             When True, the newly computed mask is combined (via a
             bit-wise `or` operation) with the existing ``cell_mask``
             attribute of the MdoelGrid.
-        inplace : bool (default = True):
-            If True, the ``cell_mask`` attribute of the ModelGrid is set
-            to the returned masked and None is returned. Otherwise, the
-            a new mask is returned the ``cell_mask`` attribute of the
-            ModelGrid is unchanged.
 
         Returns
         -------
-        cell_mask : np.array of bools
-            The final mask to be applied to the cells of the ModelGrid.
+        masked : ModelGrid
+            A new :class:`~ModelGrid` wit the final mask to be applied
+            to the cells.
 
         """
 
@@ -650,10 +613,7 @@ class ModelGrid(object):
         if use_existing:
             cell_mask = np.bitwise_or(self.cell_mask, cell_mask)
 
-        if inplace:
-            self.cell_mask = cell_mask
-
-        return cell_mask
+        return self.update_cell_mask(mask=cell_mask)
 
     def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
                               bathyrows=0, title='test'):

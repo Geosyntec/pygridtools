@@ -96,7 +96,7 @@ def test_dumpGridFile():
     if sys.platform == 'win32':
         baselinefile = 'pygridtools/tests/baseline_files/grid_win.out'
     elif sys.platform == 'darwin':
-        baselinefile = 'pygridtools/tests/baseline_files/grid_osx.out'
+        baselinefile = 'pygridtools/tests/baseline_files/grid_mac.out'
     else:
         baselinefile = 'pygridtools/tests/baseline_files/grid.out'
 

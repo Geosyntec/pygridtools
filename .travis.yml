@@ -24,11 +24,11 @@ install:
 
   # We just set up a conda environment with the right Python version. This
   # should not need changing.
-  - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION matplotlib=1.4 seaborn fiona=1.5 nose
+  - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION nose
   - source activate test
 
   # should also grab c-libs: gridgen, gridutils, csa, nn
-  - conda install --yes --channel=iOOS pygridgen
+  - conda install --yes --channel=conda-forge pygridgen fiona scipy
 
    # coveralls
   - conda install --yes coverage docopt requests pyyaml

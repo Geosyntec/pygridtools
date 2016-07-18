@@ -689,9 +689,9 @@ class Test_ModelGrid(object):
         nptest.assert_array_equal(result.nodes_x, known_xnodes)
         nptest.assert_array_equal(result.nodes_y, known_ynodes)
 
-    def test_mask_cells_with_polygon_inside_not_inplace(self):
+    def test_mask_cells_with_polygon_inside(self):
         orig_mask = self.mg.cell_mask.copy()
-        cell_mask = self.mg.mask_cells_with_polygon(self.polyverts, inplace=False, use_existing=False)
+        masked = self.mg.mask_cells_with_polygon(self.polyverts, use_existing=False)
         known_inside_mask = np.array([
             [False, False, False, False, False, False],
             [False, False, False, False, False, False],
@@ -702,12 +702,11 @@ class Test_ModelGrid(object):
             [False, False, False, False, False, False],
             [False, False, False, False, False, False]
         ], dtype=bool)
-        nptest.assert_array_equal(cell_mask, known_inside_mask)
-        nptest.assert_array_equal(self.mg.cell_mask, orig_mask)
+        nptest.assert_array_equal(masked.cell_mask, known_inside_mask)
 
     def test_mask_cells_with_polygon_inside_use_existing(self):
         self.mg.cell_mask = np.ma.masked_invalid(self.mg.xc).mask
-        cell_mask = self.mg.mask_cells_with_polygon(self.polyverts, use_existing=True)
+        masked = self.mg.mask_cells_with_polygon(self.polyverts, use_existing=True)
         known_inside_mask = np.array([
             [False, False,  True, True, True,  True],
             [False, False,  True, True, True,  True],
@@ -718,11 +717,10 @@ class Test_ModelGrid(object):
             [False, False,  True, True, True,  True],
             [False, False,  True, True, True,  True]
         ], dtype=bool)
-        nptest.assert_array_equal(cell_mask, known_inside_mask)
-        nptest.assert_array_equal(cell_mask, self.mg.cell_mask)
+        nptest.assert_array_equal(masked.cell_mask, known_inside_mask)
 
     def test_mask_cells_with_polygon_outside(self):
-        cell_mask = self.mg.mask_cells_with_polygon(self.polyverts, inside=False, use_existing=False)
+        masked = self.mg.mask_cells_with_polygon(self.polyverts, inside=False, use_existing=False)
         known_outside_mask = np.array([
             [True, True, True,  True,  True, True],
             [True, True, True,  True,  True, True],
@@ -733,10 +731,10 @@ class Test_ModelGrid(object):
             [True, True, True,  True,  True, True],
             [True, True, True,  True,  True, True]
         ], dtype=bool)
-        nptest.assert_array_equal(cell_mask, known_outside_mask)
+        nptest.assert_array_equal(masked.cell_mask, known_outside_mask)
 
     def test_mask_cells_with_polygon_use_nodes(self):
-        cell_mask = self.mg.mask_cells_with_polygon(self.polyverts, use_centroids=False, use_existing=False)
+        masked = self.mg.mask_cells_with_polygon(self.polyverts, use_centroids=False, use_existing=False)
         known_node_mask = np.array([
             [False, False, False, False, False, False],
             [False, False, False, False, False, False],
@@ -747,7 +745,7 @@ class Test_ModelGrid(object):
             [False, False, False, False, False, False],
             [False, False, False, False, False, False]
         ], dtype=bool)
-        nptest.assert_array_equal(cell_mask, known_node_mask)
+        nptest.assert_array_equal(masked.cell_mask, known_node_mask)
 
     @nt.raises(ValueError)
     def test_mask_cells_with_polygon_nodes_too_few_nodes(self):

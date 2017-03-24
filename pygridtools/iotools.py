@@ -370,8 +370,7 @@ def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
     df = pandas.DataFrame(data).set_index(['j', 'i'])
     columns = ['easting', 'northing']
     columns.extend(othercols)
-    df.sort(inplace=True)
-    return df[columns]
+    return df.sort_index()[columns]
 
 
 def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',

@@ -117,19 +117,19 @@ class Test__interp_between_vectors(object):
         ])
 
     def test_insert_1(self):
-        result = core._interp_between_vectors(self.vector1, self.vector2, n_points=1)
+        result = core._interp_between_vectors(self.vector1, self.vector2, n_nodes=1)
         nptest.assert_array_equal(result, self.known_insert_1)
 
     def test_insert_3(self):
-        result = core._interp_between_vectors(self.vector1, self.vector2, n_points=3)
+        result = core._interp_between_vectors(self.vector1, self.vector2, n_nodes=3)
         nptest.assert_array_equal(result, self.known_insert_3)
 
     @nt.raises(ValueError)
     def test_bad_points(self):
-        core._interp_between_vectors(self.vector1, self.vector2, n_points=0)
+        core._interp_between_vectors(self.vector1, self.vector2, n_nodes=0)
 
 
-class Test_refine(object):
+class Test_insert(object):
     def setup(self):
         self.nodes = np.arange(25, dtype=float).reshape(5, 5)
 
@@ -171,19 +171,19 @@ class Test_refine(object):
         ])
 
     def test_n1_ax0(self):
-        result = core.refine(self.nodes, 2, axis=0, n_points=1)
+        result = core.insert(self.nodes, 2, axis=0, n_nodes=1)
         nptest.assert_array_equal(result, self.known_n1_ax0)
 
     def test_n4_ax0(self):
-        result = core.refine(self.nodes, 2, axis=0, n_points=4)
+        result = core.insert(self.nodes, 2, axis=0, n_nodes=4)
         nptest.assert_array_equal(result, self.known_n4_ax0)
 
     def test_n1_ax1(self):
-        result = core.refine(self.nodes, 2, axis=1, n_points=1)
+        result = core.insert(self.nodes, 2, axis=1, n_nodes=1)
         nptest.assert_array_equal(result, self.known_n1_ax1)
 
     def test_n3_ax1(self):
-        result = core.refine(self.nodes, 2, axis=1, n_points=3)
+        result = core.insert(self.nodes, 2, axis=1, n_nodes=3)
         nptest.assert_array_equal(result, self.known_n3_ax1)
 
 
@@ -625,7 +625,7 @@ class Test_ModelGrid(object):
         nptest.assert_array_equal(g3.xn, g4.xn)
         nptest.assert_array_equal(g3.xc, g4.xc)
 
-    def test_refine_3_ax0(self):
+    def test_insert_3_ax0(self):
         known_xnodes = np.ma.masked_invalid(np.array([
             [1.0, 1.5, 2.0, nan, nan, nan, nan],
             [1.0, 1.5, 2.0, nan, nan, nan, nan],
@@ -656,11 +656,11 @@ class Test_ModelGrid(object):
             [4.000, 4.000, 4.000,   nan,   nan,   nan,   nan],
         ]))
 
-        result = self.mg.refine(2, axis=0, n_points=3)
+        result = self.mg.insert(2, axis=0, n_nodes=3)
         nptest.assert_array_equal(result.nodes_x, known_xnodes)
         nptest.assert_array_equal(result.nodes_y, known_ynodes)
 
-    def test_refine_3_ax1(self):
+    def test_insert_3_ax1(self):
         known_xnodes = np.ma.masked_invalid(np.array([
             [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
             [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
@@ -685,11 +685,16 @@ class Test_ModelGrid(object):
             [4. , 4. , 4. , 4. , 4. , 4. , nan, nan, nan, nan],
         ]))
 
-        result = self.mg.refine(2, axis=1, n_points=3)
+        result = self.mg.insert(2, axis=1, n_nodes=3)
         nptest.assert_array_equal(result.nodes_x, known_xnodes)
         nptest.assert_array_equal(result.nodes_y, known_ynodes)
 
-    def test_mask_cells_with_polygon_inside(self):
+    def test_extract(self):
+        result = self.mg.extract(jstart=2, jend=5, istart=3, iend=6)
+        nptest.assert_array_equal(result.nodes_x, self.xn[2:5, 3:6])
+        nptest.assert_array_equal(result.nodes_y, self.yn[2:5, 3:6])
+
+    def test_mask_cells_with_polygon_inside_not_inplace(self):
         orig_mask = self.mg.cell_mask.copy()
         masked = self.mg.mask_cells_with_polygon(self.polyverts, use_existing=False)
         known_inside_mask = np.array([

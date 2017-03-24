@@ -5,7 +5,10 @@ matrix:
     - python: 2.7
       env:
         - COVERAGE=false
-    - python: 3.4
+    - python: 3.5
+      env:
+        - COVERAGE=false
+    - python: 3.6
       env:
         - COVERAGE=true
 
@@ -28,7 +31,7 @@ install:
   - source activate test
 
   # should also grab c-libs: gridgen, gridutils, csa, nn
-  - conda install --yes --channel=conda-forge pygridgen fiona scipy
+  - conda install --yes --channel=conda-forge pygridgen fiona scipy matplotlib=1.5
 
    # coveralls
   - conda install --yes coverage docopt requests pyyaml

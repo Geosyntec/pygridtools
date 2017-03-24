@@ -681,7 +681,8 @@ class ModelGrid(object):
             if min_nodes <= 0 or min_nodes > 4:
                 raise ValueError("`min_nodes` must be greater than 0 and no more than 4.")
 
-            _node_mask = misc.mask_with_polygon(self.xn, self.yn, polyverts, inside=inside).astype(int)
+            _node_mask = misc.mask_with_polygon(self.xn, self.yn, polyverts,
+                                                inside=inside).astype(int)
             cell_mask = (
                 _node_mask[1:, 1:] + _node_mask[:-1, :-1] +
                 _node_mask[:-1, 1:] + _node_mask[1:, :-1]

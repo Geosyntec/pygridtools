@@ -35,8 +35,8 @@ def make_poly_coords(xarr, yarr, zpnt=None, triangles=False):
 
     x = process_input(xarr)
     y = process_input(yarr)
-    if (not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0
-            or (triangles and len(x) == 3)):
+    if (not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0 or
+            (triangles and len(x) == 3)):
         if zpnt is None:
             coords = np.vstack([x, y]).T
         else:
@@ -222,7 +222,7 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
     b = np.asarray(b)
 
     if where == '-':
-        stacked = padded_stack(b, a, shift=-1*shift, where='+', how=how)
+        stacked = padded_stack(b, a, shift=-1 * shift, where='+', how=how)
 
     elif where == '+':
         if how.lower() in ('horizontal', 'horiz', 'h'):
@@ -370,7 +370,7 @@ def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
     for cj in range(cells.shape[0]):
         for ci in range(cells.shape[1]):
             shift = 3
-            total = np.sum(padded_cells[cj:cj+shift, ci:ci+shift])
+            total = np.sum(padded_cells[cj:cj + shift, ci:ci + shift])
             if total == bank_cell * shift**2:
                 cells[cj, ci] = land_cell
 

@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import nan
 
-import nose.tools as nt
+import pytest
 import numpy.testing as nptest
 
 from pygridtools import misc
@@ -106,31 +106,31 @@ class Test_make_record(object):
 
     def test_point(self):
         record = misc.make_record(1, self.point, 'Point', self.props)
-        nt.assert_dict_equal(record, self.known_point)
+        assert (record == self.known_point)
 
     def test_point_array(self):
         record = misc.make_record(1, self.point_array, 'Point', self.props)
-        nt.assert_dict_equal(record, self.known_point)
+        assert (record == self.known_point)
 
     def test_line(self):
         record = misc.make_record(1, self.non_point, 'LineString', self.props)
-        nt.assert_dict_equal(record, self.known_line)
+        assert (record == self.known_line)
 
     def test_line_array(self):
         record = misc.make_record(1, self.non_point_array, 'LineString', self.props)
-        nt.assert_dict_equal(record, self.known_line)
+        assert (record == self.known_line)
 
     def test_polygon(self):
         record = misc.make_record(1, self.non_point, 'Polygon', self.props)
-        nt.assert_dict_equal(record, self.known_polygon)
+        assert (record == self.known_polygon)
 
     def test_polygon_array(self):
         record = misc.make_record(1, self.non_point_array, 'Polygon', self.props)
-        nt.assert_dict_equal(record, self.known_polygon)
+        assert (record == self.known_polygon)
 
-    @nt.raises(ValueError)
     def test_bad_geom(self):
-        misc.make_record(1, self.non_point_array, 'Circle', self.props)
+        with pytest.raises(ValueError):
+            misc.make_record(1, self.non_point_array, 'Circle', self.props)
 
 
 class Test_interpolate_bathymetry(object):
@@ -139,14 +139,14 @@ class Test_interpolate_bathymetry(object):
         self.grid = testing.makeSimpleGrid()
 
         self.known_real_elev = np.ma.masked_invalid(np.array([
-            [100.15, 100.2 ,    nan,    nan,    nan,    nan],
-            [100.2 , 100.25, 100.65, 100.74, 100.83, 100.95],
-            [100.25, 100.3 , 100.35, 100.4 , 100.45, 100.5 ],
-            [100.3 , 100.35, 100.4 , 100.45, 100.5 , 100.55],
-            [100.35, 100.4 ,    nan,    nan,    nan,    nan],
-            [100.4 , 100.45,    nan,    nan,    nan,    nan],
-            [100.45, 100.5 ,    nan,    nan,    nan,    nan],
-            [100.5 , 100.55,    nan,    nan,    nan,    nan]
+            [100.15, 100.20,    nan,    nan,    nan,    nan],
+            [100.20, 100.25, 100.65, 100.74, 100.83, 100.95],
+            [100.25, 100.30, 100.35, 100.40, 100.45, 100.50],
+            [100.30, 100.35, 100.40, 100.45, 100.50, 100.55],
+            [100.35, 100.40,    nan,    nan,    nan,    nan],
+            [100.40, 100.45,    nan,    nan,    nan,    nan],
+            [100.45, 100.50,    nan,    nan,    nan,    nan],
+            [100.50, 100.55,    nan,    nan,    nan,    nan]
         ]))
 
     @nptest.dec.skipif(not has_pgg)
@@ -157,7 +157,7 @@ class Test_interpolate_bathymetry(object):
             np.ma.MaskedArray(data=np.zeros(self.grid.x_rho.shape),
                               mask=self.grid.x_rho.mask)
         )
-        nt.assert_tuple_equal(elev.shape, self.grid.x_rho.shape)
+        assert (elev.shape == self.grid.x_rho.shape)
 
     @nptest.dec.skipif(not has_pgg)
     def test_real_bathy(self):
@@ -359,13 +359,13 @@ class Test_padded_stack(object):
 
         nptest.assert_array_equal(step5, self.expected_all_gs)
 
-    @nt.raises(ValueError)
     def test_bad_how(self):
-        misc.padded_stack(self.g1, self.g3, how='junk', where='-', shift=2)
+        with pytest.raises(ValueError):
+            misc.padded_stack(self.g1, self.g3, how='junk', where='-', shift=2)
 
-    @nt.raises(ValueError)
     def test_bad_where(self):
-        misc.padded_stack(self.g1, self.g3, how='v', where='junk', shift=2)
+        with pytest.raises(ValueError):
+            misc.padded_stack(self.g1, self.g3, how='v', where='junk', shift=2)
 
 
 class Test_mask_with_polygon(object):
@@ -477,7 +477,7 @@ class Test_make_gefdc_cells_simple_nomask(Base_make_gefdc_cells):
 class Test_make_gefdc_cells_complex_nomask(Base_make_gefdc_cells):
     def setup(self):
         self.triangles = False
-        self.nodes  = np.array([
+        self.nodes = np.array([
             [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
             [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],

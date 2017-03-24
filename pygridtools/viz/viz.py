@@ -31,4 +31,3 @@ def plotPoints(*args, **kwargs):
 def plotCells(*args, **kwargs):
     engine_module = _check_engine(kwargs.pop('engine', 'mpl'))
     return engine_module._plot_cells(*args, **kwargs)
-

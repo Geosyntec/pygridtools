@@ -21,7 +21,8 @@ WINDOWS = sys.platform.lower() == 'win32'
 def test__plot_domain_with_beta():
     data = pgtest.makeSimpleBoundary()
     fig3 = _viz_mpl._plot_domain(domain_x='x', domain_y='y', beta='beta', data=data)
-    fig4 = _viz_mpl._plot_domain(domain_x=data['x'], domain_y=data['y'], beta=data['beta'], data=None)
+    fig4 = _viz_mpl._plot_domain(domain_x=data['x'], domain_y=data['y'],
+                                 beta=data['beta'], data=None)
 
 
 @image_comparison(
@@ -53,7 +54,8 @@ def test__plot_boundaries():
     islands = pgtest.makeSimpleIslands()
     fig1 = _viz_mpl._plot_boundaries(extent_x='x', extent_y='y', extent=extent)
     fig2 = _viz_mpl._plot_boundaries(extent_x=extent['x'], extent_y=extent['y'], extent=None)
-    fig3 = _viz_mpl._plot_boundaries(islands_x='x', islands_y='y', islands_name='island', islands=islands)
+    fig3 = _viz_mpl._plot_boundaries(islands_x='x', islands_y='y', islands_name='island',
+                                     islands=islands)
     fig4 = _viz_mpl._plot_boundaries(islands_x=islands['x'], islands_y=islands['y'],
                                      islands_name=islands['island'], islands=None)
 
@@ -64,6 +66,7 @@ def test__plot_boundaries():
     fig6 = _viz_mpl._plot_boundaries(extent_x=extent['x'], extent_y=extent['y'], extent=None,
                                      islands_x=islands['x'], islands_y=islands['y'],
                                      islands_name=islands['island'], islands=None)
+
 
 @image_comparison(
     baseline_images=[

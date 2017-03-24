@@ -2,11 +2,9 @@ import numpy as np
 from numpy import nan
 import pandas
 import fiona
-import nose.tools as nt
 import numpy.testing as nptest
 
 
-@nt.nottest
 class fakegrid(object):
     def __init__(self):
         self.x, self.y = makeSimpleNodes()
@@ -21,9 +19,9 @@ class fakegrid(object):
 
 
 def makeSimpleBoundary():
-    xbry = np.array([1, 2, 2, 2, 3, 4, 4, 3, 2, 2, 1, 1, 1])
-    ybry = np.array([4, 4, 3, 2, 2, 2, 1, 1, 1, 0, 0, 1, 4])
-    beta = np.array([1, 1, 0,-1, 0, 1, 1, 0,-1, 1, 1, 0, 0])
+    xbry = np.array([1, 2, 2,  2, 3, 4, 4, 3,  2, 2, 1, 1, 1])
+    ybry = np.array([4, 4, 3,  2, 2, 2, 1, 1,  1, 0, 0, 1, 4])
+    beta = np.array([1, 1, 0, -1, 0, 1, 1, 0, -1, 1, 1, 0, 0])
     return pandas.DataFrame({'x': xbry, 'y': ybry, 'beta': beta, 'reach': 'reach'})
 
 
@@ -46,7 +44,7 @@ def makeSimpleGrid():
         nx = 7
         ul_idx = 0
         grid = pygridgen.Gridgen(boundary.x, boundary.y, boundary.beta,
-                                (ny, nx), ul_idx=ul_idx)
+                                 (ny, nx), ul_idx=ul_idx)
     except ImportError:
         grid = fakegrid()
 
@@ -99,25 +97,25 @@ def makeSimpleNodes():
 
 def makeSimpleCells():
     x = np.array([
-        [1.25, 1.75,  nan,  nan,  nan,  nan,],
-        [1.25, 1.75,  nan,  nan,  nan,  nan,],
-        [1.25, 1.75, 2.25, 2.75, 3.25, 3.75,],
-        [1.25, 1.75, 2.25, 2.75, 3.25, 3.75,],
-        [1.25, 1.75,  nan,  nan,  nan,  nan,],
-        [1.25, 1.75,  nan,  nan,  nan,  nan,],
-        [1.25, 1.75,  nan,  nan,  nan,  nan,],
-        [1.25, 1.75,  nan,  nan,  nan,  nan,],
+        [1.25, 1.75,  nan,  nan,  nan,  nan],
+        [1.25, 1.75,  nan,  nan,  nan,  nan],
+        [1.25, 1.75, 2.25, 2.75, 3.25, 3.75],
+        [1.25, 1.75, 2.25, 2.75, 3.25, 3.75],
+        [1.25, 1.75,  nan,  nan,  nan,  nan],
+        [1.25, 1.75,  nan,  nan,  nan,  nan],
+        [1.25, 1.75,  nan,  nan,  nan,  nan],
+        [1.25, 1.75,  nan,  nan,  nan,  nan],
     ])
 
     y = np.array([
-        [0.25, 0.25,  nan,  nan,  nan,  nan,],
-        [0.75, 0.75,  nan,  nan,  nan,  nan,],
-        [1.25, 1.25, 1.25, 1.25, 1.25, 1.25,],
-        [1.75, 1.75, 1.75, 1.75, 1.75, 1.75,],
-        [2.25, 2.25,  nan,  nan,  nan,  nan,],
-        [2.75, 2.75,  nan,  nan,  nan,  nan,],
-        [3.25, 3.25,  nan,  nan,  nan,  nan,],
-        [3.75, 3.75,  nan,  nan,  nan,  nan,],
+        [0.25, 0.25,  nan,  nan,  nan,  nan],
+        [0.75, 0.75,  nan,  nan,  nan,  nan],
+        [1.25, 1.25, 1.25, 1.25, 1.25, 1.25],
+        [1.75, 1.75, 1.75, 1.75, 1.75, 1.75],
+        [2.25, 2.25,  nan,  nan,  nan,  nan],
+        [2.75, 2.75,  nan,  nan,  nan,  nan],
+        [3.25, 3.25,  nan,  nan,  nan,  nan],
+        [3.75, 3.75,  nan,  nan,  nan,  nan],
     ])
 
     return np.ma.masked_invalid(x), np.ma.masked_invalid(y)
@@ -130,7 +128,7 @@ def compareTextFiles(baselinefile, outputfile):
     with open(baselinefile) as baseline:
         expected = baseline.read()
 
-    nt.assert_equal(results, expected)
+    assert (results == expected)
 
 
 def compareShapefiles(baselinefile, outputfile, atol=0.001):
@@ -143,12 +141,10 @@ def compareShapefiles(baselinefile, outputfile, atol=0.001):
         base_records = list(baseline)
 
     for rr, br in zip(result_records, base_records):
-        nt.assert_dict_equal(rr['properties'], br['properties'])
-        nt.assert_equal(rr['geometry']['type'], br['geometry']['type'])
+        assert (rr['properties'] == br['properties'])
+        assert (rr['geometry']['type'] == br['geometry']['type'])
         nptest.assert_allclose(
             rr['geometry']['coordinates'],
             br['geometry']['coordinates'],
             atol=atol
         )
-
-

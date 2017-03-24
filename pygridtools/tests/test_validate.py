@@ -1,9 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import nose.tools as nt
+import pytest
 import numpy.testing as nptest
-from matplotlib.testing.decorators import cleanup
 
 
 from pygridtools import validate
@@ -13,30 +12,26 @@ class Test_mpl_ax(object):
     def setup(self):
         self.fig, self.ax = plt.subplots()
 
-    @cleanup
     def teardown(self):
         self.ax.clear()
         plt.close(self.fig)
 
-    @cleanup
     def test_with_ax(self):
         fig, ax = validate.mpl_ax(self.ax)
-        nt.assert_equal(self.fig, fig)
-        nt.assert_equal(self.ax, ax)
+        assert self.fig == fig
+        assert self.ax == ax
 
-    @cleanup
     def test_without_ax(self):
         fig, ax = validate.mpl_ax(None)
-        nt.assert_not_equals(self.fig, fig)
-        nt.assert_not_equals(self.ax, ax)
+        assert self.fig != fig
+        assert self.ax != ax
 
-        nt.assert_true(isinstance(fig, plt.Figure))
-        nt.assert_true(isinstance(ax, plt.Axes))
+        assert (isinstance(fig, plt.Figure))
+        assert (isinstance(ax, plt.Axes))
 
-    @cleanup
-    @nt.raises(AttributeError)
     def test_bad_ax(self):
-        validate.mpl_ax('junk')
+        with pytest.raises(AttributeError):
+            validate.mpl_ax('junk')
 
 
 class Test_polygon(object):
@@ -60,23 +55,23 @@ class Test_polygon(object):
 
     def test_list(self):
         poly = validate.polygon(self.poly_list)
-        nt.assert_true(np.all(self.poly_array == poly))
+        assert (np.all(self.poly_array == poly))
 
     def test_array(self):
         poly = validate.polygon(self.poly_array)
-        nt.assert_true(np.all(self.poly_array == poly))
+        assert (np.all(self.poly_array == poly))
 
-    @nt.raises(ValueError)
     def test_too_wide(self):
-        validate.polygon(self.too_wide)
+        with pytest.raises(ValueError):
+            validate.polygon(self.too_wide)
 
-    @nt.raises(ValueError)
     def test_too_short(self):
-        validate.polygon(self.too_short)
+        with pytest.raises(ValueError):
+            validate.polygon(self.too_short)
 
-    @nt.raises(ValueError)
     def test_wrong_dims(self):
-        validate.polygon([self.poly_array, self.poly_array])
+        with pytest.raises(ValueError):
+            validate.polygon([self.poly_array, self.poly_array])
 
 
 class Test_xy_array(object):
@@ -103,39 +98,40 @@ class Test_xy_array(object):
 
     def test_not_as_pairs(self):
         x, y = validate.xy_array(self.y1, self.x1, as_pairs=False)
-        nt.assert_true(np.all(x == self.y1))
-        nt.assert_true(np.all(y == self.x1))
+        assert (np.all(x == self.y1))
+        assert (np.all(y == self.x1))
 
     def test_as_pairs(self):
         xy = validate.xy_array(self.y2, self.x2)
-        nt.assert_true(np.all(xy == self.known_pairs))
+        assert (np.all(xy == self.known_pairs))
 
-    @nt.raises(ValueError)
     def test_diff_shapes(self):
-        validate.xy_array(self.y1, self.x2)
+        with pytest.raises(ValueError):
+            validate.xy_array(self.y1, self.x2)
 
-    @nt.raises(ValueError)
     def test_diff_masks(self):
         y = np.ma.MaskedArray(data=self.y2, mask=self.mask1)
         x = np.ma.MaskedArray(data=self.x2, mask=self.mask2)
-        validate.xy_array(x, y)
+        with pytest.raises(ValueError):
+            validate.xy_array(x, y)
 
-    @nt.raises(ValueError)
     def test_only_one_mask(self):
         y = np.ma.MaskedArray(data=self.y2, mask=self.mask1)
-        validate.xy_array(self.x2, y)
+        with pytest.raises(ValueError):
+            validate.xy_array(self.x2, y)
 
 
 class Test_file_mode(object):
-    @nt.raises(ValueError)
+
     def test_errors(self):
-        validate.file_mode('z')
+        with pytest.raises(ValueError):
+            validate.file_mode('z')
 
     def test_upper(self):
-        nt.assert_equal(validate.file_mode('A'), 'a')
+        assert validate.file_mode('A') == 'a'
 
     def test_lower(self):
-        nt.assert_equal(validate.file_mode('w'), 'w')
+        assert validate.file_mode('w') == 'w'
 
 
 class Test_elev_or_mask(object):
@@ -147,13 +143,13 @@ class Test_elev_or_mask(object):
         self.Y = np.zeros(self.mainshape)
         self.Yoffset = np.zeros(self.offsetshape)
 
-    @nt.raises(ValueError)
     def test_failNone(self):
-        validate.elev_or_mask(self.X, None, failNone=True)
+        with pytest.raises(ValueError):
+            validate.elev_or_mask(self.X, None, failNone=True)
 
-    @nt.raises(ValueError)
     def test_bad_shape(self):
-        validate.elev_or_mask(self.X, self.Yoffset)
+        with pytest.raises(ValueError):
+            validate.elev_or_mask(self.X, self.Yoffset)
 
     def test_offset(self):
         other = validate.elev_or_mask(self.X, self.Yoffset,
@@ -186,9 +182,9 @@ class Test_equivalent_masks(object):
             1, 2, 3, nan, nan, 7,
         ])
 
-    @nt.raises(ValueError)
     def test_error(self):
-        validate.equivalent_masks(self.X, self.Y2)
+        with pytest.raises(ValueError):
+            validate.equivalent_masks(self.X, self.Y2)
 
     def test_baseline(self):
         x, y = validate.equivalent_masks(self.X, self.Y1)

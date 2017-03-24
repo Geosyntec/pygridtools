@@ -79,3 +79,4 @@ target/
 
 # ipython stuff
 *.ipynb*
+.vscode

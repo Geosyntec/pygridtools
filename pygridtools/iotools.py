@@ -132,7 +132,7 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
 
     # return just the right columns and sort the data
     cols = ['x', 'y', 'beta', 'upperleft', 'reach', 'order']
-    return df[cols].sort(columns='order')
+    return df[cols].sort_values(by=['order'])
 
 
 def loadPolygonFromShapefile(shapefile, filterfxn=None, squeeze=True):

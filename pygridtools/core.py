@@ -388,6 +388,14 @@ class ModelGrid(object):
         nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
         return ModelGrid(nodes_x, nodes_y)
 
+    def transform_x(self, fxn, *args, **kwargs):
+        nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
+        return ModelGrid(nodes_x, self.nodes_y)
+
+    def transform_y(self, fxn, *args, **kwargs):
+        nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
+        return ModelGrid(self.nodes_x, nodes_y)
+
     def copy(self):
         """
         Copies to nodes to a new model grid.

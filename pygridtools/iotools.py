@@ -450,10 +450,10 @@ def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
 
     if cell_array.shape[1] > maxcols:
         first_array = cell_array[:, :maxcols]
-        _second_array = cell_array[:, maxcols:]
-        padwidth = maxcols - _second_array.shape[1]
-        second_array = np.pad(_second_array, ((0, 0), (0, padwidth)),
-                              mode='constant', constant_values=0)
+        second_array = cell_array[:, maxcols:]
+        # padwidth = _second_array.shape[1] - maxcols
+        # second_array = np.pad(_second_array, ((0, 0), (0, padwidth)),
+        #                       mode='constant', constant_values=0)
 
         _write_cellinp(first_array, outputfile=outputfile, mode=mode,
                        writeheader=writeheader, rowlabels=rowlabels,

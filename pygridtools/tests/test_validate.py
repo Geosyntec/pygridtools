@@ -1,192 +1,157 @@
-import numpy as np
-import matplotlib.pyplot as plt
+import numpy
+from matplotlib import pyplot
 
 import pytest
 import numpy.testing as nptest
 
-
 from pygridtools import validate
 
 
-class Test_mpl_ax(object):
-    def setup(self):
-        self.fig, self.ax = plt.subplots()
-
-    def teardown(self):
-        self.ax.clear()
-        plt.close(self.fig)
-
-    def test_with_ax(self):
-        fig, ax = validate.mpl_ax(self.ax)
-        assert self.fig == fig
-        assert self.ax == ax
-
-    def test_without_ax(self):
-        fig, ax = validate.mpl_ax(None)
-        assert self.fig != fig
-        assert self.ax != ax
-
-        assert (isinstance(fig, plt.Figure))
-        assert (isinstance(ax, plt.Axes))
-
-    def test_bad_ax(self):
-        with pytest.raises(AttributeError):
-            validate.mpl_ax('junk')
+def test_mpl_ax_invalid():
+    with pytest.raises(ValueError):
+        validate.mpl_ax('junk')
 
 
-class Test_polygon(object):
-    def setup(self):
-        self.poly_list = [
-            (2, 2),
-            (5, 2),
-            (5, 5),
-            (2, 5),
-        ]
+def test_mpl_ax_with_ax():
+    fig, ax = pyplot.subplots()
+    fig1, ax1 = validate.mpl_ax(ax)
+    assert isinstance(ax1, pyplot.Axes)
+    assert isinstance(fig1, pyplot.Figure)
+    assert ax1 is ax
+    assert fig1 is fig
 
-        self.poly_array = np.array(self.poly_list)
 
-        self.too_short = self.poly_list[:2]
-        self.too_wide = [
-            (2, 2, 1),
-            (5, 2, 1),
-            (5, 5, 1),
-            (2, 5, 1),
-        ]
+def test_mpl_ax_with_None():
+    fig1, ax1 = validate.mpl_ax(None)
+    assert isinstance(ax1, pyplot.Axes)
+    assert isinstance(fig1, pyplot.Figure)
 
-    def test_list(self):
-        poly = validate.polygon(self.poly_list)
-        assert (np.all(self.poly_array == poly))
 
-    def test_array(self):
-        poly = validate.polygon(self.poly_array)
-        assert (np.all(self.poly_array == poly))
+@pytest.mark.parametrize(('polycoords', 'error'), [
+    ([(2, 2), (5, 2), (5, 5), (2, 5)], None),
+    ([(2, 2), (5, 2)], ValueError),
+    ([(2, 2, 1), (5, 2, 1), (5, 5, 1), (2, 5, 1)], ValueError),
+    ([[(2, 2), (5, 2), (5, 5), (2, 5)], [(2, 2), (5, 2), (5, 5), (2, 5)]], ValueError)
+])
+def Test_polygon(polycoords, error):
+    if error:
+        with pytest.raises(error):
+            poly = validate.polygon(polycoords)
+    else:
+        poly = validate.polygon(polycoords)
+        nptest.assert_array_equal(numpy.array(polycoords), poly)
 
-    def test_too_wide(self):
+
+def test_xy_array_not_as_pairs():
+    _x, _y = numpy.mgrid[:9, :9]
+    x, y = validate.xy_array(_x, _y, as_pairs=False)
+    nptest.assert_array_equal(x, _x)
+    nptest.assert_array_equal(y, _y)
+
+
+def test_xy_array_as_pairs():
+    _y, _x = numpy.mgrid[:3, :3]
+    pairs = validate.xy_array(_y, _x)
+
+    known_pairs = numpy.array([
+        [0, 0], [0, 1], [0, 2],
+        [1, 0], [1, 1], [1, 2],
+        [2, 0], [2, 1], [2, 2]
+    ])
+    nptest.assert_array_equal(pairs, known_pairs)
+
+
+def test_xy_array_diff_shapes():
+    with pytest.raises(ValueError):
+        validate.xy_array(numpy.zeros((3, 3)), numpy.zeros((4, 4)))
+
+
+def test_xy_array_diff_masks():
+    _y, _x = numpy.mgrid[:3, :3]
+    mask1 = numpy.array([
+        [0, 1, 1],
+        [0, 0, 1],
+        [0, 0, 0],
+    ])
+
+    mask2 = numpy.array([
+        [0, 1, 1],
+        [0, 0, 1],
+        [1, 0, 0],
+    ])
+
+    y = numpy.ma.MaskedArray(data=_y, mask=mask1)
+    x = numpy.ma.MaskedArray(data=_x, mask=mask2)
+    with pytest.raises(ValueError):
+        validate.xy_array(x, y)
+
+
+def test_xy_array_only_one_mask():
+    mask1 = numpy.array([
+        [0, 1, 1],
+        [0, 0, 1],
+        [0, 0, 0],
+    ])
+
+    _y, _x = numpy.mgrid[:3, :3]
+    y = numpy.ma.MaskedArray(data=_y, mask=mask1)
+
+    with pytest.raises(ValueError):
+        validate.xy_array(_x, y)
+
+
+@pytest.mark.parametrize(('mode', 'expected'), [
+    ('z', None),
+    ('A', 'a'),
+    ('a', 'a'),
+    ('W', 'w'),
+    ('w', 'w')
+])
+def test_file_mode(mode, expected):
+    if expected is None:
         with pytest.raises(ValueError):
-            validate.polygon(self.too_wide)
+            validate.file_mode(mode)
+    else:
+        assert expected == validate.file_mode(mode)
 
-    def test_too_short(self):
+
+@pytest.mark.parametrize(('x', 'y', 'offset', 'expected'), [
+    (numpy.zeros((8, 7)), None, 0, None),
+    (numpy.zeros((8, 7)), numpy.zeros((6, 5)), 0, None),
+    (numpy.zeros((8, 7)), numpy.ones((8, 7)), 0, numpy.ones((8, 7))),
+    (numpy.zeros((8, 7)), numpy.ones((6, 5)), 2, numpy.ones((6, 5))),
+])
+def test_elev_or_mask(x, y, offset, expected):
+    if expected is None:
         with pytest.raises(ValueError):
-            validate.polygon(self.too_short)
-
-    def test_wrong_dims(self):
-        with pytest.raises(ValueError):
-            validate.polygon([self.poly_array, self.poly_array])
-
-
-class Test_xy_array(object):
-    def setup(self):
-        self.y1, self.x1 = np.mgrid[:9, :9]
-        self.y2, self.x2 = np.mgrid[:3, :3]
-        self.known_pairs = np.array([
-            [0, 0], [0, 1], [0, 2],
-            [1, 0], [1, 1], [1, 2],
-            [2, 0], [2, 1], [2, 2]
-        ])
-
-        self.mask1 = np.array([
-            [0, 1, 1],
-            [0, 0, 1],
-            [0, 0, 0],
-        ])
-
-        self.mask2 = np.array([
-            [0, 1, 1],
-            [0, 0, 1],
-            [1, 0, 0],
-        ])
-
-    def test_not_as_pairs(self):
-        x, y = validate.xy_array(self.y1, self.x1, as_pairs=False)
-        assert (np.all(x == self.y1))
-        assert (np.all(y == self.x1))
-
-    def test_as_pairs(self):
-        xy = validate.xy_array(self.y2, self.x2)
-        assert (np.all(xy == self.known_pairs))
-
-    def test_diff_shapes(self):
-        with pytest.raises(ValueError):
-            validate.xy_array(self.y1, self.x2)
-
-    def test_diff_masks(self):
-        y = np.ma.MaskedArray(data=self.y2, mask=self.mask1)
-        x = np.ma.MaskedArray(data=self.x2, mask=self.mask2)
-        with pytest.raises(ValueError):
-            validate.xy_array(x, y)
-
-    def test_only_one_mask(self):
-        y = np.ma.MaskedArray(data=self.y2, mask=self.mask1)
-        with pytest.raises(ValueError):
-            validate.xy_array(self.x2, y)
+            validate.elev_or_mask(x, y, failNone=True)
+    else:
+        result = validate.elev_or_mask(x, y, offset=offset)
+        nptest.assert_array_equal(result, expected)
 
 
-class Test_file_mode(object):
+def test_equivalent_masks():
+    from numpy import nan
+    X = numpy.array([
+        1, 2, 3, nan, nan, 7,
+        1, 2, 3, nan, nan, 7,
+        1, 2, 3, nan, nan, nan,
+        1, 2, 3, nan, nan, nan,
+        1, 2, 3, nan, nan, 7,
+    ])
 
-    def test_errors(self):
-        with pytest.raises(ValueError):
-            validate.file_mode('z')
+    Y1 = X.copy()
 
-    def test_upper(self):
-        assert validate.file_mode('A') == 'a'
+    Y2 = numpy.array([
+        1, 2, 3, nan, nan, 7,
+        1, 2, 3, nan, nan, nan,
+        1, 2, 3, nan, nan, nan,
+        1, 2, 3, nan, nan, nan,
+        1, 2, 3, nan, nan, 7,
+    ])
+    with pytest.raises(ValueError):
+        validate.equivalent_masks(X, Y2)
 
-    def test_lower(self):
-        assert validate.file_mode('w') == 'w'
-
-
-class Test_elev_or_mask(object):
-    def setup(self):
-        self.mainshape = (8, 7)
-        self.offset = 2
-        self.offsetshape = tuple([s - self.offset for s in self.mainshape])
-        self.X = np.zeros(self.mainshape)
-        self.Y = np.zeros(self.mainshape)
-        self.Yoffset = np.zeros(self.offsetshape)
-
-    def test_failNone(self):
-        with pytest.raises(ValueError):
-            validate.elev_or_mask(self.X, None, failNone=True)
-
-    def test_bad_shape(self):
-        with pytest.raises(ValueError):
-            validate.elev_or_mask(self.X, self.Yoffset)
-
-    def test_offset(self):
-        other = validate.elev_or_mask(self.X, self.Yoffset,
-                                      offset=self.offset)
-        nptest.assert_array_equal(other, self.Yoffset)
-
-    def test_nooffset(self):
-        other = validate.elev_or_mask(self.X, self.Y, offset=0)
-        nptest.assert_array_equal(other, self.Y)
-
-
-class Test_equivalent_masks(object):
-    def setup(self):
-        from numpy import nan
-        self.X = np.array([
-            1, 2, 3, nan, nan, 7,
-            1, 2, 3, nan, nan, 7,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan, 7,
-        ])
-
-        self.Y1 = self.X.copy()
-
-        self.Y2 = np.array([
-            1, 2, 3, nan, nan, 7,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan, nan,
-            1, 2, 3, nan, nan, 7,
-        ])
-
-    def test_error(self):
-        with pytest.raises(ValueError):
-            validate.equivalent_masks(self.X, self.Y2)
-
-    def test_baseline(self):
-        x, y = validate.equivalent_masks(self.X, self.Y1)
-        nptest.assert_array_equal(self.X, x.data)
-        nptest.assert_array_equal(self.Y1, y.data)
+    x, y = validate.equivalent_masks(X, Y1)
+    nptest.assert_array_equal(X, x.data)
+    nptest.assert_array_equal(Y1, y.data)

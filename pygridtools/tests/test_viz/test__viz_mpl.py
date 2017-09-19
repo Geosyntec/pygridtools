@@ -1,8 +1,7 @@
 import sys
 
-import numpy.testing as nptest
+import pytest
 from matplotlib.testing.decorators import image_comparison
-import pygridtools.testing as pgtest
 
 from pygridtools.viz import _viz_mpl
 
@@ -17,12 +16,11 @@ WINDOWS = sys.platform.lower() == 'win32'
     ],
     extensions=['png']
 )
-@nptest.dec.skipif(WINDOWS)
-def test__plot_domain_with_beta():
-    data = pgtest.makeSimpleBoundary()
-    fig3 = _viz_mpl._plot_domain(domain_x='x', domain_y='y', beta='beta', data=data)
-    fig4 = _viz_mpl._plot_domain(domain_x=data['x'], domain_y=data['y'],
-                                 beta=data['beta'], data=None)
+@pytest.mark.skipif(WINDOWS, 'windows')
+def test__plot_domain_with_beta(simple_boundary):
+    fig3 = _viz_mpl._plot_domain(domain_x='x', domain_y='y', beta='beta', data=simple_boundary)
+    fig4 = _viz_mpl._plot_domain(domain_x=simple_boundary['x'], domain_y=simple_boundary['y'],
+                                 beta=simple_boundary['beta'], data=None)
 
 
 @image_comparison(
@@ -33,9 +31,8 @@ def test__plot_domain_with_beta():
     extensions=['png']
 )
 def test__plot_domain_without_beta():
-    data = pgtest.makeSimpleBoundary()
-    fig1 = _viz_mpl._plot_domain(domain_x='x', domain_y='y', data=data)
-    fig2 = _viz_mpl._plot_domain(domain_x=data['x'], domain_y=data['y'], data=None)
+    fig1 = _viz_mpl._plot_domain(domain_x='x', domain_y='y', data=simple_boundary)
+    fig2 = _viz_mpl._plot_domain(domain_x=simple_boundary['x'], domain_y=simple_boundary['y'], data=None)
 
 
 @image_comparison(
@@ -49,23 +46,21 @@ def test__plot_domain_without_beta():
     ],
     extensions=['png']
 )
-def test__plot_boundaries():
-    extent = pgtest.makeSimpleBoundary()
-    islands = pgtest.makeSimpleIslands()
-    fig1 = _viz_mpl._plot_boundaries(extent_x='x', extent_y='y', extent=extent)
-    fig2 = _viz_mpl._plot_boundaries(extent_x=extent['x'], extent_y=extent['y'], extent=None)
+def test__plot_boundaries(simple_boundary, simple_islands):
+    fig1 = _viz_mpl._plot_boundaries(extent_x='x', extent_y='y', extent=simple_boundary)
+    fig2 = _viz_mpl._plot_boundaries(extent_x=simple_boundary['x'], extent_y=simple_boundary['y'], extent=None)
     fig3 = _viz_mpl._plot_boundaries(islands_x='x', islands_y='y', islands_name='island',
-                                     islands=islands)
-    fig4 = _viz_mpl._plot_boundaries(islands_x=islands['x'], islands_y=islands['y'],
-                                     islands_name=islands['island'], islands=None)
+                                     islands=simple_islands)
+    fig4 = _viz_mpl._plot_boundaries(islands_x=simple_islands['x'], islands_y=simple_islands['y'],
+                                     islands_name=simple_islands['island'], islands=None)
 
-    fig5 = _viz_mpl._plot_boundaries(extent_x='x', extent_y='y', extent=extent,
+    fig5 = _viz_mpl._plot_boundaries(extent_x='x', extent_y='y', extent=simple_boundary,
                                      islands_x='x', islands_y='y', islands_name='island',
-                                     islands=islands)
+                                     islands=simple_islands)
 
-    fig6 = _viz_mpl._plot_boundaries(extent_x=extent['x'], extent_y=extent['y'], extent=None,
-                                     islands_x=islands['x'], islands_y=islands['y'],
-                                     islands_name=islands['island'], islands=None)
+    fig6 = _viz_mpl._plot_boundaries(extent_x=simple_boundary['x'], extent_y=simple_boundary['y'], extent=None,
+                                     islands_x=simple_islands['x'], islands_y=simple_islands['y'],
+                                     islands_name=simple_islands['island'], islands=None)
 
 
 @image_comparison(
@@ -74,9 +69,8 @@ def test__plot_boundaries():
     ],
     extensions=['png']
 )
-def test__plot_points():
-    x, y = pgtest.makeSimpleNodes()
-    fig1 = _viz_mpl._plot_points(x, y)
+def test__plot_points(simple_nodes):
+    fig1 = _viz_mpl._plot_points(*simple_nodes)
 
 
 @image_comparison(
@@ -85,6 +79,5 @@ def test__plot_points():
     ],
     extensions=['png']
 )
-def test__plot_cells():
-    x, y = pgtest.makeSimpleNodes()
-    fig1 = _viz_mpl._plot_cells(x, y)
+def test__plot_cells(simple_nodes):
+    fig1 = _viz_mpl._plot_cells(*simple_nodes)

@@ -1,5 +1,7 @@
 import os
 import warnings
+from pkg_resources import resource_filename
+import tempfile
 
 import numpy as np
 from numpy import nan
@@ -15,9 +17,9 @@ from pygridtools import testing
 
 try:
     import pygridgen
-    has_pgg = True
+    HASPGG = True
 except ImportError:
-    has_pgg = False
+    HASPGG = False
 
 
 @pytest.fixture
@@ -35,7 +37,12 @@ def C():
     return np.arange(25).reshape(5, 5).astype(float)
 
 
-@pytest.mark.parametrize('fxn', [np.fliplr, np.flipud, np.transpose])
+@pytest.fixture
+def template():
+    return resource_filename('pygridtools.tests.test_data', 'schema_template.shp')
+
+
+@pytest.mark.parametrize('fxn', [np.fliplr, np.flipud, np.fliplr])
 def test_transform(A, fxn):
     result = core.transform(A, fxn)
     expected = fxn(A)
@@ -252,35 +259,39 @@ def test_merge(A, B, how, where, shift):
 
 
 @pytest.fixture
-def nodes():
-    return testing.makeSimpleNodes()
-
-
-@pytest.fixture
-def cells():
-    return testing.makeSimpleCells()
-
-
-@pytest.fixture
-def mg(nodes):
-    xn, yn = nodes
+def mg(simple_nodes):
+    xn, yn = simple_nodes
     g = core.ModelGrid(xn, yn)
+    g.cell_mask = np.array([
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1]
+    ], dtype=bool)
     return g
 
 
 @pytest.fixture
-def g1(nodes):
-    xn, yn = nodes
+def g1(simple_nodes, template):
+    xn, yn = simple_nodes
     g = core.ModelGrid(xn[:, :3], yn[:, :3])
-    g.template = 'pygridtools/tests/test_data/schema_template.shp'
+
+    mask = g.cell_mask
+    mask[:2, :2] = True
+    g.cell_mask = mask
+    g.template = template
     return g
 
 
 @pytest.fixture
-def g2(nodes):
-    xn, yn = nodes
+def g2(simple_nodes, template):
+    xn, yn = simple_nodes
     g = core.ModelGrid(xn[2:5, 3:], yn[2:5, 3:])
-    g.template = 'pygridtools/tests/test_data/schema_template.shp'
+    g.template = template
     return g
 
 
@@ -289,14 +300,14 @@ def polyverts():
     return [(2.4, 0.9), (3.6, 0.9), (3.6, 2.4), (2.4, 2.4)]
 
 
-def test_ModelGrid_bad_shapes(cells):
-    xc, yc = cells
+def test_ModelGrid_bad_shapes(simple_cells):
+    xc, yc = simple_cells
     with pytest.raises(ValueError):
         mg = core.ModelGrid(xc, yc[2:, 2:])
 
 
-def test_ModelGrid_nodes_and_cells(g1, cells):
-    xc, yc = cells
+def test_ModelGrid_nodes_and_cells(g1, simple_cells):
+    xc, yc = simple_cells
     assert (isinstance(g1.nodes_x, np.ndarray))
     assert (isinstance(g1.nodes_y, np.ndarray))
     assert (isinstance(g1.cells_x, np.ndarray))
@@ -321,7 +332,7 @@ def test_ModelGrid_counts_and_shapes(g1):
 
 def test_ModelGrid_cell_mask(g1):
     expected_mask = np.array([
-        [0, 0], [0, 0], [0, 0], [0, 0],
+        [1, 1], [1, 1], [0, 0], [0, 0],
         [0, 0], [0, 0], [0, 0], [0, 0],
     ])
     nptest.assert_array_equal(g1.cell_mask, expected_mask)
@@ -334,418 +345,350 @@ def test_ModelGrid_template(g1):
     assert (g1.template == 'junk')
 
 
-class Test_ModelGrid(object):
-    def setup(self):
-        self.xn, self.yn = testing.makeSimpleNodes()
-        self.xc, self.yc = testing.makeSimpleCells()
-        self.mg = core.ModelGrid(self.xn, self.yn)
-        self.g1 = core.ModelGrid(self.xn[:, :3], self.yn[:, :3])
-        self.g2 = core.ModelGrid(self.xn[2:5, 3:], self.yn[2:5, 3:])
-        self.polyverts = [
-            (2.4, 0.9),
-            (3.6, 0.9),
-            (3.6, 2.4),
-            (2.4, 2.4),
-        ]
+@pytest.mark.parametrize(('usemask', 'which', 'error'), [
+    (True, 'nodes', ValueError),
+    (False, 'nodes', None),
+    (True, 'cells', None),
+])
+def test_ModelGrid_to_dataframe(g1, usemask, which, error):
+    def name_cols(df):
+        df.columns.names = ['coord', 'i']
+        df.index.names = ['j']
+        return df
 
-        self.template = 'pygridtools/tests/test_data/schema_template.shp'
-        self.g1.template = self.template
-        self.g2.template = self.template
+    if error:
+        with pytest.raises(ValueError):
+            g1.to_dataframe(usemask=usemask, which=which)
+    else:
 
-        self.known_rows = 9
-        self.expected_cols = 3
-        self.known_df = pandas.DataFrame({
-            ('easting', 0): {
-                0: 1.0, 1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0,
-                5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0
-            }, ('easting', 1): {
-                0: 1.5, 1: 1.5, 2: 1.5, 3: 1.5, 4: 1.5,
-                5: 1.5, 6: 1.5, 7: 1.5, 8: 1.5
-            }, ('easting', 2): {
-                0: 2.0, 1: 2.0, 2: 2.0, 3: 2.0, 4: 2.0,
-                5: 2.0, 6: 2.0, 7: 2.0, 8: 2.0
-            }, ('northing', 0): {
-                0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
-                5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0
-            }, ('northing', 1): {
-                0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
-                5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0
-            }, ('northing', 2): {
-                0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
-                5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0}
-        })
-        self.known_df.columns.names = ['coord', 'i']
-        self.known_df.index.names = ['j']
+        expected = {
+            (False, 'nodes'): pandas.DataFrame({
+                ('easting', 0): {
+                    0: 1.0, 1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0,
+                    5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0
+                }, ('easting', 1): {
+                    0: 1.5, 1: 1.5, 2: 1.5, 3: 1.5, 4: 1.5,
+                    5: 1.5, 6: 1.5, 7: 1.5, 8: 1.5
+                }, ('easting', 2): {
+                    0: 2.0, 1: 2.0, 2: 2.0, 3: 2.0, 4: 2.0,
+                    5: 2.0, 6: 2.0, 7: 2.0, 8: 2.0
+                }, ('northing', 0): {
+                    0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
+                    5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0
+                }, ('northing', 1): {
+                    0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
+                    5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0
+                }, ('northing', 2): {
+                    0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0,
+                    5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0}
+            }).pipe(name_cols),
+            (True, 'cells'): pandas.DataFrame({
+                ('easting', 0): {
+                    0: nan, 1: nan, 2: 1.25, 3: 1.25, 4: 1.25,
+                    5: 1.25, 6: 1.25, 7: 1.25
+                }, ('easting', 1): {
+                    0: nan, 1: nan, 2: 1.75, 3: 1.75, 4: 1.75,
+                    5: 1.75, 6: 1.75, 7: 1.75
+                }, ('northing', 0): {
+                    0: nan, 1: nan, 2: 1.25, 3: 1.75, 4: 2.25,
+                    5: 2.75, 6: 3.25, 7: 3.75
+                }, ('northing', 1): {
+                    0: nan, 1: nan, 2: 1.25, 3: 1.75, 4: 2.25,
+                    5: 2.75, 6: 3.25, 7: 3.75
+                }
+            }).pipe(name_cols),
+        }
 
-        self.known_masked_cell_df = pandas.DataFrame({
-            ('easting', 0): {
-                0: nan, 1: nan, 2: 1.25, 3: 1.25, 4: 1.25,
-                5: 1.25, 6: 1.25, 7: 1.25
-            }, ('easting', 1): {
-                0: nan, 1: nan, 2: 1.75, 3: 1.75, 4: 1.75,
-                5: 1.75, 6: 1.75, 7: 1.75
-            }, ('northing', 0): {
-                0: nan, 1: nan, 2: 1.25, 3: 1.75, 4: 2.25,
-                5: 2.75, 6: 3.25, 7: 3.75
-            }, ('northing', 1): {
-                0: nan, 1: nan, 2: 1.25, 3: 1.75, 4: 2.25,
-                5: 2.75, 6: 3.25, 7: 3.75
-            }
-        })
-        self.known_masked_cell_df.columns.names = ['coord', 'i']
-        self.known_masked_cell_df.index.names = ['j']
+        result = g1.to_dataframe(usemask=usemask, which=which)
+        pdtest.assert_frame_equal(result, expected[(usemask, which)], check_names=False)
+        pdtest.assert_index_equal(result.columns, expected[(usemask, which)].columns)
 
-        self.known_coord_pairs = np.array([
-            [1.0, 0.0], [1.5, 0.0], [2.0, 0.0], [1.0, 0.5],
-            [1.5, 0.5], [2.0, 0.5], [1.0, 1.0], [1.5, 1.0],
-            [2.0, 1.0], [1.0, 1.5], [1.5, 1.5], [2.0, 1.5],
-            [1.0, 2.0], [1.5, 2.0], [2.0, 2.0], [1.0, 2.5],
-            [1.5, 2.5], [2.0, 2.5], [1.0, 3.0], [1.5, 3.0],
-            [2.0, 3.0], [1.0, 3.5], [1.5, 3.5], [2.0, 3.5],
-            [1.0, 4.0], [1.5, 4.0], [2.0, 4.0]
+
+@pytest.mark.parametrize(('usemask', 'which', 'error'), [
+    (True, 'nodes', ValueError),
+    (False, 'nodes', None),
+    (True, 'cells', None),
+    (False, 'cells', None),
+])
+def test_ModelGrid_to_coord_pairs(g1, usemask, which, error):
+    if error:
+        with pytest.raises(error):
+            g1.to_coord_pairs(usemask=usemask, which=which)
+    else:
+
+        expected = {
+            ('nodes', False): np.array([
+                [1.0, 0.0], [1.5, 0.0], [2.0, 0.0], [1.0, 0.5],
+                [1.5, 0.5], [2.0, 0.5], [1.0, 1.0], [1.5, 1.0],
+                [2.0, 1.0], [1.0, 1.5], [1.5, 1.5], [2.0, 1.5],
+                [1.0, 2.0], [1.5, 2.0], [2.0, 2.0], [1.0, 2.5],
+                [1.5, 2.5], [2.0, 2.5], [1.0, 3.0], [1.5, 3.0],
+                [2.0, 3.0], [1.0, 3.5], [1.5, 3.5], [2.0, 3.5],
+                [1.0, 4.0], [1.5, 4.0], [2.0, 4.0]
+            ]),
+            ('cells', False): np.array([
+                [1.25, 0.25], [1.75, 0.25], [1.25, 0.75], [1.75, 0.75],
+                [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
+                [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
+                [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
+            ]),
+            ('cells', True): np.array([
+                [nan, nan], [nan, nan], [nan, nan], [nan, nan],
+                [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
+                [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
+                [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
+            ])
+        }
+
+        result = g1.to_coord_pairs(usemask=usemask, which=which)
+        nptest.assert_array_equal(result, expected[which, usemask])
+
+
+def test_ModelGrid_transform(mg, simple_nodes):
+    xn, yn = simple_nodes
+    g = mg.transform(lambda x: x * 10)
+    nptest.assert_array_equal(g.xn, xn * 10)
+    nptest.assert_array_equal(g.yn, yn * 10)
+
+
+def test_ModelGrid_transform_x(mg, simple_nodes):
+    xn, yn = simple_nodes
+    g = mg.transform_x(lambda x: x * 10)
+    nptest.assert_array_equal(g.xn, xn * 10)
+    nptest.assert_array_equal(g.yn, yn)
+
+
+def test_ModelGrid_transform_y(mg, simple_nodes):
+    xn, yn = simple_nodes
+    g = mg.transform_y(lambda y: y * 10)
+    nptest.assert_array_equal(g.xn, xn)
+    nptest.assert_array_equal(g.yn, yn * 10)
+
+
+def test_ModelGrid_transpose(mg, simple_nodes):
+    xn, yn = simple_nodes
+    g = mg.transpose()
+    nptest.assert_array_equal(g.xn, xn.T)
+    nptest.assert_array_equal(g.yn, yn.T)
+
+
+def test_ModelGrid_fliplr(mg, simple_nodes):
+    xn, yn = simple_nodes
+    g = mg.fliplr()
+    nptest.assert_array_equal(g.xn, np.fliplr(xn))
+    nptest.assert_array_equal(g.yn, np.fliplr(yn))
+
+
+def test_ModelGrid_flipud(mg, simple_nodes):
+    xn, yn = simple_nodes
+    g = mg.flipud()
+    nptest.assert_array_equal(g.xn, np.flipud(xn))
+    nptest.assert_array_equal(g.yn, np.flipud(yn))
+
+
+def test_ModelGrid_split_ax0(mg, simple_nodes):
+    xn, yn = simple_nodes
+    mgtop, mgbottom = mg.split(3, axis=0)
+    nptest.assert_array_equal(mgtop.nodes_x, xn[:3, :])
+    nptest.assert_array_equal(mgtop.nodes_y, yn[:3, :])
+    nptest.assert_array_equal(mgbottom.nodes_x, xn[3:, :])
+    nptest.assert_array_equal(mgbottom.nodes_y, yn[3:, :])
+
+
+def test_ModelGrid_merge(g1, g2, simple_nodes):
+    g3 = g1.merge(g2, how='horiz', where='+', shift=2)
+    g4 = core.ModelGrid(*simple_nodes)
+
+    nptest.assert_array_equal(g3.xn, g4.xn)
+    nptest.assert_array_equal(g3.xc, g4.xc)
+
+
+def test_ModelGrid_insert_3_ax0(mg):
+    known_xnodes = np.ma.masked_invalid(np.array([
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+        [1.0, 1.5, 2.0, nan, nan, nan, nan],
+    ]))
+
+    known_ynodes = np.ma.masked_invalid(np.array([
+        [0.000, 0.000, 0.000,   nan,   nan,   nan,   nan],
+        [0.500, 0.500, 0.500,   nan,   nan,   nan,   nan],
+        [0.625, 0.625, 0.625,   nan,   nan,   nan,   nan],
+        [0.750, 0.750, 0.750,   nan,   nan,   nan,   nan],
+        [0.875, 0.875, 0.875,   nan,   nan,   nan,   nan],
+        [1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000],
+        [1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500],
+        [2.000, 2.000, 2.000, 2.000, 2.000, 2.000, 2.000],
+        [2.500, 2.500, 2.500,   nan,   nan,   nan,   nan],
+        [3.000, 3.000, 3.000,   nan,   nan,   nan,   nan],
+        [3.500, 3.500, 3.500,   nan,   nan,   nan,   nan],
+        [4.000, 4.000, 4.000,   nan,   nan,   nan,   nan],
+    ]))
+
+    result = mg.insert(2, axis=0, n_nodes=3)
+    nptest.assert_array_equal(result.nodes_x, known_xnodes)
+    nptest.assert_array_equal(result.nodes_y, known_ynodes)
+
+
+def test_ModelGrid_insert_3_ax1(mg):
+    known_xnodes = np.ma.masked_invalid(np.array([
+        [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+        [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+        [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
+        [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
+        [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
+        [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+        [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+        [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
+        [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan]
+    ]))
+
+    known_ynodes = np.ma.masked_invalid(np.array([
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, nan, nan, nan, nan],
+        [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, nan, nan, nan, nan],
+        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+        [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
+        [2.5, 2.5, 2.5, 2.5, 2.5, 2.5, nan, nan, nan, nan],
+        [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, nan, nan, nan, nan],
+        [3.5, 3.5, 3.5, 3.5, 3.5, 3.5, nan, nan, nan, nan],
+        [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, nan, nan, nan, nan],
+    ]))
+
+    result = mg.insert(2, axis=1, n_nodes=3)
+    nptest.assert_array_equal(result.nodes_x, known_xnodes)
+    nptest.assert_array_equal(result.nodes_y, known_ynodes)
+
+
+def test_extract(mg, simple_nodes):
+    xn, yn = simple_nodes
+    result = mg.extract(jstart=2, jend=5, istart=3, iend=6)
+    nptest.assert_array_equal(result.nodes_x, xn[2:5, 3:6])
+    nptest.assert_array_equal(result.nodes_y, yn[2:5, 3:6])
+
+
+@pytest.mark.parametrize(('use_centroids', 'inside', 'use_existing'), [
+    (True, True, False),
+    (True, True, True),
+    (True, False, False)
+])
+def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside, use_existing):
+    expected = {
+        (True, True, False): np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 0],
+            [0, 0, 0, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+        ]),
+        (True, True, True): np.array([
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 0, 1, 1, 0],
+            [0, 0, 0, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1]
+        ]),
+        (True, False, False):  np.array([
+            [1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 0, 0, 1],
+            [1, 1, 1, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1]
         ])
+    }
 
-        self.known_mask = np.array([
-            [1, 1], [1, 1], [0, 0], [0, 0],
-            [0, 0], [0, 0], [0, 0], [0, 0],
-        ], dtype=bool)
+    result = mg.mask_cells_with_polygon(polyverts, inside=inside,
+                                        use_existing=use_existing,
+                                        use_centroids=use_centroids)
+    nptest.assert_array_equal(
+        result.cell_mask.astype(int),
+        expected[(use_centroids, inside, use_existing)].astype(int)
+    )
 
-        self.known_node_pairs_masked = np.array([
-            [ nan,  nan], [ nan,  nan], [ nan,  nan], [ nan,  nan],
-            [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
-            [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
-            [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
-        ])
 
-        self.known_node_pairs = np.array([
-            [1.25, 0.25], [1.75, 0.25], [1.25, 0.75], [1.75, 0.75],
-            [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
-            [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
-            [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
-        ])
+@pytest.mark.parametrize(('kwargs', 'error'), [
+    [dict(min_nodes=0), ValueError],
+    [dict(min_nodes=5), ValueError],
+    [dict(triangles=True), NotImplementedError],
+])
+def test_ModelGrid_mask_cells_errors(mg, polyverts, kwargs, error):
+    with pytest.raises(error):
+        mg.mask_cells_with_polygon(polyverts, use_centroids=False, **kwargs)
 
-    def test_to_dataframe_nomask_nodes(self):
-        pdtest.assert_frame_equal(
-            self.g1.to_dataframe(usemask=False, which='nodes'),
-            self.known_df,
-            check_names=False
-        )
 
-        pdtest.assert_index_equal(
-            self.g1.to_dataframe().columns,
-            self.known_df.columns,
-        )
+@pytest.mark.parametrize(['geom', 'expectedfile'], [
+    ('point', 'mgshp_nomask_nodes_points.shp'),
+    ('polygon', 'mgshp_nomask_cells_polys.shp'),
+    ('line', None),
+])
+def test_ModelGrid_to_shapefile_nodes(g1, geom, expectedfile):
+    with tempfile.TemporaryDirectory() as outdir:
+        outfile = os.path.join(outdir, 'outfile.shp')
+        if expectedfile is None:
+            with pytest.raises(ValueError):
+                g1.to_shapefile(outfile, which='nodes', geom=geom, usemask=False)
+        else:
+                resultfile = resource_filename('pygridtools.tests.baseline_files', expectedfile)
+                g1.to_shapefile(outfile, which='nodes', geom=geom, usemask=False)
+                testing.compareShapefiles(outfile, resultfile)
 
-    def test_to_coord_pairs_nomask_nodes(self):
-        nptest.assert_array_equal(
-            self.g1.to_coord_pairs(usemask=False, which='nodes'),
-            self.known_coord_pairs
-        )
 
-    def test_to_dataframe_mask_nodes(self):
-        with pytest.raises(ValueError):
-            self.g1.to_dataframe(usemask=True, which='nodes')
+@pytest.mark.parametrize('usemask', [True, False])
+@pytest.mark.parametrize('geom', ['point', 'polygon'])
+def test_ModelGrid_to_shapefile_cells(g1, geom, usemask):
+    expectedfile = {
+        (True, 'point'): 'mgshp_mask_cells_points.shp',
+        (True, 'polygon'): 'mgshp_mask_cells_polys.shp',
+        (False, 'point'): 'mgshp_nomask_cells_points.shp',
+        (False, 'polygon'): 'mgshp_nomask_cells_polys.shp',
+    }
+    with tempfile.TemporaryDirectory() as outdir:
+        outfile = os.path.join(outdir, 'outfile.shp')
+        expected = resource_filename('pygridtools.tests.baseline_files',
+                                     expectedfile[usemask, geom])
+        g1.to_shapefile(outfile, which='cells', geom=geom, usemask=usemask)
+        testing.compareShapefiles(outfile, expected)
 
-    def test_to_coord_pairs_mask_nodes(self):
-        with pytest.raises(ValueError):
-            self.g1.to_coord_pairs(usemask=True, which='nodes')
 
-    def test_to_coord_pairs_nomask_cells(self):
-        nptest.assert_array_equal(
-            self.g1.to_coord_pairs(usemask=False, which='cells'),
-            self.known_node_pairs
-        )
+@pytest.mark.parametrize(('which', 'usemask', 'error'), [
+    ('nodes', True, ValueError),
+    ('junk', False, ValueError),
+    ('nodes', False, None),
+    ('cells', False, None),
+])
+def test_ModelGrid__get_x_y_nodes_and_mask(g1, which, usemask, error):
+    if error:
+        with pytest.raises(error):
+            g1._get_x_y(which, usemask=usemask)
+    else:
+        x, y = g1._get_x_y(which, usemask=usemask)
+        nptest.assert_array_equal(x, getattr(g1, 'x' + which[0]))
+        nptest.assert_array_equal(y, getattr(g1, 'y' + which[0]))
 
-    def test_to_coord_pairs_mask_cells(self):
-        self.g1.cell_mask = self.known_mask
-        nptest.assert_array_equal(
-            self.g1.to_coord_pairs(usemask=True, which='cells'),
-            self.known_node_pairs_masked
-        )
 
-    def test_to_dataframe_mask_cells(self):
-        self.g1.cell_mask = self.known_mask
-        df = self.g1.to_dataframe(usemask=True, which='cells')
-        pdtest.assert_frame_equal(df, self.known_masked_cell_df,
-                                  check_names=False)
-
-        pdtest.assert_index_equal(
-            df.columns, self.known_masked_cell_df.columns,
-        )
-
-    def test_transform(self):
-        gx = self.g1.xn.copy() * 10
-        g = self.g1.transform(lambda x: x * 10)
-        nptest.assert_array_equal(g.xn, gx)
-
-    def test_transpose(self):
-        gx = self.g1.xn.copy()
-        nptest.assert_array_equal(
-            self.g1.transpose().xn,
-            gx.transpose()
-        )
-
-    def test_fliplr(self):
-        gx = np.fliplr(self.g1.xn.copy())
-        g = self.g1.fliplr()
-        nptest.assert_array_equal(g.xn, gx)
-
-    def test_flipud(self):
-        gx = np.flipud(self.g1.xn.copy())
-        g = self.g1.flipud()
-        nptest.assert_array_equal(g.xn, gx)
-
-    def test_split_ax0(self):
-        mgtop, mgbottom = self.mg.split(3, axis=0)
-        nptest.assert_array_equal(mgtop.nodes_x, self.xn[:3, :])
-        nptest.assert_array_equal(mgtop.nodes_y, self.yn[:3, :])
-        nptest.assert_array_equal(mgbottom.nodes_x, self.xn[3:, :])
-        nptest.assert_array_equal(mgbottom.nodes_y, self.yn[3:, :])
-
-    def test_split_ax0(self):
-        mgtop, mgbottom = self.mg.split(3, axis=1)
-        nptest.assert_array_equal(mgtop.nodes_x, self.xn[:, :3])
-        nptest.assert_array_equal(mgtop.nodes_y, self.yn[:, :3])
-        nptest.assert_array_equal(mgbottom.nodes_x, self.xn[:, 3:])
-        nptest.assert_array_equal(mgbottom.nodes_y, self.yn[:, 3:])
-
-    def test_merge(self):
-        g3 = self.g1.merge(self.g2, how='horiz', where='+', shift=2)
-        g4 = core.ModelGrid(self.xn, self.yn)
-
-        nptest.assert_array_equal(g3.xn, g4.xn)
-        nptest.assert_array_equal(g3.xc, g4.xc)
-
-    def test_insert_3_ax0(self):
-        known_xnodes = np.ma.masked_invalid(np.array([
-            [1.0, 1.5, 2.0, nan, nan, nan, nan],
-            [1.0, 1.5, 2.0, nan, nan, nan, nan],
-            [1.0, 1.5, 2.0, nan, nan, nan, nan],
-            [1.0, 1.5, 2.0, nan, nan, nan, nan],
-            [1.0, 1.5, 2.0, nan, nan, nan, nan],
-            [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
-            [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
-            [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
-            [1.0, 1.5, 2.0, nan, nan, nan, nan],
-            [1.0, 1.5, 2.0, nan, nan, nan, nan],
-            [1.0, 1.5, 2.0, nan, nan, nan, nan],
-            [1.0, 1.5, 2.0, nan, nan, nan, nan],
-        ]))
-
-        known_ynodes = np.ma.masked_invalid(np.array([
-            [0.000, 0.000, 0.000,   nan,   nan,   nan,   nan],
-            [0.500, 0.500, 0.500,   nan,   nan,   nan,   nan],
-            [0.625, 0.625, 0.625,   nan,   nan,   nan,   nan],
-            [0.750, 0.750, 0.750,   nan,   nan,   nan,   nan],
-            [0.875, 0.875, 0.875,   nan,   nan,   nan,   nan],
-            [1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000],
-            [1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500],
-            [2.000, 2.000, 2.000, 2.000, 2.000, 2.000, 2.000],
-            [2.500, 2.500, 2.500,   nan,   nan,   nan,   nan],
-            [3.000, 3.000, 3.000,   nan,   nan,   nan,   nan],
-            [3.500, 3.500, 3.500,   nan,   nan,   nan,   nan],
-            [4.000, 4.000, 4.000,   nan,   nan,   nan,   nan],
-        ]))
-
-        result = self.mg.insert(2, axis=0, n_nodes=3)
-        nptest.assert_array_equal(result.nodes_x, known_xnodes)
-        nptest.assert_array_equal(result.nodes_y, known_ynodes)
-
-    def test_insert_3_ax1(self):
-        known_xnodes = np.ma.masked_invalid(np.array([
-            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
-            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
-            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
-            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
-            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
-            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
-            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
-            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
-            [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan]
-        ]))
-
-        known_ynodes = np.ma.masked_invalid(np.array([
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, nan, nan, nan, nan],
-            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, nan, nan, nan, nan],
-            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-            [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
-            [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
-            [2.5, 2.5, 2.5, 2.5, 2.5, 2.5, nan, nan, nan, nan],
-            [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, nan, nan, nan, nan],
-            [3.5, 3.5, 3.5, 3.5, 3.5, 3.5, nan, nan, nan, nan],
-            [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, nan, nan, nan, nan],
-        ]))
-
-        result = self.mg.insert(2, axis=1, n_nodes=3)
-        nptest.assert_array_equal(result.nodes_x, known_xnodes)
-        nptest.assert_array_equal(result.nodes_y, known_ynodes)
-
-    def test_extract(self):
-        result = self.mg.extract(jstart=2, jend=5, istart=3, iend=6)
-        nptest.assert_array_equal(result.nodes_x, self.xn[2:5, 3:6])
-        nptest.assert_array_equal(result.nodes_y, self.yn[2:5, 3:6])
-
-    def test_mask_cells_with_polygon_inside_not_inplace(self):
-        orig_mask = self.mg.cell_mask.copy()
-        masked = self.mg.mask_cells_with_polygon(self.polyverts, use_existing=False)
-        known_inside_mask = np.array([
-            [False, False, False, False, False, False],
-            [False, False, False, False, False, False],
-            [False, False, False,  True,  True, False],
-            [False, False, False,  True,  True, False],
-            [False, False, False, False, False, False],
-            [False, False, False, False, False, False],
-            [False, False, False, False, False, False],
-            [False, False, False, False, False, False]
-        ], dtype=bool)
-        nptest.assert_array_equal(masked.cell_mask, known_inside_mask)
-
-    def test_mask_cells_with_polygon_inside_use_existing(self):
-        self.mg.cell_mask = np.ma.masked_invalid(self.mg.xc).mask
-        masked = self.mg.mask_cells_with_polygon(self.polyverts, use_existing=True)
-        known_inside_mask = np.array([
-            [False, False,  True, True, True,  True],
-            [False, False,  True, True, True,  True],
-            [False, False, False, True, True, False],
-            [False, False, False, True, True, False],
-            [False, False,  True, True, True,  True],
-            [False, False,  True, True, True,  True],
-            [False, False,  True, True, True,  True],
-            [False, False,  True, True, True,  True]
-        ], dtype=bool)
-        nptest.assert_array_equal(masked.cell_mask, known_inside_mask)
-
-    def test_mask_cells_with_polygon_outside(self):
-        masked = self.mg.mask_cells_with_polygon(self.polyverts, inside=False, use_existing=False)
-        known_outside_mask = np.array([
-            [True, True, True,  True,  True, True],
-            [True, True, True,  True,  True, True],
-            [True, True, True, False, False, True],
-            [True, True, True, False, False, True],
-            [True, True, True,  True,  True, True],
-            [True, True, True,  True,  True, True],
-            [True, True, True,  True,  True, True],
-            [True, True, True,  True,  True, True]
-        ], dtype=bool)
-        nptest.assert_array_equal(masked.cell_mask, known_outside_mask)
-
-    def test_mask_cells_with_polygon_use_nodes(self):
-        masked = self.mg.mask_cells_with_polygon(self.polyverts, use_centroids=False,
-                                                 use_existing=False)
-        known_node_mask = np.array([
-            [False, False, False, False, False, False],
-            [False, False, False, False, False, False],
-            [False, False, False,  True,  True, False],
-            [False, False, False,  True,  True, False],
-            [False, False, False, False, False, False],
-            [False, False, False, False, False, False],
-            [False, False, False, False, False, False],
-            [False, False, False, False, False, False]
-        ], dtype=bool)
-        nptest.assert_array_equal(masked.cell_mask, known_node_mask)
-
-    def test_mask_cells_with_polygon_nodes_too_few_nodes(self):
-        with pytest.raises(ValueError):
-            self.mg.mask_cells_with_polygon(
-                self.polyverts, use_centroids=False, min_nodes=0
-            )
-
-    def test_mask_cells_with_polygon_nodes_too_many_nodes(self):
-        with pytest.raises(ValueError):
-            self.mg.mask_cells_with_polygon(
-                self.polyverts, use_centroids=False, min_nodes=5
-            )
-
-    def test_mask_cells_with_polygon_triangles(self):
-        with pytest.raises(NotImplementedError):
-            self.mg.mask_cells_with_polygon(self.polyverts, triangles=True)
-
-    def test_to_shapefile_bad_geom(self):
-        with pytest.raises(ValueError):
-            self.g1.to_shapefile('junk', geom='Line')
-
-    def test_to_shapefile_nomask_nodes_points(self):
-        outfile = 'pygridtools/tests/result_files/mgshp_nomask_nodes_points.shp'
-        basefile = 'pygridtools/tests/baseline_files/mgshp_nomask_nodes_points.shp'
-        self.g1.to_shapefile(outfile, usemask=False, which='nodes',
-                             geom='point')
-        testing.compareShapefiles(outfile, basefile)
-
-    def test_to_shapefile_nomask_cells_points(self):
-        outfile = 'pygridtools/tests/result_files/mgshp_nomask_cells_points.shp'
-        basefile = 'pygridtools/tests/baseline_files/mgshp_nomask_cells_points.shp'
-        self.g1.to_shapefile(outfile, usemask=False, which='cells',
-                             geom='point')
-        testing.compareShapefiles(outfile, basefile)
-
-    def test_to_shapefile_nomask_nodes_polys(self):
-        outfile = 'pygridtools/tests/result_files/mgshp_nomask_nodes_polys.shp'
-        basefile = 'pygridtools/tests/baseline_files/mgshp_nomask_cells_polys.shp'
-        self.g1.to_shapefile(outfile, usemask=False, which='nodes',
-                             geom='polygon')
-        testing.compareShapefiles(outfile, basefile)
-
-    def test_to_shapefile_nomask_cells_polys(self):
-        outfile = 'pygridtools/tests/result_files/mgshp_nomask_cells_polys.shp'
-        basefile = 'pygridtools/tests/baseline_files/mgshp_nomask_cells_polys.shp'
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            self.g1.to_shapefile(outfile, usemask=False, which='cells',
-                                 geom='polygon')
-            assert (len(w) == 1)
-
-        testing.compareShapefiles(outfile, basefile)
-
-    def test_to_shapefile_mask_cells_points(self):
-        outfile = 'pygridtools/tests/result_files/mgshp_mask_cells_points.shp'
-        basefile = 'pygridtools/tests/baseline_files/mgshp_mask_cells_points.shp'
-        self.g1.cell_mask = self.known_mask
-
-        self.g1.to_shapefile(outfile, usemask=True, which='cells',
-                             geom='point')
-        testing.compareShapefiles(outfile, basefile)
-
-    def test_to_shapefile_mask_cells_polys(self):
-        outfile = 'pygridtools/tests/result_files/mgshp_mask_cells_polys.shp'
-        basefile = 'pygridtools/tests/baseline_files/mgshp_mask_cells_polys.shp'
-        self.g1.cell_mask = self.known_mask
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            self.g1.to_shapefile(outfile, usemask=True, which='cells',
-                                 geom='polygon')
-            assert (len(w) == 1)
-
-        testing.compareShapefiles(outfile, basefile)
-
-    def test_to_shapefile_mask_nodes(self):
-        with pytest.raises(ValueError):
-            self.g1.to_shapefile('junk', usemask=True, which='nodes', geom='point')
-
-    def test__get_x_y_nodes_and_mask(self):
-        with pytest.raises(ValueError):
-            self.g1._get_x_y('nodes', usemask=True)
-
-    def test__get_x_y_bad_value(self):
-        with pytest.raises(ValueError):
-            self.g1._get_x_y('junk', usemask=True)
-
-    def test__get_x_y_nodes(self):
-        x, y = self.g1._get_x_y('nodes', usemask=False)
-        nptest.assert_array_equal(x, self.g1.xn)
-        nptest.assert_array_equal(y, self.g1.yn)
-
-    def test__get_x_y_cells(self):
-        x, y = self.g1._get_x_y('cells', usemask=False)
-        nptest.assert_array_equal(x, self.g1.xc)
-        nptest.assert_array_equal(y, self.g1.yc)
-
-    def test_writeGEFDCControlFile(self):
-        known_filename = 'pygridtools/tests/baseline_files/modelgrid_gefdc.inp'
-        result_path = 'pygridtools/tests/result_files'
+def test_writeGEFDCControlFile(mg):
+    with tempfile.TemporaryDirectory() as result_path:
+        known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_gefdc.inp')
         result_file = 'modelgrid_gefdc.inp'
-        self.mg.writeGEFDCControlFile(
+        mg.writeGEFDCControlFile(
             outputdir=result_path,
             filename=result_file,
             title='Model Grid Test'
@@ -755,11 +698,12 @@ class Test_ModelGrid(object):
             known_filename
         )
 
-    def test_writeGEFDCCellFile(self):
-        known_filename = 'pygridtools/tests/baseline_files/modelgrid_cell.inp'
-        result_path = 'pygridtools/tests/result_files'
+
+def test_writeGEFDCCellFile(mg):
+    with tempfile.TemporaryDirectory() as result_path:
+        known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_cell.inp')
         result_file = 'modelgrid_cell.inp'
-        self.mg.writeGEFDCCellFile(
+        mg.writeGEFDCCellFile(
             outputdir=result_path,
             filename=result_file,
         )
@@ -768,11 +712,12 @@ class Test_ModelGrid(object):
             known_filename
         )
 
-    def test_writeGEFDCGridFile(self):
-        known_filename = 'pygridtools/tests/baseline_files/modelgrid_grid.out'
-        result_path = 'pygridtools/tests/result_files'
+
+def test_writeGEFDCGridFile(mg):
+    with tempfile.TemporaryDirectory() as result_path:
+        known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_grid.out')
         result_file = 'modelgrid_grid.out'
-        self.mg.writeGEFDCGridFile(
+        mg.writeGEFDCGridFile(
             outputdir=result_path,
             filename=result_file,
         )
@@ -781,11 +726,13 @@ class Test_ModelGrid(object):
             known_filename
         )
 
-    def test_writeGEFDCGridextFiles(self):
-        known_filename = 'pygridtools/tests/baseline_files/modelgrid_gridext.inp'
-        result_path = 'pygridtools/tests/result_files'
+
+def test_writeGEFDCGridextFiles(mg):
+    with tempfile.TemporaryDirectory() as result_path:
+        known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_gridext.inp')
+
         result_file = 'modelgrid_gridext.inp'
-        self.mg.writeGEFDCGridextFile(
+        mg.writeGEFDCGridextFile(
             outputdir=result_path,
             filename=result_file,
         )
@@ -801,54 +748,29 @@ class Test_ModelGrid(object):
     ],
     extensions=['png']
 )
-def test_ModelGrid_plots():
-    xn, yn = testing.makeSimpleNodes()
-    mg = core.ModelGrid(xn, yn)
+def test_ModelGrid_plots(simple_nodes):
+    mg = core.ModelGrid(*simple_nodes)
     mg.cell_mask = np.ma.masked_invalid(mg.xc).mask
 
     fig1 = mg.plotCells()
 
 
-class Test_makeGrid(object):
-    def setup(self):
-        self.domain = testing.makeSimpleBoundary()
-        self.bathy = testing.makeSimpleBathy()
-        self.nx = 9
-        self.ny = 7
-        self.gridparams = {
-            'nnodes': 12,
-            'verbose': False,
-            'ul_idx': 0
-        }
+@pytest.mark.parametrize(('otherargs', 'gridtype'), [
+    (dict(), None),
+    (dict(verbose=True), None),
+    (dict(rawgrid=False), core.ModelGrid)
+])
+@pytest.mark.skipif(not HASPGG, reason='pygridgen unavailabile')
+def test_makeGrid(simple_boundary, simple_bathy, otherargs, gridtype):
+    if not gridtype:
+        gridtype = pygridgen.Gridgen
 
-    @nptest.dec.skipif(not has_pgg)
-    def test_with_and_bathy(self):
-        grid = core.makeGrid(
-            self.ny, self.nx,
-            domain=self.domain,
-            bathydata=self.bathy.dropna(),
-            **self.gridparams
-        )
-        assert (isinstance(grid, pygridgen.Gridgen))
-
-    @nptest.dec.skipif(not has_pgg)
-    def test_with_bathy_verbose(self):
-        params = self.gridparams.copy()
-        params['verbose'] = True
-        grid = core.makeGrid(
-            self.ny, self.nx,
-            domain=self.domain,
-            bathydata=self.bathy.dropna(),
-            **self.gridparams
-        )
-        assert (isinstance(grid, pygridgen.Gridgen))
-
-    @nptest.dec.skipif(not has_pgg)
-    def test_as_ModelGrid(self):
-        grid = core.makeGrid(
-            self.ny, self.nx,
-            domain=self.domain,
-            rawgrid=False,
-            **self.gridparams
-        )
-        assert (isinstance(grid, core.ModelGrid))
+    gridparams = {'nnodes': 12, 'verbose': False, 'ul_idx': 0}
+    gridparams.update(otherargs)
+    grid = core.makeGrid(
+        9, 7,
+        domain=simple_boundary,
+        bathydata=simple_bathy.dropna(),
+        **gridparams
+    )
+    assert (isinstance(grid, gridtype))

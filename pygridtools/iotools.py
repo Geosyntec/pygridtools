@@ -6,7 +6,9 @@ from textwrap import dedent
 
 import numpy as np
 import pandas
+from shapely import geometry
 import fiona
+import geopandas
 
 from pygridtools import misc
 from pygridtools import validate
@@ -339,44 +341,45 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
 
     # load the template
     with fiona.open(template, 'r') as src:
-        src_driver = src.driver
-        src_crs = src.crs
-        src_schema = src.schema
-
-    src_schema['geometry'] = 'Polygon'
+        crs = src.crs
 
     # start writting or appending to the output
-    with fiona.open(
-        outputfile, mode,
-        driver=src_driver,
-        crs=src_crs,
-        schema=src_schema
-    ) as out:
-        row = 0
-        for ii in range(nx - 1):
-            for jj in range(ny - 1):
-                if not (np.any(X.mask[jj:jj + 2, ii:ii + 2]) or mask[jj, ii]):
-                    row += 1
-                    Z = elev[jj, ii]
-                    # build the array or coordinates
-                    coords = misc.make_poly_coords(
-                        xarr=X[jj:jj + 2, ii:ii + 2],
-                        yarr=Y[jj:jj + 2, ii:ii + 2],
-                        zpnt=Z, triangles=triangles
-                    )
+    # with fiona.open(
+    #     outputfile, mode,
+    #     driver=src_driver,
+    #     crs=src_crs,
+    #     schema=src_schema
+    # ) as out:
+    row = 0
+    geodata = []
+    for ii in range(nx - 1):
+        for jj in range(ny - 1):
+            if not (np.any(X.mask[jj:jj + 2, ii:ii + 2]) or mask[jj, ii]):
+                row += 1
+                Z = elev[jj, ii]
+                # build the array or coordinates
+                coords = misc.make_poly_coords(
+                    xarr=X[jj:jj + 2, ii:ii + 2],
+                    yarr=Y[jj:jj + 2, ii:ii + 2],
+                    zpnt=Z, triangles=triangles
+                )
 
-                    # build the attributes
-                    props = OrderedDict(
-                        id=row, river=river, reach=reach,
-                        ii=ii + 2, jj=jj + 2, elev=Z,
-                        ii_jj='{:02d}_{:02d}'.format(ii + 2, jj + 2)
-                    )
+                # build the attributes
+                record = OrderedDict(
+                    id=row, river=river, reach=reach,
+                    ii=ii + 2, jj=jj + 2, elev=Z,
+                    ii_jj='{:02d}_{:02d}'.format(ii + 2, jj + 2),
+                    geometry=geometry.Polygon(shell=coords)
+                )
 
-                    # append to file is coordinates are not masked
-                    # (masked = beyond the river boundary)
-                    if coords is not None:
-                        record = misc.make_record(row, coords, 'Polygon', props)
-                        out.write(record)
+                # append to file is coordinates are not masked
+                # (masked = beyond the river boundary)
+                if coords is not None:
+                    geodata.append(record)
+
+    gdf = geopandas.GeoDataFrame(geodata, crs=crs, geometry='geometry')
+    gdf.to_file(outputfile)
+    return gdf
 
 
 def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,

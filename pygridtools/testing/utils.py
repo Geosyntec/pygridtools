@@ -21,5 +21,8 @@ def compareTextFiles(baselinefile, outputfile):
 def compareShapefiles(baselinefile, outputfile, atol=0.001):
     expected = geopandas.read_file(baselinefile)
     result = geopandas.read_file(outputfile)
-    pdtest.assert_frame_equal(result.drop('geometry', axis=1), expected.drop('geometry', axis=1))
+    pdtest.assert_frame_equal(
+        result.drop('geometry', axis=1).sort_index(axis='columns'),
+        expected.drop('geometry', axis=1).sort_index(axis='columns')
+    )
     assert result.geom_almost_equals(expected).all()

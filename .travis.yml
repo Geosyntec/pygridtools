@@ -2,9 +2,6 @@ language: python
 
 matrix:
   include:
-    - python: 2.7
-      env:
-        - COVERAGE=false
     - python: 3.5
       env:
         - COVERAGE=false
@@ -24,21 +21,20 @@ before_install:
   - cp pygridtools/testing/matplotlibrc .
 
 install:
-
   # We just set up a conda environment with the right Python version. This
   # should not need changing.
-  - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION nose
+  - conda create --yes --name=test python=$TRAVIS_PYTHON_VERSION
   - source activate test
 
-  # should also grab c-libs: gridgen, gridutils, csa, nn
-  - conda install --yes --channel=conda-forge pygridgen fiona scipy matplotlib=1.5
+  - conda install --yes --channel=conda-forge pygridgen geopandas scipy matplotlib
+  - conda install --yes --channel=conda-forge pytest pytest-mpl pytest-cov pytest-pep8
 
    # coveralls
   - conda install --yes coverage docopt requests pyyaml
   - pip install coveralls
 
 script:
-  - nosetests --with-coverage --cover-package=pygridtools --verbose
+  - python check_pygridtools.py --cov --verbose --pep8
 
 after_success:
   - if [ ${COVERAGE} = true ]; then coveralls; fi

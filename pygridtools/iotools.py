@@ -2,13 +2,55 @@ from __future__ import division
 
 import os
 from collections import OrderedDict
+from textwrap import dedent
 
 import numpy as np
 import pandas
+from shapely import geometry
 import fiona
+import geopandas
 
 from pygridtools import misc
 from pygridtools import validate
+
+
+gefdc = GEFDC_TEMPLATE = dedent("""\
+    C1  TITLE
+    C1  (LIMITED TO 80 CHARACTERS)
+        '{0}'
+    C2  INTEGER INPUT
+    C2  NTYPE   NBPP    IMIN    IMAX    JMIN    JMAX    IC   JC
+        0       0       1       {1}     1       {2}     {1}  {2}
+    C3  GRAPHICS GRID INFORMATION
+    C3  ISGG    IGM     JGM     DXCG    DYCG    NWTGG
+        0       0       0       0.      0.      1
+    C4  CARTESIAN AND GRAPHICS GRID COORDINATE DATA
+    C4  CDLON1  CDLON2  CDLON3  CDLAT1  CDLAT2  CDLAT3
+        0.      0.      0.      0.      0.      0.
+    C5  INTEGER INPUT
+    C5  ITRXM   ITRHM   ITRKM   ITRGM   NDEPSM  NDEPSMF DEPMIN  DDATADJ
+        200     200     200     200     4000    0       0       0
+    C6  REAL INPUT
+    C6  RPX     RPK     RPH     RSQXM   RSQKM   RSQKIM  RSQHM   RSQHIM  RSQHJM
+        1.8     1.8     1.8     1.E-12  1.E-12  1.E-12  1.E-12  1.E-12  1.E-12
+    C7  COORDINATE SHIFT PARAMETERS
+    C7  XSHIFT  YSHIFT  HSCALE  RKJDKI  ANGORO
+        0.      0.      1.      1.      5.0
+    C8  INTERPOLATION SWITCHES
+    C8  ISIRKI  JSIRKI  ISIHIHJ JSIHIHJ
+        1       0       0       0
+    C9  NTYPE = 7 SPECIFIED INPUT
+    C9  IB      IE      JB      JE      N7RLX   NXYIT   ITN7M   IJSMD   ISMD    JSMD    RP7     SERRMAX
+    C10 NTYPE = 7 SPECIFIED INPUT
+    C10 X       Y       IN ORDER    (IB,JB) (IE,JB) (IE,JE) (IB,JE)
+    C11 DEPTH INTERPOLATION SWITCHES
+    C11 ISIDEP  NDEPDAT CDEP    RADM    ISIDPTYP    SURFELEV    ISVEG   NVEGDAT NVEGTYP
+        1       {3:d}     2       0.5     1           0.0         0       0       0
+    C12 LAST BOUNDARY POINT INFORMATION
+    C12 ILT     JLT     X(ILT,JLT)      Y(ILT,JLT)
+        0       0       0.0             0.0
+    C13 I   J       X(I,J)          Y(I,J)
+""")
 
 
 def _outputfile(outputdir, filename):
@@ -92,7 +134,7 @@ def loadBoundaryFromShapefile(shapefile, betacol='beta', reachcol=None,
 
     # return just the right columns and sort the data
     cols = ['x', 'y', 'beta', 'upperleft', 'reach', 'order']
-    return df[cols].sort(columns='order')
+    return df[cols].sort_values(by=['order'])
 
 
 def loadPolygonFromShapefile(shapefile, filterfxn=None, squeeze=True):
@@ -235,8 +277,8 @@ def savePointShapefile(X, Y, template, outputfile, mode='w', river=None,
                     # build the attributes
                     props = OrderedDict(
                         id=int(row), river=river, reach=reach,
-                        ii=int(ii+2), jj=int(jj+2), elev=float(elev[jj,ii]),
-                        ii_jj='{:02d}_{:02d}'.format(ii+2, jj+2)
+                        ii=int(ii + 2), jj=int(jj + 2), elev=float(elev[jj, ii]),
+                        ii_jj='{:02d}_{:02d}'.format(ii + 2, jj + 2)
                     )
 
                     # append to the output file
@@ -297,47 +339,47 @@ def saveGridShapefile(X, Y, mask, template, outputfile, mode,
     Y = np.ma.masked_invalid(Y)
     ny, nx = X.shape
 
-
     # load the template
     with fiona.open(template, 'r') as src:
-        src_driver = src.driver
-        src_crs = src.crs
-        src_schema = src.schema
-
-    src_schema['geometry'] = 'Polygon'
+        crs = src.crs
 
     # start writting or appending to the output
-    with fiona.open(
-        outputfile, mode,
-        driver=src_driver,
-        crs=src_crs,
-        schema=src_schema
-    ) as out:
-        row = 0
-        for ii in range(nx-1):
-            for jj in range(ny-1):
-                if not (np.any(X.mask[jj:jj+2, ii:ii+2]) or mask[jj, ii]):
-                    row += 1
-                    Z = elev[jj, ii]
-                    # build the array or coordinates
-                    coords = misc.make_poly_coords(
-                        xarr=X[jj:jj+2, ii:ii+2],
-                        yarr=Y[jj:jj+2, ii:ii+2],
-                        zpnt=Z, triangles=triangles
-                    )
+    # with fiona.open(
+    #     outputfile, mode,
+    #     driver=src_driver,
+    #     crs=src_crs,
+    #     schema=src_schema
+    # ) as out:
+    row = 0
+    geodata = []
+    for ii in range(nx - 1):
+        for jj in range(ny - 1):
+            if not (np.any(X.mask[jj:jj + 2, ii:ii + 2]) or mask[jj, ii]):
+                row += 1
+                Z = elev[jj, ii]
+                # build the array or coordinates
+                coords = misc.make_poly_coords(
+                    xarr=X[jj:jj + 2, ii:ii + 2],
+                    yarr=Y[jj:jj + 2, ii:ii + 2],
+                    zpnt=Z, triangles=triangles
+                )
 
-                    # build the attributes
-                    props = OrderedDict(
-                        id=row, river=river, reach=reach,
-                        ii=ii+2, jj=jj+2, elev=Z,
-                        ii_jj='{:02d}_{:02d}'.format(ii+2, jj+2)
-                    )
+                # build the attributes
+                record = OrderedDict(
+                    id=row, river=river, reach=reach,
+                    ii=ii + 2, jj=jj + 2, elev=Z,
+                    ii_jj='{:02d}_{:02d}'.format(ii + 2, jj + 2),
+                    geometry=geometry.Polygon(shell=coords)
+                )
 
-                    # append to file is coordinates are not masked
-                    # (masked = beyond the river boundary)
-                    if coords is not None:
-                        record = misc.make_record(row, coords, 'Polygon', props)
-                        out.write(record)
+                # append to file is coordinates are not masked
+                # (masked = beyond the river boundary)
+                if coords is not None:
+                    geodata.append(record)
+
+    gdf = geopandas.GeoDataFrame(geodata, crs=crs, geometry='geometry')
+    gdf.to_file(outputfile)
+    return gdf
 
 
 def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
@@ -354,7 +396,6 @@ def readGridShapefile(shapefile, icol='ii', jcol='jj', othercols=None,
                 geom = np.array(record['geometry']['coordinates'])
             elif geomtype == 'Polygon':
                 raise NotImplementedError("can only read points for now")
-                #geom = np.array(record['geometry']['coordinates']).flatten()
 
             dfrow = {
                 'i': expand * (record['properties'][icol] - 2),
@@ -412,10 +453,10 @@ def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
 
     if cell_array.shape[1] > maxcols:
         first_array = cell_array[:, :maxcols]
-        _second_array = cell_array[:, maxcols:]
-        padwidth = maxcols - _second_array.shape[1]
-        second_array = np.pad(_second_array, ((0, 0), (0, padwidth)),
-                              mode='constant', constant_values=0)
+        second_array = cell_array[:, maxcols:]
+        # padwidth = _second_array.shape[1] - maxcols
+        # second_array = np.pad(_second_array, ((0, 0), (0, padwidth)),
+        #                       mode='constant', constant_values=0)
 
         _write_cellinp(first_array, outputfile=outputfile, mode=mode,
                        writeheader=writeheader, rowlabels=rowlabels,
@@ -425,7 +466,7 @@ def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
                        maxcols=maxcols, flip=False)
 
     else:
-        columns = np.arange(1, maxcols+1, dtype=int)
+        columns = np.arange(1, maxcols + 1, dtype=int)
         colstr = [list('{:04d}'.format(c)) for c in columns]
         hundreds = ''.join([c[1] for c in colstr])
         tens = ''.join([c[2] for c in colstr])
@@ -454,43 +495,7 @@ def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
 
 
 def _write_gefdc_control_file(outfile, title, max_i, max_j, bathyrows):
-    gefdc = (
-    "C1  TITLE\n"
-    "C1  (LIMITED TO 80 CHARACTERS)\n"
-    "    '{0}'\n"
-    "C2  INTEGER INPUT\n"
-    "C2  NTYPE   NBPP    IMIN    IMAX    JMIN    JMAX    IC   JC\n"
-    "    0       0       1       {1}     1       {2}     {1}  {2}\n"
-    "C3  GRAPHICS GRID INFORMATION\n"
-    "C3  ISGG    IGM     JGM     DXCG    DYCG    NWTGG\n"
-    "    0       0       0       0.      0.      1\n"
-    "C4  CARTESIAN AND GRAPHICS GRID COORDINATE DATA\n"
-    "C4  CDLON1  CDLON2  CDLON3  CDLAT1  CDLAT2  CDLAT3\n"
-    "    0.      0.      0.      0.      0.      0.\n"
-    "C5  INTEGER INPUT\n"
-    "C5  ITRXM   ITRHM   ITRKM   ITRGM   NDEPSM  NDEPSMF DEPMIN  DDATADJ\n"
-    "    200     200     200     200     4000    0       0       0\n"
-    "C6  REAL INPUT\n"
-    "C6  RPX     RPK     RPH     RSQXM   RSQKM   RSQKIM  RSQHM   RSQHIM  RSQHJM\n"
-    "    1.8     1.8     1.8     1.E-12  1.E-12  1.E-12  1.E-12  1.E-12  1.E-12\n"
-    "C7  COORDINATE SHIFT PARAMETERS\n"
-    "C7  XSHIFT  YSHIFT  HSCALE  RKJDKI  ANGORO\n"
-    "    0.      0.      1.      1.      5.0\n"
-    "C8  INTERPOLATION SWITCHES\n"
-    "C8  ISIRKI  JSIRKI  ISIHIHJ JSIHIHJ\n"
-    "    1       0       0       0\n"
-    "C9  NTYPE = 7 SPECIFIED INPUT\n"
-    "C9  IB      IE      JB      JE      N7RLX   NXYIT   ITN7M   IJSMD   ISMD    JSMD    RP7     SERRMAX\n"
-    "C10 NTYPE = 7 SPECIFIED INPUT\n"
-    "C10 X       Y       IN ORDER    (IB,JB) (IE,JB) (IE,JE) (IB,JE)\n"
-    "C11 DEPTH INTERPOLATION SWITCHES\n"
-    "C11 ISIDEP  NDEPDAT CDEP    RADM    ISIDPTYP    SURFELEV    ISVEG   NVEGDAT NVEGTYP\n"
-    "    1       {3:d}     2       0.5     1           0.0         0       0       0\n"
-    "C12 LAST BOUNDARY POINT INFORMATION\n"
-    "C12 ILT     JLT     X(ILT,JLT)      Y(ILT,JLT)\n"
-    "    0       0       0.0             0.0\n"
-    "C13 I   J       X(I,J)          Y(I,J)\n"
-    ).format(title, max_i, max_j, bathyrows)
+    gefdc = GEFDC_TEMPLATE.format(title, max_i, max_j, bathyrows)
 
     with open(outfile, 'w') as f:
         f.write(gefdc)
@@ -522,8 +527,8 @@ def _write_gridext_file(tidydf, outfile, icol='i', jcol='j',
     df = tidydf[[icol, jcol, xcol, ycol]]
 
     with open(outfile, 'w') as f:
-        df.to_csv(f, sep = ' ', index=False, header=False,
-           float_format=None)
+        df.to_csv(f, sep=' ', index=False, header=False,
+                  float_format=None)
 
 
 def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):
@@ -559,7 +564,7 @@ def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):
         sep='\s+',
         header=None,
         names=['i', 'j', 'x', 'y'],
-        dtype={'i':int, 'j':int, 'x':float, 'y':float}
+        dtype={'i': int, 'j': int, 'x': float, 'y': float}
     )
 
     # load the template
@@ -584,7 +589,7 @@ def gridextToShapefile(inputfile, outputfile, template, river='na', reach=0):
         try:
             outfile.write(record)
             return 1
-        except: # pragma: no cover
+        except:  # pragma: no cover
             return 0
 
     # start writting or appending to the output

@@ -388,6 +388,14 @@ class ModelGrid(object):
         nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
         return ModelGrid(nodes_x, nodes_y)
 
+    def transform_x(self, fxn, *args, **kwargs):
+        nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
+        return ModelGrid(nodes_x, self.nodes_y)
+
+    def transform_y(self, fxn, *args, **kwargs):
+        nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
+        return ModelGrid(self.nodes_x, nodes_y)
+
     def copy(self):
         """
         Copies to nodes to a new model grid.
@@ -681,7 +689,8 @@ class ModelGrid(object):
             if min_nodes <= 0 or min_nodes > 4:
                 raise ValueError("`min_nodes` must be greater than 0 and no more than 4.")
 
-            _node_mask = misc.mask_with_polygon(self.xn, self.yn, polyverts, inside=inside).astype(int)
+            _node_mask = misc.mask_with_polygon(self.xn, self.yn, polyverts,
+                                                inside=inside).astype(int)
             cell_mask = (
                 _node_mask[1:, 1:] + _node_mask[:-1, :-1] +
                 _node_mask[:-1, 1:] + _node_mask[1:, :-1]

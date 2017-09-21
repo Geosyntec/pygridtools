@@ -1,428 +1,336 @@
 import numpy as np
 from numpy import nan
 
-import nose.tools as nt
+import pytest
 import numpy.testing as nptest
 
 from pygridtools import misc
-from pygridtools import testing
 
 
 np.set_printoptions(linewidth=150, nanstr='-')
 
 try:
     import pygridgen
-    has_pgg = True
+    HASPGG = True
 except ImportError:
-    has_pgg = False
+    HASPGG = False
 
 
-class Test_make_poly_coords(object):
-    def setup(self):
-        x1 = 1
-        x2 = 2
-        y1 = 4
-        y2 = 3
-        z = 5
+@pytest.mark.parametrize(('masked', 'z', 'triangles'), [
+    (None, None, False),
+    (False, None, False),
+    (None, 5, False),
+    (None, None, True),
+])
+def test_make_poly_coords_base(masked, z, triangles):
+    xarr = np.array([[1, 2], [1, 2]], dtype=float)
+    yarr = np.array([[3, 3], [4, 4]], dtype=float)
+    if masked is False:
+        xarr = np.ma.masked_array(xarr, mask=False)
+        yarr = np.ma.masked_array(yarr, mask=False)
 
-        self.xarr = np.array([[x1, x2], [x1, x2]])
-        self.yarr = np.array([[y1, y1], [y2, y2]])
-        self.x_tri = np.array([[x1, np.nan], [x1, x2]])
-        self.y_tri = np.array([[y1, np.nan], [y2, y2]])
-        self.zpnt = z
-        self.mask = np.array([[False, False], [True, True]])
+    if z:
+        expected = np.array([[1, 3, z], [2, 3, z], [2, 4, z], [1, 4, z]], dtype=float)
+    elif triangles:
+        expected = np.array([[1, 3], [2, 4], [1, 4]], dtype=float)
+        xarr[0, -1] = np.nan
+        yarr[0, -1] = np.nan
+    else:
+        expected = np.array([[1, 3], [2, 3], [2, 4], [1, 4]], dtype=float)
 
-        self.known_base = np.array([[x1, y1], [x2, y1], [x2, y2], [x1, y2]])
-        self.known_no_masked = self.known_base.copy()
-        self.known_masked = None
-        self.known_with_z = np.array([
-            [x1, y1, z], [x2, y1, z], [x2, y2, z], [x1, y2, z]
-        ])
-        self.known_triangle = np.array([[x1, y1], [x2, y2], [x1, y2]])
-
-    def test_base(self):
-        coords = misc.make_poly_coords(self.xarr, self.yarr)
-        nptest.assert_array_equal(coords, self.known_base)
-
-    def test_no_masked(self):
-        xarr = np.ma.MaskedArray(self.xarr, mask=False)
-        yarr = np.ma.MaskedArray(self.yarr, mask=False)
-        coords = misc.make_poly_coords(xarr, yarr)
-        nptest.assert_array_equal(coords, self.known_no_masked)
-
-    def test_masked(self):
-        xarr = np.ma.MaskedArray(self.xarr, mask=self.mask)
-        yarr = np.ma.MaskedArray(self.yarr, mask=self.mask)
-        coords = misc.make_poly_coords(xarr, yarr)
-        nptest.assert_array_equal(coords, self.known_masked)
-
-    def test_with_z(self):
-        coords = misc.make_poly_coords(self.xarr, self.yarr, zpnt=self.zpnt)
-        nptest.assert_array_equal(coords, self.known_with_z)
-
-    def test_triangles(self):
-        coords = misc.make_poly_coords(self.x_tri, self.y_tri, triangles=True)
-        nptest.assert_array_equal(coords, self.known_triangle)
+    coords = misc.make_poly_coords(xarr, yarr, zpnt=z, triangles=triangles)
+    nptest.assert_array_equal(coords, expected)
 
 
-class Test_make_record(object):
-    def setup(self):
-        self.point = [1, 2]
-        self.point_array = np.array(self.point)
-        self.non_point = [[1, 2], [5, 6], [5, 2]]
-        self.non_point_array = np.array(self.non_point)
-        self.mask = np.array([[1, 0], [0, 1], [1, 0]])
-        self.masked_coords = np.ma.MaskedArray(self.non_point_array,
-                                               mask=self.mask)
+@pytest.mark.parametrize('as_array', [True, False])
+@pytest.mark.parametrize(('geom', 'geomtype', 'error'), [
+    ([1, 2], 'Point', False),
+    ([[1, 2], [5, 6], [5, 2]], 'LineString', False),
+    ([[1, 2], [5, 6], [5, 2]], 'Polygon', False),
+    ([[1, 2], [5, 6], [5, 2]], 'Circle', True),
 
-        self.props = {'prop1': 'this string', 'prop2': 3.1415}
-
-        self.known_point = {
+])
+def test_make_record(geom, geomtype, error, as_array):
+    props = {'prop1': 'this string', 'prop2': 3.1415}
+    expected_geoms = {
+        'point': {
             'geometry': {
                 'type': 'Point',
                 'coordinates': [1, 2]
             },
             'id': 1,
-            'properties': self.props
-        }
-
-        self.known_line = {
+            'properties': props
+        },
+        'linestring': {
             'geometry': {
                 'type': 'LineString',
                 'coordinates': [[[1, 2], [5, 6], [5, 2]]]
             },
             'id': 1,
-            'properties': self.props
-        }
-
-        self.known_polygon = {
+            'properties': props
+        },
+        'polygon': {
             'geometry': {
                 'type': 'Polygon',
                 'coordinates': [[[1, 2], [5, 6], [5, 2]]]
             },
             'id': 1,
-            'properties': self.props
+            'properties': props
         }
+    }
 
-    def test_point(self):
-        record = misc.make_record(1, self.point, 'Point', self.props)
-        nt.assert_dict_equal(record, self.known_point)
+    if as_array:
+        geom = np.array(geom)
 
-    def test_point_array(self):
-        record = misc.make_record(1, self.point_array, 'Point', self.props)
-        nt.assert_dict_equal(record, self.known_point)
-
-    def test_line(self):
-        record = misc.make_record(1, self.non_point, 'LineString', self.props)
-        nt.assert_dict_equal(record, self.known_line)
-
-    def test_line_array(self):
-        record = misc.make_record(1, self.non_point_array, 'LineString', self.props)
-        nt.assert_dict_equal(record, self.known_line)
-
-    def test_polygon(self):
-        record = misc.make_record(1, self.non_point, 'Polygon', self.props)
-        nt.assert_dict_equal(record, self.known_polygon)
-
-    def test_polygon_array(self):
-        record = misc.make_record(1, self.non_point_array, 'Polygon', self.props)
-        nt.assert_dict_equal(record, self.known_polygon)
-
-    @nt.raises(ValueError)
-    def test_bad_geom(self):
-        misc.make_record(1, self.non_point_array, 'Circle', self.props)
+    if error:
+        with pytest.raises(ValueError):
+            misc.make_record(1, geom, geomtype, props)
+    else:
+        record = misc.make_record(1, geom, geomtype, props)
+        assert record == expected_geoms[geomtype.lower()]
 
 
-class Test_interpolate_bathymetry(object):
-    def setup(self):
-        self.bathy = testing.makeSimpleBathy()
-        self.grid = testing.makeSimpleGrid()
+@pytest.mark.skipif(not HASPGG, reason='pygridgen unavailabile')
+def test_interpolate_bathymetry(simple_bathy, simple_grid):
+    elev1 = misc.interpolate_bathymetry(None, simple_grid.x_rho, simple_grid.y_rho)
+    elev2 = misc.interpolate_bathymetry(simple_bathy, simple_grid.x_rho, simple_grid.y_rho)
 
-        self.known_real_elev = np.ma.masked_invalid(np.array([
-            [100.15, 100.2 ,    nan,    nan,    nan,    nan],
-            [100.2 , 100.25, 100.65, 100.74, 100.83, 100.95],
-            [100.25, 100.3 , 100.35, 100.4 , 100.45, 100.5 ],
-            [100.3 , 100.35, 100.4 , 100.45, 100.5 , 100.55],
-            [100.35, 100.4 ,    nan,    nan,    nan,    nan],
-            [100.4 , 100.45,    nan,    nan,    nan,    nan],
-            [100.45, 100.5 ,    nan,    nan,    nan,    nan],
-            [100.5 , 100.55,    nan,    nan,    nan,    nan]
-        ]))
+    fake_elev = np.ma.MaskedArray(data=np.zeros(simple_grid.x_rho.shape), mask=simple_grid.x_rho.mask)
+    real_elev = np.ma.masked_invalid(np.array([
+        [100.15, 100.20,    nan,    nan,    nan,    nan],
+        [100.20, 100.25, 100.65, 100.74, 100.83, 100.95],
+        [100.25, 100.30, 100.35, 100.40, 100.45, 100.50],
+        [100.30, 100.35, 100.40, 100.45, 100.50, 100.55],
+        [100.35, 100.40,    nan,    nan,    nan,    nan],
+        [100.40, 100.45,    nan,    nan,    nan,    nan],
+        [100.45, 100.50,    nan,    nan,    nan,    nan],
+        [100.50, 100.55,    nan,    nan,    nan,    nan]
+    ]))
 
-    @nptest.dec.skipif(not has_pgg)
-    def test_fake_bathy(self):
-        elev = misc.interpolate_bathymetry(None, self.grid.x_rho, self.grid.y_rho)
-        nptest.assert_array_equal(
-            elev,
-            np.ma.MaskedArray(data=np.zeros(self.grid.x_rho.shape),
-                              mask=self.grid.x_rho.mask)
-        )
-        nt.assert_tuple_equal(elev.shape, self.grid.x_rho.shape)
-
-    @nptest.dec.skipif(not has_pgg)
-    def test_real_bathy(self):
-        elev = misc.interpolate_bathymetry(
-            self.bathy, self.grid.x_rho, self.grid.y_rho
-        )
-
-        nptest.assert_array_almost_equal(
-            elev, self.known_real_elev, decimal=2
-        )
-
-    def teardown(self):
-        pass
+    nptest.assert_array_equal(elev1, fake_elev)
+    assert (elev1.shape == simple_grid.x_rho.shape)
+    nptest.assert_array_almost_equal(elev2, real_elev, decimal=2)
 
 
-class Test_padded_stack(object):
+@pytest.fixture
+def stackgrids():
+    grids = {
+        'input': {
+            'g0': np.array([
+                [13.7, 13.8],
+                [14.7, 14.8],
+                [15.7, 15.8],
+                [16.7, 16.8],
+                [17.7, 17.8],
+            ]),
+            'g1': np.array([
+                [6.6, 6.7, 6.8],
+                [7.6, 7.7, 7.8],
+                [8.6, 8.7, 8.8],
+                [9.6, 9.7, 9.8],
+                [10.6, 10.7, 10.8],
+                [11.6, 11.7, 11.8],
+                [12.6, 12.7, 12.8],
+            ]),
+            'g2': np.array([
+                [7.9, 7.10, 7.11, 7.12, 7.13],
+                [8.9, 8.10, 8.11, 8.12, 8.13],
+                [9.9, 9.10, 9.11, 9.12, 9.13],
+            ]),
+            'g3': np.array([
+                [1.4, 1.5, 1.6, 1.7, 1.8],
+                [2.4, 2.5, 2.6, 2.7, 2.8],
+                [3.4, 3.5, 3.6, 3.7, 3.8],
+                [4.4, 4.5, 4.6, 4.7, 4.8],
+                [5.4, 5.5, 5.6, 5.7, 5.8],
+            ]),
+            'g4': np.array([
+                [0.0, 0.1, 0.2, 0.3],
+                [1.0, 1.1, 1.2, 1.3],
+                [2.0, 2.1, 2.2, 2.3],
+                [3.0, 3.1, 3.2, 3.3],
+            ]),
+            'g5': np.array([
+                [7.14, 7.15, 7.16],
+                [8.14, 8.15, 8.16],
+            ])
+        },
+        'output': {
+            'g1-g2Left': np.array([
+                [nan,  nan,  nan,  nan,  nan,  6.6,  6.7,  6.8],
+                [7.9, 7.10, 7.11, 7.12, 7.13,  7.6,  7.7,  7.8],
+                [8.9, 8.10, 8.11, 8.12, 8.13,  8.6,  8.7,  8.8],
+                [9.9, 9.10, 9.11, 9.12, 9.13,  9.6,  9.7,  9.8],
+                [nan,  nan,  nan,  nan,  nan, 10.6, 10.7, 10.8],
+                [nan,  nan,  nan,  nan,  nan, 11.6, 11.7, 11.8],
+                [nan,  nan,  nan,  nan,  nan, 12.6, 12.7, 12.8],
+            ]),
+            'g1-g2Right': np.array([
+                [6.6, 6.7, 6.8, nan, nan, nan, nan, nan],
+                [7.6, 7.7, 7.8, 7.9, 7.10, 7.11, 7.12, 7.13],
+                [8.6, 8.7, 8.8, 8.9, 8.10, 8.11, 8.12, 8.13],
+                [9.6, 9.7, 9.8, 9.9, 9.10, 9.11, 9.12, 9.13],
+                [10.6, 10.7, 10.8, nan, nan, nan, nan, nan],
+                [11.6, 11.7, 11.8, nan, nan, nan, nan, nan],
+                [12.6, 12.7, 12.8, nan, nan, nan, nan, nan],
+            ]),
+            'g0-g1': np.array([
+                [nan, 6.6, 6.7, 6.8],
+                [nan, 7.6, 7.7, 7.8],
+                [nan, 8.6, 8.7, 8.8],
+                [nan, 9.6, 9.7, 9.8],
+                [nan, 10.6, 10.7, 10.8],
+                [nan, 11.6, 11.7, 11.8],
+                [nan, 12.6, 12.7, 12.8],
+                [13.7, 13.8, nan,  nan],
+                [14.7, 14.8, nan,  nan],
+                [15.7, 15.8, nan,  nan],
+                [16.7, 16.8, nan,  nan],
+                [17.7, 17.8, nan,  nan],
+            ]),
+            'g0-g1-g2': np.array([
+                [6.6,  6.7,  6.8, nan, nan, nan, nan, nan],
+                [7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13],
+                [8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13],
+                [9.6,  9.7,  9.8, 9.9, 9.10, 9.11, 9.12, 9.13],
+                [10.6, 10.7, 10.8, nan, nan, nan, nan, nan],
+                [11.6, 11.7, 11.8, nan, nan, nan, nan, nan],
+                [12.6, 12.7, 12.8, nan, nan, nan, nan, nan],
+                [nan, 13.7, 13.8, nan, nan, nan, nan, nan],
+                [nan, 14.7, 14.8, nan, nan, nan, nan, nan],
+                [nan, 15.7, 15.8, nan, nan, nan, nan, nan],
+                [nan, 16.7, 16.8, nan, nan, nan, nan, nan],
+                [nan, 17.7, 17.8, nan, nan, nan, nan, nan],
+            ]),
+            'g1-g3': np.array([
+                [nan, nan, 1.4, 1.5, 1.6, 1.7, 1.8],
+                [nan, nan, 2.4, 2.5, 2.6, 2.7, 2.8],
+                [nan, nan, 3.4, 3.5, 3.6, 3.7, 3.8],
+                [nan, nan, 4.4, 4.5, 4.6, 4.7, 4.8],
+                [nan, nan, 5.4, 5.5, 5.6, 5.7, 5.8],
+                [6.6, 6.7, 6.8, nan, nan, nan, nan],
+                [7.6, 7.7, 7.8, nan, nan, nan, nan],
+                [8.6, 8.7, 8.8, nan, nan, nan, nan],
+                [9.6, 9.7, 9.8, nan, nan, nan, nan],
+                [10.6, 10.7, 10.8, nan, nan, nan, nan],
+                [11.6, 11.7, 11.8, nan, nan, nan, nan],
+                [12.6, 12.7, 12.8, nan, nan, nan, nan],
+            ]),
+            'g3-g4': np.array([
+                [0.0, 0.1, 0.2, 0.3, nan, nan, nan, nan, nan],
+                [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8],
+                [2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8],
+                [3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8],
+                [nan, nan, nan, nan, 4.4, 4.5, 4.6, 4.7, 4.8],
+                [nan, nan, nan, nan, 5.4, 5.5, 5.6, 5.7, 5.8],
+            ]),
+            'g-all': np.array([
+                [0.0, 0.1, 0.2, 0.3, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+                [1.0, 1.1, 1.2, 1.3, 1.4, 1.5,  1.6,  1.7,  1.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [2.0, 2.1, 2.2, 2.3, 2.4, 2.5,  2.6,  2.7,  2.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [3.0, 3.1, 3.2, 3.3, 3.4, 3.5,  3.6,  3.7,  3.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, 4.4, 4.5,  4.6,  4.7,  4.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, 5.4, 5.5,  5.6,  5.7,  5.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan,  6.6,  6.7,  6.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan,  7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13, 7.14, 7.15, 7.16],
+                [nan, nan, nan, nan, nan, nan,  8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13, 8.14, 8.15, 8.16],
+                [nan, nan, nan, nan, nan, nan,  9.6,  9.7,  9.8, 9.9, 9.10, 9.11, 9.12, 9.13, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan, 10.6, 10.7, 10.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan, 11.6, 11.7, 11.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan, 12.6, 12.7, 12.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan, nan, 13.7, 13.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan, nan, 14.7, 14.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan, nan, 15.7, 15.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan, nan, 16.7, 16.8, nan, nan, nan, nan, nan, nan, nan, nan],
+                [nan, nan, nan, nan, nan, nan, nan, 17.7, 17.8, nan, nan, nan, nan, nan, nan, nan, nan],
+            ])
+        }
+    }
 
-    def setup(self):
-        from numpy import nan
-        self.g0 = np.array([
-            [13.7, 13.8],
-            [14.7, 14.8],
-            [15.7, 15.8],
-            [16.7, 16.8],
-            [17.7, 17.8],
-        ])
-
-        self.g1 = np.array([
-            [ 6.6,  6.7,  6.8],
-            [ 7.6,  7.7,  7.8],
-            [ 8.6,  8.7,  8.8],
-            [ 9.6,  9.7,  9.8],
-            [10.6, 10.7, 10.8],
-            [11.6, 11.7, 11.8],
-            [12.6, 12.7, 12.8],
-        ])
-
-        self.g2 = np.array([
-            [7.9, 7.10, 7.11, 7.12, 7.13],
-            [8.9, 8.10, 8.11, 8.12, 8.13],
-            [9.9, 9.10, 9.11, 9.12, 9.13],
-        ])
-
-        self.g3 = np.array([
-            [1.4, 1.5, 1.6, 1.7, 1.8],
-            [2.4, 2.5, 2.6, 2.7, 2.8],
-            [3.4, 3.5, 3.6, 3.7, 3.8],
-            [4.4, 4.5, 4.6, 4.7, 4.8],
-            [5.4, 5.5, 5.6, 5.7, 5.8],
-        ])
-
-        self.g4 = np.array([
-            [0.0, 0.1, 0.2, 0.3],
-            [1.0, 1.1, 1.2, 1.3],
-            [2.0, 2.1, 2.2, 2.3],
-            [3.0, 3.1, 3.2, 3.3],
-        ])
-
-        self.g5 = np.array([
-            [7.14, 7.15, 7.16],
-            [8.14, 8.15, 8.16],
-        ])
-
-        self.expected_g1_2_left = np.array([
-            [nan,  nan,  nan,  nan,  nan,  6.6,  6.7,  6.8],
-            [7.9, 7.10, 7.11, 7.12, 7.13,  7.6,  7.7,  7.8],
-            [8.9, 8.10, 8.11, 8.12, 8.13,  8.6,  8.7,  8.8],
-            [9.9, 9.10, 9.11, 9.12, 9.13,  9.6,  9.7,  9.8],
-            [nan,  nan,  nan,  nan,  nan, 10.6, 10.7, 10.8],
-            [nan,  nan,  nan,  nan,  nan, 11.6, 11.7, 11.8],
-            [nan,  nan,  nan,  nan,  nan, 12.6, 12.7, 12.8],
-        ])
-
-        self.expected_g1_2_right = np.array([
-            [ 6.6,  6.7,  6.8, nan,  nan,  nan,  nan,  nan],
-            [ 7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13],
-            [ 8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13],
-            [ 9.6,  9.7,  9.8, 9.9, 9.10, 9.11, 9.12, 9.13],
-            [10.6, 10.7, 10.8, nan,  nan,  nan,  nan,  nan],
-            [11.6, 11.7, 11.8, nan,  nan,  nan,  nan,  nan],
-            [12.6, 12.7, 12.8, nan,  nan,  nan,  nan,  nan],
-        ])
-
-        self.expected_g0_1 = np.array([
-            [ nan,  6.6,  6.7,  6.8],
-            [ nan,  7.6,  7.7,  7.8],
-            [ nan,  8.6,  8.7,  8.8],
-            [ nan,  9.6,  9.7,  9.8],
-            [ nan, 10.6, 10.7, 10.8],
-            [ nan, 11.6, 11.7, 11.8],
-            [ nan, 12.6, 12.7, 12.8],
-            [13.7, 13.8, nan,  nan],
-            [14.7, 14.8, nan,  nan],
-            [15.7, 15.8, nan,  nan],
-            [16.7, 16.8, nan,  nan],
-            [17.7, 17.8, nan,  nan],
-        ])
-
-        self.expected_g0_1_2 = np.array([
-            [ 6.6,  6.7,  6.8, nan,  nan,  nan,  nan,  nan],
-            [ 7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13],
-            [ 8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13],
-            [ 9.6,  9.7,  9.8, 9.9, 9.10, 9.11, 9.12, 9.13],
-            [10.6, 10.7, 10.8, nan,  nan,  nan,  nan,  nan],
-            [11.6, 11.7, 11.8, nan,  nan,  nan,  nan,  nan],
-            [12.6, 12.7, 12.8, nan,  nan,  nan,  nan,  nan],
-            [ nan, 13.7, 13.8, nan,  nan,  nan,  nan,  nan],
-            [ nan, 14.7, 14.8, nan,  nan,  nan,  nan,  nan],
-            [ nan, 15.7, 15.8, nan,  nan,  nan,  nan,  nan],
-            [ nan, 16.7, 16.8, nan,  nan,  nan,  nan,  nan],
-            [ nan, 17.7, 17.8, nan,  nan,  nan,  nan,  nan],
-        ])
-
-        self.expected_g1_3 = np.array([
-            [ nan,  nan,  1.4, 1.5, 1.6, 1.7, 1.8],
-            [ nan,  nan,  2.4, 2.5, 2.6, 2.7, 2.8],
-            [ nan,  nan,  3.4, 3.5, 3.6, 3.7, 3.8],
-            [ nan,  nan,  4.4, 4.5, 4.6, 4.7, 4.8],
-            [ nan,  nan,  5.4, 5.5, 5.6, 5.7, 5.8],
-            [ 6.6,  6.7,  6.8, nan, nan, nan, nan],
-            [ 7.6,  7.7,  7.8, nan, nan, nan, nan],
-            [ 8.6,  8.7,  8.8, nan, nan, nan, nan],
-            [ 9.6,  9.7,  9.8, nan, nan, nan, nan],
-            [10.6, 10.7, 10.8, nan, nan, nan, nan],
-            [11.6, 11.7, 11.8, nan, nan, nan, nan],
-            [12.6, 12.7, 12.8, nan, nan, nan, nan],
-        ])
-
-        self.expected_g3_4 = np.array([
-            [0.0, 0.1, 0.2, 0.3, nan, nan, nan, nan, nan],
-            [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8],
-            [2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8],
-            [3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8],
-            [nan, nan, nan, nan, 4.4, 4.5, 4.6, 4.7, 4.8],
-            [nan, nan, nan, nan, 5.4, 5.5, 5.6, 5.7, 5.8],
-        ])
-
-        self.expected_all_gs = np.array([
-            [0.0, 0.1, 0.2, 0.3, nan, nan,  nan,  nan,  nan, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [1.0, 1.1, 1.2, 1.3, 1.4, 1.5,  1.6,  1.7,  1.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [2.0, 2.1, 2.2, 2.3, 2.4, 2.5,  2.6,  2.7,  2.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [3.0, 3.1, 3.2, 3.3, 3.4, 3.5,  3.6,  3.7,  3.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, 4.4, 4.5,  4.6,  4.7,  4.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, 5.4, 5.5,  5.6,  5.7,  5.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan,  6.6,  6.7,  6.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan,  7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13, 7.14, 7.15, 7.16],
-            [nan, nan, nan, nan, nan, nan,  8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13, 8.14, 8.15, 8.16],
-            [nan, nan, nan, nan, nan, nan,  9.6,  9.7,  9.8, 9.9, 9.10, 9.11, 9.12, 9.13,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan, 10.6, 10.7, 10.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan, 11.6, 11.7, 11.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan, 12.6, 12.7, 12.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan,  nan, 13.7, 13.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan,  nan, 14.7, 14.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan,  nan, 15.7, 15.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan,  nan, 16.7, 16.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-            [nan, nan, nan, nan, nan, nan,  nan, 17.7, 17.8, nan,  nan,  nan,  nan,  nan,  nan,  nan,  nan],
-        ])
-
-    def test_vertical_merge_above(self):
-        g_merged = misc.padded_stack(self.g1, self.g3, how='v', where='-', shift=2)
-        nptest.assert_array_equal(g_merged, self.expected_g1_3)
-
-    def test_vertical_merge_below(self):
-        g_merged = misc.padded_stack(self.g3, self.g1, how='v', where='+', shift=-2)
-        nptest.assert_array_equal(g_merged, self.expected_g1_3)
-
-    def test_horizontal_merge_left(self):
-        g_merged = misc.padded_stack(self.g1, self.g2, how='h', where='-', shift=1)
-        nptest.assert_array_equal(g_merged, self.expected_g1_2_left)
-
-    def test_horizontal_merge_right(self):
-        g_merged = misc.padded_stack(self.g1, self.g2, how='h', where='+', shift=1)
-        nptest.assert_array_equal(g_merged, self.expected_g1_2_right)
-
-    def test_vert_merge_0and1(self):
-        merged = misc.padded_stack(self.g0, self.g1, how='v', where='-', shift=1)
-        nptest.assert_array_equal(merged, self.expected_g0_1)
-
-    def test_vert_merge_0and1and2(self):
-        step1 = misc.padded_stack(self.g0, self.g1, how='v', where='-', shift=-1)
-        step2 = misc.padded_stack(step1, self.g2, how='h', where='+', shift=1)
-        nptest.assert_array_equal(step2, self.expected_g0_1_2)
-
-    def test_big_grid_lowerleft_to_upperright(self):
-        step1 = misc.padded_stack(self.g4, self.g3, how='h', where='+', shift=1)
-        step2 = misc.padded_stack(step1, self.g1, how='v', where='+', shift=6)
-        step3 = misc.padded_stack(step2, self.g2, how='h', where='+', shift=7)
-        step4 = misc.padded_stack(step3, self.g5, how='h', where='+', shift=7)
-        step5 = misc.padded_stack(step4, self.g0, how='v', where='+', shift=7)
-
-        nptest.assert_array_equal(step5, self.expected_all_gs)
-
-    def test_big_grid_upperright_to_lowerleft(self):
-        step1 = misc.padded_stack(self.g0, self.g1, how='v', where='-', shift=-1)
-        step2 = misc.padded_stack(step1, self.g2, how='h', where='+', shift=1)
-        step3 = misc.padded_stack(step2, self.g3, how='v', where='-', shift=-2)
-        step4 = misc.padded_stack(step3, self.g4, how='h', where='-', shift=-1)
-        step5 = misc.padded_stack(step4, self.g5, how='h', where='+', shift=7)
-
-        nptest.assert_array_equal(step5, self.expected_all_gs)
-
-    @nt.raises(ValueError)
-    def test_bad_how(self):
-        misc.padded_stack(self.g1, self.g3, how='junk', where='-', shift=2)
-
-    @nt.raises(ValueError)
-    def test_bad_where(self):
-        misc.padded_stack(self.g1, self.g3, how='v', where='junk', shift=2)
+    return grids
 
 
-class Test_mask_with_polygon(object):
-    def setup(self):
-        self.y, self.x = np.mgrid[:5, :5]
-        self.polyverts = [
-            (0.5, 2.5),
-            (3.5, 2.5),
-            (3.5, 0.5),
-            (0.5, 0.5),
-        ]
-
-        self.known_inside_mask = np.array([
-            [0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0],
-            [0, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-        ], dtype=bool)
-
-        self.known_outside_mask = np.array([
-            [1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 1],
-            [1, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1],
-        ], dtype=bool)
-
-    def test_default_inside(self):
-        mask = misc.mask_with_polygon(self.x, self.y, self.polyverts)
-        nptest.assert_array_equal(mask, self.known_inside_mask)
-
-    def test_outside(self):
-        mask = misc.mask_with_polygon(self.x, self.y, self.polyverts, inside=False)
-        nptest.assert_array_equal(mask, self.known_outside_mask)
+@pytest.mark.parametrize('idx1, idx2, how, where, shift, expected', [
+    ('g1', 'g3', 'v', '-', 2, 'g1-g3'),
+    ('g3', 'g1', 'v', '+', -2, 'g1-g3'),
+    ('g1', 'g2', 'h', '-', 1, 'g1-g2Left'),
+    ('g1', 'g2', 'h', '+', 1, 'g1-g2Right'),
+    ('g0', 'g1', 'v', '-', 1, 'g0-g1'),
+], ids=['VA-', 'VB+', 'HL-', 'HR+', 'V-easy'])
+def test_padded_stack_pairs(stackgrids, idx1, idx2, how, where, shift, expected):
+    result = misc.padded_stack(
+        stackgrids['input'][idx1],
+        stackgrids['input'][idx2],
+        how=how,
+        where=where,
+        shift=shift
+    )
+    nptest.assert_array_equal(result, stackgrids['output'][expected])
 
 
-class Base_make_gefdc_cells(object):
-    def test_output(self):
-        cells = misc.make_gefdc_cells(self.nodes, cell_mask=self.mask,
-                                      triangles=self.triangles)
-        nptest.assert_array_equal(cells, self.known_cells)
+def test_padded_stack_three(stackgrids):
+    step1 = misc.padded_stack(stackgrids['input']['g0'], stackgrids['input']['g1'],
+                              how='v', where='-', shift=-1)
+    step2 = misc.padded_stack(step1, stackgrids['input']['g2'],
+                              how='h', where='+', shift=1)
+    nptest.assert_array_equal(step2, stackgrids['output']['g0-g1-g2'])
 
 
-class Test_make_gedfc_cells_triangles(Base_make_gefdc_cells):
-    def setup(self):
-        self.triangles = True
-        self.nodes = np.array([
+def test_padded_stack_a_bunch(stackgrids):
+    step1 = misc.padded_stack(stackgrids['input']['g0'], stackgrids['input']['g1'],
+                              how='v', where='-', shift=-1)
+    step2 = misc.padded_stack(step1, stackgrids['input']['g2'],
+                              how='h', where='+', shift=1)
+    step3 = misc.padded_stack(step2, stackgrids['input']['g3'],
+                              how='v', where='-', shift=-2)
+    step4 = misc.padded_stack(step3, stackgrids['input']['g4'],
+                              how='h', where='-', shift=-1)
+    step5 = misc.padded_stack(step4, stackgrids['input']['g5'],
+                              how='h', where='+', shift=7)
+    nptest.assert_array_equal(step5, stackgrids['output']['g-all'])
+
+
+@pytest.mark.parametrize(('how', 'where'), [('junk', '+'), ('h', 'junk')])
+def test_padded_stack_errors(stackgrids, how, where):
+    with pytest.raises(ValueError):
+        misc.padded_stack(stackgrids['input']['g1'], stackgrids['input']['g3'],
+                          how=how, where=where, shift=2)
+
+
+@pytest.mark.parametrize(('inside', 'expected'), [
+    (True, np.array([
+        [0, 0, 0, 0, 0], [0, 1, 1, 1, 0],
+        [0, 1, 1, 1, 0], [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0]], dtype=bool)),
+    (False, np.array([
+        [1, 1, 1, 1, 1], [1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1], [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1]], dtype=bool))
+], ids=['inside', 'outside'])
+def test_mask_with_polygon(inside, expected):
+    y, x = np.mgrid[:5, :5]
+    polyverts = [
+        (0.5, 2.5),
+        (3.5, 2.5),
+        (3.5, 0.5),
+        (0.5, 0.5),
+    ]
+    mask = misc.mask_with_polygon(x, y, polyverts, inside=inside)
+    nptest.assert_array_equal(mask, expected)
+
+
+@pytest.mark.parametrize(('nodes', 'mask', 'triangles', 'expected'), [
+    (
+        np.array([
             [0, 1, 1, 1, 0, 0, 0, 0],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [0, 1, 1, 1, 0, 0, 0, 0],
-        ])
-        self.mask = np.zeros_like(self.nodes)[1:, 1:]
-
-        self.known_cells = np.array([
+        ]),
+        np.zeros((4, 7)),
+        True,
+        np.array([
             [9, 9, 9, 9, 9, 9, 0, 0, 0],
             [9, 3, 5, 5, 2, 9, 9, 9, 9],
             [9, 5, 5, 5, 5, 5, 5, 5, 9],
@@ -430,22 +338,18 @@ class Test_make_gedfc_cells_triangles(Base_make_gefdc_cells):
             [9, 4, 5, 5, 1, 9, 9, 9, 9],
             [9, 9, 9, 9, 9, 9, 0, 0, 0],
         ])
-
-
-class Test_make_gefdc_cells_simple_mask(Base_make_gefdc_cells):
-    def setup(self):
-        size = 6
-        self.triangles = False
-        self.nodes = np.ones((size, size))
-        self.mask = np.array([
+    ),
+    (
+        np.ones((6, 6)),
+        np.array([
             [1, 1, 0, 0, 0],
             [1, 1, 0, 0, 0],
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0],
-        ])
-
-        self.known_cells = np.array([
+        ]),
+        False,
+        np.array([
             [0, 0, 9, 9, 9, 9, 9],
             [0, 0, 9, 5, 5, 5, 9],
             [9, 9, 9, 5, 5, 5, 9],
@@ -454,16 +358,12 @@ class Test_make_gefdc_cells_simple_mask(Base_make_gefdc_cells):
             [9, 5, 5, 5, 5, 5, 9],
             [9, 9, 9, 9, 9, 9, 9]
         ])
-
-
-class Test_make_gefdc_cells_simple_nomask(Base_make_gefdc_cells):
-    def setup(self):
-        size = 6
-        self.triangles = False
-        self.nodes = np.ones((size, size))
-        self.mask = np.zeros((size - 1, size - 1))
-
-        self.known_cells = np.array([
+    ),
+    (
+        np.ones((6, 6)),
+        np.zeros((5, 5)),
+        False,
+        np.array([
             [9, 9, 9, 9, 9, 9, 9],
             [9, 5, 5, 5, 5, 5, 9],
             [9, 5, 5, 5, 5, 5, 9],
@@ -472,12 +372,9 @@ class Test_make_gefdc_cells_simple_nomask(Base_make_gefdc_cells):
             [9, 5, 5, 5, 5, 5, 9],
             [9, 9, 9, 9, 9, 9, 9]
         ])
-
-
-class Test_make_gefdc_cells_complex_nomask(Base_make_gefdc_cells):
-    def setup(self):
-        self.triangles = False
-        self.nodes  = np.array([
+    ),
+    (
+        np.array([
             [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
             [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],
@@ -497,9 +394,8 @@ class Test_make_gefdc_cells_complex_nomask(Base_make_gefdc_cells):
             [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
-        ])
-
-        self.mask = np.array([
+        ]),
+        np.array([
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -518,9 +414,9 @@ class Test_make_gefdc_cells_complex_nomask(Base_make_gefdc_cells):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ])
-
-        self.known_cells = np.array([
+        ]),
+        False,
+        np.array([
             [0, 9, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0],
             [0, 9, 5, 5, 5, 5, 5, 9, 0, 0, 0, 0],
             [0, 9, 9, 5, 5, 5, 9, 9, 0, 0, 0, 0],
@@ -542,3 +438,8 @@ class Test_make_gefdc_cells_complex_nomask(Base_make_gefdc_cells):
             [0, 0, 0, 9, 5, 5, 5, 9, 0, 0, 0, 0],
             [0, 0, 0, 9, 9, 9, 9, 9, 0, 0, 0, 0]
         ])
+    ),
+], ids=['with triangles', 'without triangles', 'simple no mask', 'complex no mask'])
+def test_make_gefdc_cells(nodes, mask, triangles, expected):
+    cells = misc.make_gefdc_cells(nodes, cell_mask=mask, triangles=triangles)
+    nptest.assert_array_equal(cells, expected)

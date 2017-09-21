@@ -3,40 +3,32 @@ import matplotlib.pyplot as plt
 
 from pygridtools import viz
 
-import nose.tools as nt
+import pytest
 import numpy.testing as nptest
-from matplotlib.testing.decorators import image_comparison, cleanup
 import pygridtools.testing as pgtest
 
 
-class test_mpl_engine(object):
-    def setup(self):
-        pass
-
-    def teardown(self):
-        plt.close('all')
-
-    def test_plotDomain_smoke(self):
-        data = pgtest.makeSimpleBoundary()
-        fig3 = viz.plotDomain(domain_x='x', domain_y='y', beta='beta', data=data)
-        fig4 = viz.plotDomain(domain_x=data['x'], domain_y=data['y'], beta=data['beta'], data=None)
+@pytest.mark.parametrize('engine', ['mpl'])
+def test_plot_domain_smoke(simple_boundary, engine):
+    fig3 = viz.plotDomain(domain_x='x', domain_y='y', beta='beta', data=simple_boundary)
+    fig4 = viz.plotDomain(domain_x=simple_boundary['x'], domain_y=simple_boundary['y'],
+                          beta=simple_boundary['beta'], data=None)
 
 
-    def test_plotBoundaries_smoke(self):
-        extent = pgtest.makeSimpleBoundary()
-        islands = pgtest.makeSimpleIslands()
-        fig5 = viz.plotBoundaries(extent_x='x', extent_y='y', extent=extent,
-                                         islands_x='x', islands_y='y', islands_name='island',
-                                         islands=islands)
+@pytest.mark.parametrize('engine', ['mpl'])
+def test_plotBoundaries_smoke(simple_boundary, simple_islands, engine):
+    fig5 = viz.plotBoundaries(extent_x='x', extent_y='y', extent=simple_boundary,
+                              islands_x='x', islands_y='y', islands_name='island',
+                              islands=simple_islands)
 
-        fig6 = viz.plotBoundaries(extent_x=extent['x'], extent_y=extent['y'], extent=None,
-                                         islands_x=islands['x'], islands_y=islands['y'],
-                                         islands_name=islands['island'], islands=None)
+    fig6 = viz.plotBoundaries(extent_x=simple_boundary['x'], extent_y=simple_boundary['y'], extent=None,
+                              islands_x=simple_islands['x'], islands_y=simple_islands['y'],
+                              islands_name=simple_islands['island'], islands=None)
 
-    def test_plotPoints_smoke(self):
-        x, y = pgtest.makeSimpleNodes()
-        fig1 = viz.plotPoints(x, y)
 
-    def test_plotCells_smoke(self):
-        x, y = pgtest.makeSimpleNodes()
-        fig1 = viz.plotCells(x, y)
+def test_plotPoints_smoke(simple_nodes):
+    fig1 = viz.plotPoints(*simple_nodes)
+
+
+def test_plotCells_smoke(simple_nodes):
+    fig1 = viz.plotCells(*simple_nodes)

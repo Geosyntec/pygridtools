@@ -29,7 +29,7 @@ install:
   - conda create --yes --name=test python=$TRAVIS_PYTHON_VERSION
   - source activate test
 
-  - conda install --yes --channel=conda-forge pygridgen geopandas scipy matplotlib=1.5
+  - conda install --yes --channel=conda-forge pygridgen geopandas scipy matplotlib
   - conda install --yes --channel=conda-forge pytest pytest-mpl pytest-cov pytest-pep8
 
    # coveralls

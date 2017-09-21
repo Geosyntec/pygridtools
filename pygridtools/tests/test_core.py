@@ -10,11 +10,11 @@ import pandas
 import pytest
 import numpy.testing as nptest
 import pandas.util.testing as pdtest
-from matplotlib.testing.decorators import image_comparison
 
 from pygridtools import core
 from pygridtools import testing
 
+BASELINE_IMAGES = 'baseline_files/test_core'
 try:
     import pygridgen
     HASPGG = True
@@ -742,17 +742,12 @@ def test_writeGEFDCGridextFiles(mg):
         )
 
 
-@image_comparison(
-    baseline_images=[
-        'test_ModelGrid_plots_basic',
-    ],
-    extensions=['png']
-)
-def test_ModelGrid_plots(simple_nodes):
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
+def test_ModelGrid_plots_basic(simple_nodes):
     mg = core.ModelGrid(*simple_nodes)
     mg.cell_mask = np.ma.masked_invalid(mg.xc).mask
 
-    fig1 = mg.plotCells()
+    return mg.plotCells()
 
 
 @pytest.mark.parametrize(('otherargs', 'gridtype'), [

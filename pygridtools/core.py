@@ -1004,9 +1004,8 @@ class ModelGrid(object):
 
         if geom.lower() == 'point':
             x, y = self._get_x_y(which, usemask=usemask)
-            iotools.savePointShapefile(x, y, template, outputfile,
-                                       mode=mode, river=river, reach=reach,
-                                       elev=elev)
+            iotools.write_points(x, y, template, outputfile, river=river,
+                                reach=reach, elev=elev)
 
         elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
             if usemask:
@@ -1014,10 +1013,8 @@ class ModelGrid(object):
             else:
                 mask = None
             x, y = self._get_x_y('nodes', usemask=False)
-            iotools.saveGridShapefile(x, y, mask, template,
-                                      outputfile, mode=mode, river=river,
-                                      reach=reach, elev=elev,
-                                      triangles=triangles)
+            iotools.write_cells(x, y, mask, template, outputfile, river=river,
+                              reach=reach, elev=elev, triangles=triangles)
             if which == 'cells':
                 warnings.warn("polygons always constructed from nodes")
         else:
@@ -1067,7 +1064,7 @@ class ModelGrid(object):
 
         """
 
-        df = iotools.readGridShapefile(shapefile, icol=icol, jcol=jcol)
+        df = iotools.read_grid(shapefile, icol=icol, jcol=jcol)
         return cls.from_dataframes(df['easting'], df['northing'])
 
     @classmethod

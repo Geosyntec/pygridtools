@@ -6,7 +6,6 @@ import tempfile
 import numpy as np
 import pandas
 
-from unittest.mock import patch
 import pytest
 import numpy.testing as nptest
 import pandas.util.testing as pdtest

@@ -83,6 +83,8 @@ def test_dumpGridFile(simple_grid):
 
         if sys.platform == 'win32':
             baselinefile = resource_filename('pygridtools.tests.baseline_files', 'grid_win.out')
+        elif sys.platform == 'darwin':
+            baselinefile = resource_filename('pygridtools.tests.baseline_files', 'grid_mac.out')
         else:
             baselinefile = resource_filename('pygridtools.tests.baseline_files', 'grid.out')
 

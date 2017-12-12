@@ -1,4 +1,4 @@
-import numpy as np
+import numpy
 from numpy import nan
 
 import pytest
@@ -7,7 +7,7 @@ import numpy.testing as nptest
 from pygridtools import misc
 
 
-np.set_printoptions(linewidth=150, nanstr='-')
+numpy.set_printoptions(linewidth=150, nanstr='-')
 
 try:
     import pygridgen
@@ -23,20 +23,20 @@ except ImportError:
     (None, None, True),
 ])
 def test_make_poly_coords_base(masked, z, triangles):
-    xarr = np.array([[1, 2], [1, 2]], dtype=float)
-    yarr = np.array([[3, 3], [4, 4]], dtype=float)
+    xarr = numpy.array([[1, 2], [1, 2]], dtype=float)
+    yarr = numpy.array([[3, 3], [4, 4]], dtype=float)
     if masked is False:
-        xarr = np.ma.masked_array(xarr, mask=False)
-        yarr = np.ma.masked_array(yarr, mask=False)
+        xarr = numpy.ma.masked_array(xarr, mask=False)
+        yarr = numpy.ma.masked_array(yarr, mask=False)
 
     if z:
-        expected = np.array([[1, 3, z], [2, 3, z], [2, 4, z], [1, 4, z]], dtype=float)
+        expected = numpy.array([[1, 3, z], [2, 3, z], [2, 4, z], [1, 4, z]], dtype=float)
     elif triangles:
-        expected = np.array([[1, 3], [2, 4], [1, 4]], dtype=float)
-        xarr[0, -1] = np.nan
-        yarr[0, -1] = np.nan
+        expected = numpy.array([[1, 3], [2, 4], [1, 4]], dtype=float)
+        xarr[0, -1] = nan
+        yarr[0, -1] = nan
     else:
-        expected = np.array([[1, 3], [2, 3], [2, 4], [1, 4]], dtype=float)
+        expected = numpy.array([[1, 3], [2, 3], [2, 4], [1, 4]], dtype=float)
 
     coords = misc.make_poly_coords(xarr, yarr, zpnt=z, triangles=triangles)
     nptest.assert_array_equal(coords, expected)
@@ -80,7 +80,7 @@ def test_make_record(geom, geomtype, error, as_array):
     }
 
     if as_array:
-        geom = np.array(geom)
+        geom = numpy.array(geom)
 
     if error:
         with pytest.raises(ValueError):
@@ -95,8 +95,8 @@ def test_interpolate_bathymetry(simple_bathy, simple_grid):
     elev1 = misc.interpolate_bathymetry(None, simple_grid.x_rho, simple_grid.y_rho)
     elev2 = misc.interpolate_bathymetry(simple_bathy, simple_grid.x_rho, simple_grid.y_rho)
 
-    fake_elev = np.ma.MaskedArray(data=np.zeros(simple_grid.x_rho.shape), mask=simple_grid.x_rho.mask)
-    real_elev = np.ma.masked_invalid(np.array([
+    fake_elev = numpy.ma.MaskedArray(data=numpy.zeros(simple_grid.x_rho.shape), mask=simple_grid.x_rho.mask)
+    real_elev = numpy.ma.masked_invalid(numpy.array([
         [100.15, 100.20,    nan,    nan,    nan,    nan],
         [100.20, 100.25, 100.65, 100.74, 100.83, 100.95],
         [100.25, 100.30, 100.35, 100.40, 100.45, 100.50],
@@ -116,14 +116,14 @@ def test_interpolate_bathymetry(simple_bathy, simple_grid):
 def stackgrids():
     grids = {
         'input': {
-            'g0': np.array([
+            'g0': numpy.array([
                 [13.7, 13.8],
                 [14.7, 14.8],
                 [15.7, 15.8],
                 [16.7, 16.8],
                 [17.7, 17.8],
             ]),
-            'g1': np.array([
+            'g1': numpy.array([
                 [6.6, 6.7, 6.8],
                 [7.6, 7.7, 7.8],
                 [8.6, 8.7, 8.8],
@@ -132,31 +132,31 @@ def stackgrids():
                 [11.6, 11.7, 11.8],
                 [12.6, 12.7, 12.8],
             ]),
-            'g2': np.array([
+            'g2': numpy.array([
                 [7.9, 7.10, 7.11, 7.12, 7.13],
                 [8.9, 8.10, 8.11, 8.12, 8.13],
                 [9.9, 9.10, 9.11, 9.12, 9.13],
             ]),
-            'g3': np.array([
+            'g3': numpy.array([
                 [1.4, 1.5, 1.6, 1.7, 1.8],
                 [2.4, 2.5, 2.6, 2.7, 2.8],
                 [3.4, 3.5, 3.6, 3.7, 3.8],
                 [4.4, 4.5, 4.6, 4.7, 4.8],
                 [5.4, 5.5, 5.6, 5.7, 5.8],
             ]),
-            'g4': np.array([
+            'g4': numpy.array([
                 [0.0, 0.1, 0.2, 0.3],
                 [1.0, 1.1, 1.2, 1.3],
                 [2.0, 2.1, 2.2, 2.3],
                 [3.0, 3.1, 3.2, 3.3],
             ]),
-            'g5': np.array([
+            'g5': numpy.array([
                 [7.14, 7.15, 7.16],
                 [8.14, 8.15, 8.16],
             ])
         },
         'output': {
-            'g1-g2Left': np.array([
+            'g1-g2Left': numpy.array([
                 [nan,  nan,  nan,  nan,  nan,  6.6,  6.7,  6.8],
                 [7.9, 7.10, 7.11, 7.12, 7.13,  7.6,  7.7,  7.8],
                 [8.9, 8.10, 8.11, 8.12, 8.13,  8.6,  8.7,  8.8],
@@ -165,7 +165,7 @@ def stackgrids():
                 [nan,  nan,  nan,  nan,  nan, 11.6, 11.7, 11.8],
                 [nan,  nan,  nan,  nan,  nan, 12.6, 12.7, 12.8],
             ]),
-            'g1-g2Right': np.array([
+            'g1-g2Right': numpy.array([
                 [6.6, 6.7, 6.8, nan, nan, nan, nan, nan],
                 [7.6, 7.7, 7.8, 7.9, 7.10, 7.11, 7.12, 7.13],
                 [8.6, 8.7, 8.8, 8.9, 8.10, 8.11, 8.12, 8.13],
@@ -174,7 +174,7 @@ def stackgrids():
                 [11.6, 11.7, 11.8, nan, nan, nan, nan, nan],
                 [12.6, 12.7, 12.8, nan, nan, nan, nan, nan],
             ]),
-            'g0-g1': np.array([
+            'g0-g1': numpy.array([
                 [nan, 6.6, 6.7, 6.8],
                 [nan, 7.6, 7.7, 7.8],
                 [nan, 8.6, 8.7, 8.8],
@@ -188,7 +188,7 @@ def stackgrids():
                 [16.7, 16.8, nan,  nan],
                 [17.7, 17.8, nan,  nan],
             ]),
-            'g0-g1-g2': np.array([
+            'g0-g1-g2': numpy.array([
                 [6.6,  6.7,  6.8, nan, nan, nan, nan, nan],
                 [7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13],
                 [8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13],
@@ -202,7 +202,7 @@ def stackgrids():
                 [nan, 16.7, 16.8, nan, nan, nan, nan, nan],
                 [nan, 17.7, 17.8, nan, nan, nan, nan, nan],
             ]),
-            'g1-g3': np.array([
+            'g1-g3': numpy.array([
                 [nan, nan, 1.4, 1.5, 1.6, 1.7, 1.8],
                 [nan, nan, 2.4, 2.5, 2.6, 2.7, 2.8],
                 [nan, nan, 3.4, 3.5, 3.6, 3.7, 3.8],
@@ -216,7 +216,7 @@ def stackgrids():
                 [11.6, 11.7, 11.8, nan, nan, nan, nan],
                 [12.6, 12.7, 12.8, nan, nan, nan, nan],
             ]),
-            'g3-g4': np.array([
+            'g3-g4': numpy.array([
                 [0.0, 0.1, 0.2, 0.3, nan, nan, nan, nan, nan],
                 [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8],
                 [2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8],
@@ -224,7 +224,7 @@ def stackgrids():
                 [nan, nan, nan, nan, 4.4, 4.5, 4.6, 4.7, 4.8],
                 [nan, nan, nan, nan, 5.4, 5.5, 5.6, 5.7, 5.8],
             ]),
-            'g-all': np.array([
+            'g-all': numpy.array([
                 [0.0, 0.1, 0.2, 0.3, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
                 [1.0, 1.1, 1.2, 1.3, 1.4, 1.5,  1.6,  1.7,  1.8, nan, nan, nan, nan, nan, nan, nan, nan],
                 [2.0, 2.1, 2.2, 2.3, 2.4, 2.5,  2.6,  2.7,  2.8, nan, nan, nan, nan, nan, nan, nan, nan],
@@ -298,17 +298,17 @@ def test_padded_stack_errors(stackgrids, how, where):
 
 
 @pytest.mark.parametrize(('inside', 'expected'), [
-    (True, np.array([
+    (True, numpy.array([
         [0, 0, 0, 0, 0], [0, 1, 1, 1, 0],
         [0, 1, 1, 1, 0], [0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0]], dtype=bool)),
-    (False, np.array([
+    (False, numpy.array([
         [1, 1, 1, 1, 1], [1, 0, 0, 0, 1],
         [1, 0, 0, 0, 1], [1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1]], dtype=bool))
 ], ids=['inside', 'outside'])
 def test_mask_with_polygon(inside, expected):
-    y, x = np.mgrid[:5, :5]
+    y, x = numpy.mgrid[:5, :5]
     polyverts = [
         (0.5, 2.5),
         (3.5, 2.5),
@@ -321,16 +321,16 @@ def test_mask_with_polygon(inside, expected):
 
 @pytest.mark.parametrize(('nodes', 'mask', 'triangles', 'expected'), [
     (
-        np.array([
+        numpy.array([
             [0, 1, 1, 1, 0, 0, 0, 0],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [0, 1, 1, 1, 0, 0, 0, 0],
         ]),
-        np.zeros((4, 7)),
+        numpy.zeros((4, 7)),
         True,
-        np.array([
+        numpy.array([
             [9, 9, 9, 9, 9, 9, 0, 0, 0],
             [9, 3, 5, 5, 2, 9, 9, 9, 9],
             [9, 5, 5, 5, 5, 5, 5, 5, 9],
@@ -340,8 +340,8 @@ def test_mask_with_polygon(inside, expected):
         ])
     ),
     (
-        np.ones((6, 6)),
-        np.array([
+        numpy.ones((6, 6)),
+        numpy.array([
             [1, 1, 0, 0, 0],
             [1, 1, 0, 0, 0],
             [0, 0, 0, 0, 0],
@@ -349,7 +349,7 @@ def test_mask_with_polygon(inside, expected):
             [0, 0, 0, 0, 0],
         ]),
         False,
-        np.array([
+        numpy.array([
             [0, 0, 9, 9, 9, 9, 9],
             [0, 0, 9, 5, 5, 5, 9],
             [9, 9, 9, 5, 5, 5, 9],
@@ -360,10 +360,10 @@ def test_mask_with_polygon(inside, expected):
         ])
     ),
     (
-        np.ones((6, 6)),
-        np.zeros((5, 5)),
+        numpy.ones((6, 6)),
+        numpy.zeros((5, 5)),
         False,
-        np.array([
+        numpy.array([
             [9, 9, 9, 9, 9, 9, 9],
             [9, 5, 5, 5, 5, 5, 9],
             [9, 5, 5, 5, 5, 5, 9],
@@ -374,7 +374,7 @@ def test_mask_with_polygon(inside, expected):
         ])
     ),
     (
-        np.array([
+        numpy.array([
             [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
             [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],
@@ -395,7 +395,7 @@ def test_mask_with_polygon(inside, expected):
             [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
         ]),
-        np.array([
+        numpy.array([
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -416,7 +416,7 @@ def test_mask_with_polygon(inside, expected):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ]),
         False,
-        np.array([
+        numpy.array([
             [0, 9, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0],
             [0, 9, 5, 5, 5, 5, 5, 9, 0, 0, 0, 0],
             [0, 9, 9, 5, 5, 5, 9, 9, 0, 0, 0, 0],

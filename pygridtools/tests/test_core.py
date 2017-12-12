@@ -3,7 +3,7 @@ import warnings
 from pkg_resources import resource_filename
 import tempfile
 
-import numpy as np
+import numpy
 from numpy import nan
 import pandas
 
@@ -24,17 +24,17 @@ except ImportError:
 
 @pytest.fixture
 def A():
-    return np.arange(12).reshape(4, 3).astype(float)
+    return numpy.arange(12).reshape(4, 3).astype(float)
 
 
 @pytest.fixture
 def B():
-    return np.arange(8).reshape(2, 4).astype(float)
+    return numpy.arange(8).reshape(2, 4).astype(float)
 
 
 @pytest.fixture
 def C():
-    return np.arange(25).reshape(5, 5).astype(float)
+    return numpy.arange(25).reshape(5, 5).astype(float)
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def template():
     return resource_filename('pygridtools.tests.test_data', 'schema_template.shp')
 
 
-@pytest.mark.parametrize('fxn', [np.fliplr, np.flipud, np.fliplr])
+@pytest.mark.parametrize('fxn', [numpy.fliplr, numpy.flipud, numpy.fliplr])
 def test_transform(A, fxn):
     result = core.transform(A, fxn)
     expected = fxn(A)
@@ -57,23 +57,23 @@ def test_transform(A, fxn):
 ])
 def test_split_rows(C, index, axis, first, second):
     expected = {
-        'top': np.array([
+        'top': numpy.array([
             [ 0.0,  1.0,  2.0,  3.0,  4.0],
             [ 5.0,  6.0,  7.0,  8.0,  9.0],
             [10.0, 11.0, 12.0, 13.0, 14.0],
         ]),
-        'bottom': np.array([
+        'bottom': numpy.array([
             [15., 16., 17., 18., 19.],
             [20., 21., 22., 23., 24.],
         ]),
-        'left': np.array([
+        'left': numpy.array([
             [ 0.,  1.],
             [ 5.,  6.],
             [10., 11.],
             [15., 16.],
             [20., 21.],
         ]),
-        'right': np.array([
+        'right': numpy.array([
             [ 2.,  3.,  4.],
             [ 7.,  8.,  9.],
             [12., 13., 14.],
@@ -92,17 +92,17 @@ def test_split_rows(C, index, axis, first, second):
 
 @pytest.mark.parametrize('N', [1, 3, None])
 def test__interp_between_vectors(N):
-    index = np.arange(0, 4)
+    index = numpy.arange(0, 4)
     vector1 = -1 * index**2 - 1
     vector2 = 2 * index**2 + 2
 
     expected = {
-        1: np.array([
+        1: numpy.array([
             [ -1.0,  -2.0,  -5.0, -10.0],
             [  0.5,   1.0,   2.5,   5.0],
             [  2.0,   4.0,  10.0,  20.0],
         ]),
-        3: np.array([
+        3: numpy.array([
             [ -1.00,  -2.00,  -5.00, -10.00],
             [ -0.25,  -0.50,  -1.25,  -2.50],
             [  0.50,   1.00,   2.50,   5.00],
@@ -124,7 +124,7 @@ def test__interp_between_vectors(N):
 ])
 def test_insert(C, n, axis):
     expected = {
-        (1, 0): np.array([
+        (1, 0): numpy.array([
             [ 0.0,  1.0,  2.0,  3.0,  4.0],
             [ 5.0,  6.0,  7.0,  8.0,  9.0],
             [ 7.5,  8.5,  9.5, 10.5, 11.5],
@@ -132,7 +132,7 @@ def test_insert(C, n, axis):
             [15.0, 16.0, 17.0, 18.0, 19.0],
             [20.0, 21.0, 22.0, 23.0, 24.0],
         ]),
-        (4, 0): np.array([
+        (4, 0): numpy.array([
             [ 0.0,  1.0,  2.0,  3.0,  4.0],
             [ 5.0,  6.0,  7.0,  8.0,  9.0],
             [ 6.0,  7.0,  8.0,  9.0, 10.0],
@@ -143,14 +143,14 @@ def test_insert(C, n, axis):
             [15.0, 16.0, 17.0, 18.0, 19.0],
             [20.0, 21.0, 22.0, 23.0, 24.0],
         ]),
-        (1, 1): np.array([
+        (1, 1): numpy.array([
             [ 0.0,  1.0,  1.5,  2.0,  3.0,  4.0],
             [ 5.0,  6.0,  6.5,  7.0,  8.0,  9.0],
             [10.0, 11.0, 11.5, 12.0, 13.0, 14.0],
             [15.0, 16.0, 16.5, 17.0, 18.0, 19.0],
             [20.0, 21.0, 21.5, 22.0, 23.0, 24.0],
         ]),
-        (3, 1): np.array([
+        (3, 1): numpy.array([
             [ 0.00,  1.00,  1.25,  1.50,  1.75,  2.00,  3.00,  4.00],
             [ 5.00,  6.00,  6.25,  6.50,  6.75,  7.00,  8.00,  9.00],
             [10.00, 11.00, 11.25, 11.50, 11.75, 12.00, 13.00, 14.00],
@@ -167,7 +167,7 @@ def test_insert(C, n, axis):
 @pytest.mark.parametrize('shift', [0, 2, -1])
 def test_merge(A, B, how, where, shift):
     expected = {
-        ('v', '+', 0): np.array([
+        ('v', '+', 0): numpy.array([
             [0.,  1.,  2., nan],
             [3.,  4.,  5., nan],
             [6.,  7.,  8., nan],
@@ -175,7 +175,7 @@ def test_merge(A, B, how, where, shift):
             [0.,  1.,  2.,  3.],
             [4.,  5.,  6.,  7.]
         ]),
-        ('v', '-', 0): np.array([
+        ('v', '-', 0): numpy.array([
             [0.,  1.,  2.,  3.],
             [4.,  5.,  6.,  7.],
             [0.,  1.,  2., nan],
@@ -183,7 +183,7 @@ def test_merge(A, B, how, where, shift):
             [6.,  7.,  8., nan],
             [9., 10., 11., nan]
         ]),
-        ('v', '+', 2): np.array([
+        ('v', '+', 2): numpy.array([
             [ 0.,   1.,   2., nan,   nan, nan],
             [ 3.,   4.,   5., nan,   nan, nan],
             [ 6.,   7.,   8., nan,   nan, nan],
@@ -191,7 +191,7 @@ def test_merge(A, B, how, where, shift):
             [nan,  nan,   0.,   1.,   2.,  3.],
             [nan,  nan,   4.,   5.,   6.,  7.]
         ]),
-        ('v', '-', 2): np.array([
+        ('v', '-', 2): numpy.array([
             [nan, nan,  0.,  1.,  2.,  3.],
             [nan, nan,  4.,  5.,  6.,  7.],
             [ 0.,  1.,  2., nan, nan, nan],
@@ -199,7 +199,7 @@ def test_merge(A, B, how, where, shift):
             [ 6.,  7.,  8., nan, nan, nan],
             [ 9., 10., 11., nan, nan, nan]
         ]),
-        ('v', '+', -1): np.array([
+        ('v', '+', -1): numpy.array([
             [nan, 0., 1.,   2.],
             [nan, 3., 4.,   5.],
             [nan, 6., 7.,   8.],
@@ -207,7 +207,7 @@ def test_merge(A, B, how, where, shift):
             [ 0., 1., 2.,   3.],
             [ 4., 5., 6.,   7.]
         ]),
-        ('v', '-', -1): np.array([
+        ('v', '-', -1): numpy.array([
             [ 0., 1., 2.,   3.],
             [ 4., 5., 6.,   7.],
             [nan, 0., 1.,   2.],
@@ -215,38 +215,38 @@ def test_merge(A, B, how, where, shift):
             [nan, 6., 7.,   8.],
             [nan, 9., 10., 11.]
         ]),
-        ('h', '+', 0): np.array([
+        ('h', '+', 0): numpy.array([
             [0.,  1.,  2.,  0.,  1.,  2.,  3.],
             [3.,  4.,  5.,  4.,  5.,  6.,  7.],
             [6.,  7.,  8., nan, nan, nan, nan],
             [9., 10., 11., nan, nan, nan, nan]
         ]),
-        ('h', '-', 0): np.array([
+        ('h', '-', 0): numpy.array([
             [ 0.,  1.,  2.,  3., 0.,  1.,  2.],
             [ 4.,  5.,  6.,  7., 3.,  4.,  5.],
             [nan, nan, nan, nan, 6.,  7.,  8.],
             [nan, nan, nan, nan, 9., 10., 11.]
         ]),
-        ('h', '+', 2): np.array([
+        ('h', '+', 2): numpy.array([
             [0.,  1.,  2., nan, nan, nan, nan],
             [3.,  4.,  5., nan, nan, nan, nan],
             [6.,  7.,  8.,  0.,  1.,  2.,  3.],
             [9., 10., 11.,  4.,  5.,  6.,  7.]
         ]),
-        ('h', '-', 2): np.array([
+        ('h', '-', 2): numpy.array([
             [nan, nan, nan, nan, 0.,  1.,  2.],
             [nan, nan, nan, nan, 3.,  4.,  5.],
             [ 0.,  1.,  2.,  3., 6.,  7.,  8.],
             [ 4.,  5.,  6.,  7., 9., 10., 11.]
         ]),
-        ('h', '+', -1): np.array([
+        ('h', '+', -1): numpy.array([
             [nan, nan, nan,  0.,  1.,  2.,  3.],
             [ 0.,  1.,  2.,  4.,  5.,  6.,  7.],
             [ 3.,  4.,  5., nan, nan, nan, nan],
             [ 6.,  7.,  8., nan, nan, nan, nan],
             [ 9., 10., 11., nan, nan, nan, nan]
         ]),
-        ('h', '-', -1): np.array([
+        ('h', '-', -1): numpy.array([
             [ 0.,  1.,  2.,  3., nan, nan, nan],
             [ 4.,  5.,  6.,  7.,  0.,  1.,  2.],
             [nan, nan, nan, nan,  3.,  4.,  5.],
@@ -262,7 +262,7 @@ def test_merge(A, B, how, where, shift):
 def mg(simple_nodes):
     xn, yn = simple_nodes
     g = core.ModelGrid(xn, yn)
-    g.cell_mask = np.array([
+    g.cell_mask = numpy.array([
         [0, 0, 1, 1, 1, 1],
         [0, 0, 1, 1, 1, 1],
         [0, 0, 0, 0, 0, 0],
@@ -308,11 +308,11 @@ def test_ModelGrid_bad_shapes(simple_cells):
 
 def test_ModelGrid_nodes_and_cells(g1, simple_cells):
     xc, yc = simple_cells
-    assert (isinstance(g1.nodes_x, np.ndarray))
-    assert (isinstance(g1.nodes_y, np.ndarray))
-    assert (isinstance(g1.cells_x, np.ndarray))
+    assert (isinstance(g1.nodes_x, numpy.ndarray))
+    assert (isinstance(g1.nodes_y, numpy.ndarray))
+    assert (isinstance(g1.cells_x, numpy.ndarray))
     nptest.assert_array_equal(g1.cells_x, xc[:, :2])
-    assert (isinstance(g1.cells_y, np.ndarray))
+    assert (isinstance(g1.cells_y, numpy.ndarray))
     nptest.assert_array_equal(g1.cells_y, yc[:, :2])
 
 
@@ -331,7 +331,7 @@ def test_ModelGrid_counts_and_shapes(g1):
 
 
 def test_ModelGrid_cell_mask(g1):
-    expected_mask = np.array([
+    expected_mask = numpy.array([
         [1, 1], [1, 1], [0, 0], [0, 0],
         [0, 0], [0, 0], [0, 0], [0, 0],
     ])
@@ -417,7 +417,7 @@ def test_ModelGrid_to_coord_pairs(g1, usemask, which, error):
     else:
 
         expected = {
-            ('nodes', False): np.array([
+            ('nodes', False): numpy.array([
                 [1.0, 0.0], [1.5, 0.0], [2.0, 0.0], [1.0, 0.5],
                 [1.5, 0.5], [2.0, 0.5], [1.0, 1.0], [1.5, 1.0],
                 [2.0, 1.0], [1.0, 1.5], [1.5, 1.5], [2.0, 1.5],
@@ -426,13 +426,13 @@ def test_ModelGrid_to_coord_pairs(g1, usemask, which, error):
                 [2.0, 3.0], [1.0, 3.5], [1.5, 3.5], [2.0, 3.5],
                 [1.0, 4.0], [1.5, 4.0], [2.0, 4.0]
             ]),
-            ('cells', False): np.array([
+            ('cells', False): numpy.array([
                 [1.25, 0.25], [1.75, 0.25], [1.25, 0.75], [1.75, 0.75],
                 [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
                 [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
                 [1.25, 3.25], [1.75, 3.25], [1.25, 3.75], [1.75, 3.75]
             ]),
-            ('cells', True): np.array([
+            ('cells', True): numpy.array([
                 [nan, nan], [nan, nan], [nan, nan], [nan, nan],
                 [1.25, 1.25], [1.75, 1.25], [1.25, 1.75], [1.75, 1.75],
                 [1.25, 2.25], [1.75, 2.25], [1.25, 2.75], [1.75, 2.75],
@@ -475,15 +475,15 @@ def test_ModelGrid_transpose(mg, simple_nodes):
 def test_ModelGrid_fliplr(mg, simple_nodes):
     xn, yn = simple_nodes
     g = mg.fliplr()
-    nptest.assert_array_equal(g.xn, np.fliplr(xn))
-    nptest.assert_array_equal(g.yn, np.fliplr(yn))
+    nptest.assert_array_equal(g.xn, numpy.fliplr(xn))
+    nptest.assert_array_equal(g.yn, numpy.fliplr(yn))
 
 
 def test_ModelGrid_flipud(mg, simple_nodes):
     xn, yn = simple_nodes
     g = mg.flipud()
-    nptest.assert_array_equal(g.xn, np.flipud(xn))
-    nptest.assert_array_equal(g.yn, np.flipud(yn))
+    nptest.assert_array_equal(g.xn, numpy.flipud(xn))
+    nptest.assert_array_equal(g.yn, numpy.flipud(yn))
 
 
 def test_ModelGrid_split_ax0(mg, simple_nodes):
@@ -504,7 +504,7 @@ def test_ModelGrid_merge(g1, g2, simple_nodes):
 
 
 def test_ModelGrid_insert_3_ax0(mg):
-    known_xnodes = np.ma.masked_invalid(np.array([
+    known_xnodes = numpy.ma.masked_invalid(numpy.array([
         [1.0, 1.5, 2.0, nan, nan, nan, nan],
         [1.0, 1.5, 2.0, nan, nan, nan, nan],
         [1.0, 1.5, 2.0, nan, nan, nan, nan],
@@ -519,7 +519,7 @@ def test_ModelGrid_insert_3_ax0(mg):
         [1.0, 1.5, 2.0, nan, nan, nan, nan],
     ]))
 
-    known_ynodes = np.ma.masked_invalid(np.array([
+    known_ynodes = numpy.ma.masked_invalid(numpy.array([
         [0.000, 0.000, 0.000,   nan,   nan,   nan,   nan],
         [0.500, 0.500, 0.500,   nan,   nan,   nan,   nan],
         [0.625, 0.625, 0.625,   nan,   nan,   nan,   nan],
@@ -540,7 +540,7 @@ def test_ModelGrid_insert_3_ax0(mg):
 
 
 def test_ModelGrid_insert_3_ax1(mg):
-    known_xnodes = np.ma.masked_invalid(np.array([
+    known_xnodes = numpy.ma.masked_invalid(numpy.array([
         [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
         [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan],
         [1.000, 1.500, 1.625, 1.750, 1.875, 2.000, 2.500, 3.000, 3.500, 4.000],
@@ -552,7 +552,7 @@ def test_ModelGrid_insert_3_ax1(mg):
         [1.000, 1.500, 1.625, 1.750, 1.875, 2.000,   nan,   nan,   nan,   nan]
     ]))
 
-    known_ynodes = np.ma.masked_invalid(np.array([
+    known_ynodes = numpy.ma.masked_invalid(numpy.array([
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, nan, nan, nan, nan],
         [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, nan, nan, nan, nan],
         [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -583,7 +583,7 @@ def test_extract(mg, simple_nodes):
 ])
 def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside, use_existing):
     expected = {
-        (True, True, False): np.array([
+        (True, True, False): numpy.array([
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 0],
@@ -593,7 +593,7 @@ def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside,
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0]
         ]),
-        (True, True, True): np.array([
+        (True, True, True): numpy.array([
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1],
             [0, 0, 0, 1, 1, 0],
@@ -603,7 +603,7 @@ def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside,
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1]
         ]),
-        (True, False, False):  np.array([
+        (True, False, False):  numpy.array([
             [1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1],
             [1, 1, 1, 0, 0, 1],
@@ -745,7 +745,7 @@ def test_writeGEFDCGridextFiles(mg):
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
 def test_ModelGrid_plots_basic(simple_nodes):
     mg = core.ModelGrid(*simple_nodes)
-    mg.cell_mask = np.ma.masked_invalid(mg.xc).mask
+    mg.cell_mask = numpy.ma.masked_invalid(mg.xc).mask
 
     return mg.plotCells()
 

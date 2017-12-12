@@ -3,7 +3,7 @@ from __future__ import division
 import warnings
 from copy import deepcopy
 
-import numpy as np
+import numpy
 from scipy import interpolate
 import pandas
 
@@ -87,8 +87,8 @@ def merge(nodes, other_nodes, how='vert', where='+', shift=0):
         The sets of nodes that will be merged.
     how : string, optional (default = 'vert')
         The method through wich the arrays should be stacked.
-        `'Vert'` is analogous to `np.vstack`. `'Horiz'` maps to
-        `np.hstack`.
+        `'Vert'` is analogous to `numpy.vstack`. `'Horiz'` maps to
+        `numpy.hstack`.
     where : string, optional (default = '+')
         The placement of the arrays relative to each other. Keeping
         in mind that the origin of an array's index is in the
@@ -129,11 +129,11 @@ def _interp_between_vectors(vector1, vector2, n_nodes=1):
     if n_nodes < 1:
         raise ValueError("number of interpolated points must be at least 1")
 
-    array = np.vstack([vector1, vector2]).T
-    old_index = np.arange(2)
+    array = numpy.vstack([vector1, vector2]).T
+    old_index = numpy.arange(2)
     interp = interpolate.interp1d(old_index, array, kind='linear')
 
-    new_index = np.linspace(0, 1, num=n_nodes + 2)
+    new_index = numpy.linspace(0, 1, num=n_nodes + 2)
     return interp(new_index).T
 
 
@@ -167,7 +167,7 @@ def insert(nodes, index, axis=0, n_nodes=1):
         top, bottom = split(nodes, index, axis=0)
         edge1, edge2 = top[-1, :], bottom[0, :]
         middle = _interp_between_vectors(edge1, edge2, n_nodes=n_nodes)
-        inserted = np.vstack([top, middle[1:-1], bottom])
+        inserted = numpy.vstack([top, middle[1:-1], bottom])
 
     return inserted
 
@@ -216,13 +216,13 @@ class ModelGrid(object):
 
     """
     def __init__(self, nodes_x, nodes_y):
-        if not np.all(nodes_x.shape == nodes_y.shape):
+        if not numpy.all(nodes_x.shape == nodes_y.shape):
             raise ValueError('input arrays must have the same shape')
 
-        self.nodes_x = np.asarray(nodes_x)
-        self.nodes_y = np.asarray(nodes_y)
+        self.nodes_x = numpy.asarray(nodes_x)
+        self.nodes_y = numpy.asarray(nodes_y)
         self._template = None
-        self._cell_mask = np.zeros(self.cell_shape, dtype=bool)
+        self._cell_mask = numpy.zeros(self.cell_shape, dtype=bool)
 
         self._domain = None
         self._extent = None
@@ -427,7 +427,7 @@ class ModelGrid(object):
 
         """
 
-        return self.transform(np.transpose)
+        return self.transform(numpy.transpose)
 
     def fliplr(self):
         """
@@ -444,7 +444,7 @@ class ModelGrid(object):
 
         """
 
-        return self.transform(np.fliplr)
+        return self.transform(numpy.fliplr)
 
     def flipud(self):
         """
@@ -461,7 +461,7 @@ class ModelGrid(object):
 
         """
 
-        return self.transform(np.flipud)
+        return self.transform(numpy.flipud)
 
     def split(self, index, axis=0):
         """
@@ -554,8 +554,8 @@ class ModelGrid(object):
             The other ModelGrid object.
         how : optional string (default = 'vert')
             The method through wich the arrays should be stacked.
-            `'Vert'` is analogous to `np.vstack`. `'Horiz'` maps to
-            `np.hstack`.
+            `'Vert'` is analogous to `numpy.vstack`. `'Horiz'` maps to
+            `numpy.hstack`.
         where : optional string (default = '+')
             The placement of the arrays relative to each other. Keeping
             in mind that the origin of an array's index is in the
@@ -603,7 +603,7 @@ class ModelGrid(object):
         >>> grid2 = pgt.makeGrid(domain=domain2, nx=8, ny=7, rawgrid=False)
         >>> merged = grid1.merge(grid2, how='horiz')
         >>> # update the cell mask to include new NA points:
-        >>> grid1.cell_mask = np.ma.masked_invalid(grid1.xc).mask
+        >>> grid1.cell_mask = numpy.ma.masked_invalid(grid1.xc).mask
 
         See Also
         --------
@@ -637,7 +637,7 @@ class ModelGrid(object):
         """
 
         if mask is None:
-            mask = np.ma.masked_invalid(self.xc).mask
+            mask = numpy.ma.masked_invalid(self.xc).mask
 
         masked = self.copy()
         masked.cell_mask = mask
@@ -698,7 +698,7 @@ class ModelGrid(object):
             cell_mask = cell_mask.astype(bool)
 
         if use_existing:
-            cell_mask = np.bitwise_or(self.cell_mask, cell_mask)
+            cell_mask = numpy.bitwise_or(self.cell_mask, cell_mask)
 
         return self.update_cell_mask(mask=cell_mask)
 
@@ -771,7 +771,7 @@ class ModelGrid(object):
         """
 
         cells = misc.make_gefdc_cells(
-            ~np.isnan(self.xn), self.cell_mask, triangles=triangles
+            ~numpy.isnan(self.xn), self.cell_mask, triangles=triangles
         )
         outfile = iotools._outputfile(outputdir, filename)
 
@@ -885,8 +885,8 @@ class ModelGrid(object):
         elif which.lower() == 'cells':
             x, y = self.xc, self.yc
             if usemask:
-                x = np.ma.masked_array(x, self.cell_mask)
-                y = np.ma.masked_array(y, self.cell_mask)
+                x = numpy.ma.masked_array(x, self.cell_mask)
+                y = numpy.ma.masked_array(y, self.cell_mask)
 
         else:
             raise ValueError('`which` must be either "nodes" or "cells"')
@@ -949,7 +949,7 @@ class ModelGrid(object):
         """
 
         x, y = self._get_x_y(which, usemask=usemask)
-        return np.array(list(zip(x.flatten(), y.flatten())))
+        return numpy.array(list(zip(x.flatten(), y.flatten())))
 
     def to_shapefile(self, outputfile, usemask=True, which='cells',
                      river=None, reach=0, elev=None, template=None,

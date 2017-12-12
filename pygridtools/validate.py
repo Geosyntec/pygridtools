@@ -1,4 +1,4 @@
-import numpy as np
+import numpy
 from matplotlib import pyplot
 
 
@@ -42,7 +42,7 @@ def mpl_ax(ax, fallback='new'):
 
 
 def polygon(polyverts, min_points=3):
-    polyverts_array = np.asarray(polyverts)
+    polyverts_array = numpy.asarray(polyverts)
     if polyverts_array.ndim != 2:
         raise ValueError('polyverts must be a 2D array, or '
                          'similar sequence')
@@ -57,18 +57,18 @@ def polygon(polyverts, min_points=3):
 
 
 def xy_array(x, y, as_pairs=True):
-    x, y = np.asanyarray(x), np.asanyarray(y)
+    x, y = numpy.asanyarray(x), numpy.asanyarray(y)
     if x.shape != y.shape:
         raise ValueError("x and y must have the same shape.")
 
     if hasattr(x, 'mask') != hasattr(y, 'mask'):
         raise ValueError("only 1 of x and y have masks. Must be both or neither.")
 
-    if hasattr(x, 'mask') and not np.all(x.mask == y.mask):
+    if hasattr(x, 'mask') and not numpy.all(x.mask == y.mask):
         raise ValueError("x and y has different masks.")
 
     if as_pairs:
-        return np.array(list(zip(x.flatten(), y.flatten())))
+        return numpy.array(list(zip(x.flatten(), y.flatten())))
     else:
         return x, y
 
@@ -88,7 +88,7 @@ def elev_or_mask(x, other, array_name=None, offset=1, failNone=False):
         if failNone:
             raise ValueError('`{}` cannot be `None`'.format(array_name))
         else:
-            return np.zeros_like(x)
+            return numpy.zeros_like(x)
     else:
         if (
                 other.shape[0] != x.shape[0] - offset or
@@ -101,13 +101,13 @@ def elev_or_mask(x, other, array_name=None, offset=1, failNone=False):
 
 
 def equivalent_masks(x, y):
-    x = np.ma.masked_invalid(x)
-    y = np.ma.masked_invalid(y)
+    x = numpy.ma.masked_invalid(x)
+    y = numpy.ma.masked_invalid(y)
 
     if x.shape != y.shape:
         raise ValueError('x, y are not the same shape')
 
-    if not np.all(x.mask == y.mask):
+    if not numpy.all(x.mask == y.mask):
         raise ValueError('x, y masks are not the same')
     else:
         return x, y

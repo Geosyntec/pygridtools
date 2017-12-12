@@ -1,6 +1,6 @@
 import warnings
 
-import numpy as np
+import numpy
 import matplotlib.path as mpath
 import pandas
 
@@ -30,18 +30,18 @@ def make_poly_coords(xarr, yarr, zpnt=None, triangles=False):
     """
 
     def process_input(array):
-        flat = np.hstack([array[0, :], array[1, ::-1]])
-        return flat[~np.isnan(flat)]
+        flat = numpy.hstack([array[0, :], array[1, ::-1]])
+        return flat[~numpy.isnan(flat)]
 
     x = process_input(xarr)
     y = process_input(yarr)
-    if (not isinstance(xarr, np.ma.MaskedArray) or xarr.mask.sum() == 0 or
+    if (not isinstance(xarr, numpy.ma.MaskedArray) or xarr.mask.sum() == 0 or
             (triangles and len(x) == 3)):
         if zpnt is None:
-            coords = np.vstack([x, y]).T
+            coords = numpy.vstack([x, y]).T
         else:
-            z = np.array([zpnt] * x.shape[0])
-            coords = np.vstack([x, y, z]).T
+            z = numpy.array([zpnt] * x.shape[0])
+            coords = numpy.vstack([x, y, z]).T
 
     else:
         coords = None
@@ -80,10 +80,10 @@ def make_record(ID, coords, geomtype, props):
     if geomtype not in ['Point', 'LineString', 'Polygon']:
         raise ValueError('Geometry {} not suppered'.format(geomtype))
 
-    if isinstance(coords, np.ma.MaskedArray):
+    if isinstance(coords, numpy.ma.MaskedArray):
         coords = coords.data
 
-    if isinstance(coords, np.ndarray):
+    if isinstance(coords, numpy.ndarray):
         coords = coords.tolist()
 
     record = {
@@ -126,10 +126,10 @@ def interpolate_bathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='
         raise ImportError("`pygridgen` not installed. Cannot interpolate bathymetry.")
 
     if bathy is None:
-        elev = np.zeros(x_points.shape)
+        elev = numpy.zeros(x_points.shape)
 
-        if isinstance(x_points, np.ma.MaskedArray):
-            elev = np.ma.MaskedArray(data=elev, mask=x_points.mask)
+        if isinstance(x_points, numpy.ma.MaskedArray):
+            elev = numpy.ma.MaskedArray(data=elev, mask=x_points.mask)
 
         bathy = pandas.DataFrame({
             xcol: x_points.flatten(),
@@ -153,15 +153,15 @@ def interpolate_bathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='
     # fill in NaNs with something outside of the bounds
     xx = x_points.copy()
     yy = y_points.copy()
-    xx[np.isnan(x_points)] = x_points.max() + 5
-    yy[np.isnan(y_points)] = y_points.max() + 5
+    xx[numpy.isnan(x_points)] = x_points.max() + 5
+    yy[numpy.isnan(y_points)] = y_points.max() + 5
 
     # use cubic-spline approximation to interpolate the grid
     csa = pygridgen.csa(gridbathy[xcol].values, gridbathy[ycol].values, gridbathy[zcol].values)
     return csa(xx, yy)
 
 
-def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
+def padded_stack(a, b, how='vert', where='+', shift=0, padval=numpy.nan):
     """ Merge 2-dimensional numpy arrays with different shapes.
 
     Parameters
@@ -170,7 +170,7 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
         The arrays to be merged
     how : optional string (default = 'vert')
         The method through wich the arrays should be stacked. `'Vert'`
-        is analogous to `np.vstack`. `'Horiz'` maps to `np.hstack`.
+        is analogous to `numpy.vstack`. `'Horiz'` maps to `numpy.hstack`.
     where : optional string (default = '+')
         The placement of the arrays relative to each other. Keeping in
         mind that the origin of an array's index is in the upper-left
@@ -188,7 +188,7 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
         axis other than the one being merged. In other words, vertically
         stacked arrays can be shifted horizontally, and horizontally
         stacked arrays can be shifted vertically.
-    padval : optional, same type as array (default = np.nan)
+    padval : optional, same type as array (default = numpy.nan)
         Value with which the arrays will be padded.
 
     Returns
@@ -199,8 +199,8 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
     Examples
     --------
     >>> import pygridtools as pgt
-    >>> a = np.arange(12).reshape(4, 3) * 1.0
-    >>> b = np.arange(8).reshape(2, 4) * -1.0
+    >>> a = numpy.arange(12).reshape(4, 3) * 1.0
+    >>> b = numpy.arange(8).reshape(2, 4) * -1.0
     >>> pgt.padded_stack(a, b, how='vert', where='+', shift=1)
         array([[  0.,   1.,   2.,  nan,  nan],
                [  3.,   4.,   5.,  nan,  nan],
@@ -218,8 +218,8 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
 
     """
 
-    a = np.asarray(a)
-    b = np.asarray(b)
+    a = numpy.asarray(a)
+    b = numpy.asarray(b)
 
     if where == '-':
         stacked = padded_stack(b, a, shift=-1 * shift, where='+', how=how)
@@ -254,9 +254,9 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=np.nan):
 
             mode = 'constant'
             fill = (padval, padval)
-            stacked = np.vstack([
-                np.pad(a, x_pads, mode=mode, constant_values=fill),
-                np.pad(b, y_pads, mode=mode, constant_values=fill)
+            stacked = numpy.vstack([
+                numpy.pad(a, x_pads, mode=mode, constant_values=fill),
+                numpy.pad(b, y_pads, mode=mode, constant_values=fill)
             ])
 
         else:
@@ -341,7 +341,7 @@ def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
 
     # define the initial cells with everything labeled as a bank
     ny, nx = cell_mask.shape
-    cells = np.zeros((ny + 2, nx + 2), dtype=int) + bank_cell
+    cells = numpy.zeros((ny + 2, nx + 2), dtype=int) + bank_cell
 
     # loop through each *node*
     for jj in range(1, ny + 1):
@@ -359,28 +359,28 @@ def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
                 # if only 3  are wet, might be a triangle, but...
                 # this ignored since we already raised an error
                 elif n_wet == 3 and triangles:
-                    dry_node = np.argmin(quad.flatten())
+                    dry_node = numpy.argmin(quad.flatten())
                     cells[jj, ii] = triangle_cells[dry_node]
 
             # otherwise it's just a bank
             else:
                 cells[jj, ii] = bank_cell
 
-    padded_cells = np.pad(cells, 1, mode='constant', constant_values=bank_cell)
+    padded_cells = numpy.pad(cells, 1, mode='constant', constant_values=bank_cell)
     for cj in range(cells.shape[0]):
         for ci in range(cells.shape[1]):
             shift = 3
-            total = np.sum(padded_cells[cj:cj + shift, ci:ci + shift])
+            total = numpy.sum(padded_cells[cj:cj + shift, ci:ci + shift])
             if total == bank_cell * shift**2:
                 cells[cj, ci] = land_cell
 
     nrows = cells.shape[0]
     ncols = cells.shape[1]
 
-    # nchunks = np.ceil(ncols / maxcols)
+    # nchunks = numpy.ceil(ncols / maxcols)
     # if ncols > maxcols:
-    #     final_cells = np.zeros((nrows*nchunks, maxcols), dtype=int)
-    #     for n in np.arange(nchunks):
+    #     final_cells = numpy.zeros((nrows*nchunks, maxcols), dtype=int)
+    #     for n in numpy.arange(nchunks):
     #         col_start = n * maxcols
     #         col_stop = (n+1) * maxcols
 

@@ -3,7 +3,7 @@ from collections import OrderedDict
 from textwrap import dedent
 import warnings
 
-import numpy as np
+import numpy
 import pandas
 from shapely.geometry import Point, Polygon
 import fiona
@@ -163,7 +163,7 @@ def read_polygons(shapefile, filterfxn=None, squeeze=True, as_gdf=False):
     if as_gdf:
         return gdf
     else:
-        data = [np.array(g.boundary.coords) for g in gdf['geometry']]
+        data = [numpy.array(g.boundary.coords) for g in gdf['geometry']]
         if len(data) == 1 and squeeze:
             data = data[0]
         return data
@@ -298,8 +298,8 @@ def write_cells(X, Y, mask, template, outputfile, river=None, reach=0,
     # check the mask shape
     mask = validate.elev_or_mask(X, mask, 'mask', offset=1)
 
-    X = np.ma.masked_invalid(X)
-    Y = np.ma.masked_invalid(Y)
+    X = numpy.ma.masked_invalid(X)
+    Y = numpy.ma.masked_invalid(Y)
     ny, nx = X.shape
 
     # load the template
@@ -310,7 +310,7 @@ def write_cells(X, Y, mask, template, outputfile, river=None, reach=0,
     geodata = []
     for ii in range(nx - 1):
         for jj in range(ny - 1):
-            if not (np.any(X.mask[jj:jj + 2, ii:ii + 2]) or mask[jj, ii]):
+            if not (numpy.any(X.mask[jj:jj + 2, ii:ii + 2]) or mask[jj, ii]):
                 row += 1
                 Z = elev[jj, ii]
                 # build the array or coordinates
@@ -371,7 +371,7 @@ def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
     """
 
     if flip:
-        cell_array = np.flipud(cell_array)
+        cell_array = numpy.flipud(cell_array)
 
     nrows, ncols = cell_array.shape
 
@@ -387,7 +387,7 @@ def _write_cellinp(cell_array, outputfile='cell.inp', mode='w',
                        maxcols=maxcols, flip=False)
 
     else:
-        columns = np.arange(1, maxcols + 1, dtype=int)
+        columns = numpy.arange(1, maxcols + 1, dtype=int)
         colstr = [list('{:04d}'.format(c)) for c in columns]
         hundreds = ''.join([c[1] for c in colstr])
         tens = ''.join([c[2] for c in colstr])

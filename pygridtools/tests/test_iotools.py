@@ -3,7 +3,7 @@ import sys
 from pkg_resources import resource_filename
 import tempfile
 
-import numpy as np
+import numpy
 import pandas
 from shapely import geometry
 import geopandas
@@ -41,13 +41,13 @@ def test_read_boundary(filterfxn, points_in_boundary):
 def test_read_polygons(as_gdf):
     shapefile = resource_filename('pygridtools.tests.test_data', 'simple_islands.shp')
     known_islands = [
-        np.array([
+        numpy.array([
             [10.18915802,  3.71280277], [9.34025375,  7.21914648],
             [9.34025375,  7.21914648], [10.15224913, 11.98039216],
             [14.13840830, 11.83275663], [17.68166090,  7.47750865],
             [15.94694348,  3.63898501], [10.18915802,  3.71280277]
         ]),
-        np.array([
+        numpy.array([
             [1.10957324,  3.67589389], [-0.95732411,  7.69896194],
             [-0.95732411,  7.69896194], [0.81430219, 10.91003460],
             [5.98154556, 10.98385236], [8.67589389,  7.03460208],
@@ -75,12 +75,12 @@ def test_read_polygons(as_gdf):
     (True, 'mask_point.shp'),
 ])
 def test_write_points(usemasks, fname):
-    x = np.array([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
-    y = np.array([[4, 4, 4], [5, 5, 5], [6, 6, 6], [7, 7, 7]])
-    mask = np.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]], dtype=bool)
+    x = numpy.array([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
+    y = numpy.array([[4, 4, 4], [5, 5, 5], [6, 6, 6], [7, 7, 7]])
+    mask = numpy.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]], dtype=bool)
     if usemasks:
-        x = np.ma.masked_array(x, mask)
-        y = np.ma.masked_array(y, mask)
+        x = numpy.ma.masked_array(x, mask)
+        y = numpy.ma.masked_array(y, mask)
 
     template = resource_filename('pygridtools.tests.test_data', 'schema_template.shp')
     baselinedir = resource_filename('pygridtools.tests', 'baseline_files')
@@ -99,7 +99,7 @@ def test_write_points(usemasks, fname):
 ])
 def test_write_cells(usemasks, fname, simple_grid):
     if usemasks:
-        mask = np.array([
+        mask = numpy.array([
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1],
@@ -129,7 +129,7 @@ def test_write_cells(usemasks, fname, simple_grid):
     (5, resource_filename('pygridtools.tests.baseline_files', 'cell_chunked.inp'))
 ])
 def test_write_cellinp(maxcols, knownfile):
-    cells = np.array([
+    cells = numpy.array([
         [9, 9, 9, 9, 9, 9, 0, 0, 0],
         [9, 3, 5, 5, 2, 9, 9, 9, 9],
         [9, 5, 5, 5, 5, 5, 5, 5, 9],
@@ -167,7 +167,7 @@ def test__write_gridext_file():
     with tempfile.TemporaryDirectory() as outputdir:
         known_filename = resource_filename('pygridtools.tests.baseline_files', 'testgridext.inp')
         result_filename = os.path.join(outputdir, 'testgridext.inp')
-        df = pandas.DataFrame(np.array([
+        df = pandas.DataFrame(numpy.array([
             [1.25, 3, 4, 3.75],
             [1.75, 4, 4, 3.25],
             [1.25, 4, 5, 3.75],

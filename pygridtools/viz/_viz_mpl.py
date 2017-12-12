@@ -1,4 +1,4 @@
-import numpy as np
+import numpy
 from matplotlib import pyplot
 
 from pygridtools import misc
@@ -77,7 +77,7 @@ def _plot_boundaries(extent_x=None, extent_y=None, extent=None, islands_x=None,
             islands_name = islands[islands_name]
 
     if islands_x is not None and islands_y is not None:
-        for name in np.unique(islands_name):
+        for name in numpy.unique(islands_name):
             subset = islands_name == name
             coords = list(zip(islands_x[subset], islands_y[subset]))
             patch = pyplot.Polygon(coords, facecolor='0.25')
@@ -110,7 +110,7 @@ def _plot_cells(x, y, mask=None, ax=None, **plot_opts):
         if hasattr(x, 'mask'):
             mask = x.mask
         else:
-            mask = np.zeros(x.shape)
+            mask = numpy.zeros(x.shape)
 
     for jj in range(rows - 1):
         for ii in range(cols - 1):

@@ -23,18 +23,17 @@ before_install:
 install:
   # We just set up a conda environment with the right Python version. This
   # should not need changing.
-  - conda create --yes --name=test python=$TRAVIS_PYTHON_VERSION
+  - conda create --yes --channel=conda-forge --name=test python=$TRAVIS_PYTHON_VERSION pygridgen fiona geopandas scipy matplotlib pytest pytest-mpl pytest-cov pytest-pep8 coverage docopt requests pyyaml
   - source activate test
+  - pip install codecov
 
-  - conda install --yes --channel=conda-forge pygridgen geopandas scipy matplotlib
-  - conda install --yes --channel=conda-forge pytest pytest-mpl pytest-cov pytest-pep8
-
-   # coveralls
-  - conda install --yes coverage docopt requests pyyaml
-  - pip install coveralls
 
 script:
-  - python check_pygridtools.py --cov --verbose --pep8
+  - coverage run --source pygridtools check_pygridtools.py --cov --verbose --pep8
 
 after_success:
-  - if [ ${COVERAGE} = true ]; then coveralls; fi
+  - if [ ${COVERAGE} = true ]; then
+      coverage report -m;
+      codecov;
+    fi
+

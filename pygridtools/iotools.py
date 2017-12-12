@@ -1,5 +1,3 @@
-from __future__ import division
-
 import os
 from collections import OrderedDict
 from textwrap import dedent
@@ -15,7 +13,7 @@ from pygridtools import misc
 from pygridtools import validate
 
 
-gefdc = GEFDC_TEMPLATE = dedent("""\
+GEFDC_TEMPLATE = dedent("""\
     C1  TITLE
     C1  (LIMITED TO 80 CHARACTERS)
         '{0}'
@@ -66,9 +64,8 @@ def _warn_filterfxn(filterfxn):
         warnings.warn(msg)
 
 
-def read_boundary(shapefile, betacol='beta', reachcol=None,
-                  sortcol=None, upperleftcol=None,
-                  filterfxn=None):
+def read_boundary(shapefile, betacol='beta', reachcol=None, sortcol=None,
+                  upperleftcol=None, filterfxn=None):
     """ Loads boundary points from a shapefile.
 
     Parameters
@@ -98,8 +95,8 @@ def read_boundary(shapefile, betacol='beta', reachcol=None,
 
     Returns
     -------
-    df : pandas.DataFrame
-        A DataFrame of the boundary points with the following columns:
+    gdf : geopandas.GeoDataFrame
+        A GeoDataFrame of the boundary points with the following columns:
 
         - x (easting)
         - y (northing)
@@ -172,38 +169,27 @@ def read_polygons(shapefile, filterfxn=None, squeeze=True, as_gdf=False):
         return data
 
 
-def read_grid(shapefile, icol='ii', jcol='jj', othercols=None, expand=1):
-    gdf = (
-        geopandas.read_file(shapefile)
-                 .set_index([jcol, icol])
-    )
-    data = []
+def read_grid(shapefile, icol='ii', jcol='jj', othercols=None, expand=1,
+              as_gdf=False):
     if othercols is None:
         othercols = []
 
-    with fiona.open(shapefile) as shp:
-        for record in shp:
-            geomtype = record['geometry']['type']
-            if geomtype == 'Point':
-                geom = np.array(record['geometry']['coordinates'])
-            elif geomtype == 'Polygon':
-                raise NotImplementedError("can only read points for now")
+    grid = (
+        geopandas.read_file(shapefile)
+                 .rename(columns={icol: 'i', jcol: 'j'})
+                 .set_index(['i', 'j'])
+                 .sort_index()
+    )
+    if as_gdf:
+        final_cols = othercols + ['geometry']
+        return grid[final_cols]
+    else:
+        final_cols = ['easting', 'northing'] + othercols
+        if (grid.geom_type != 'Point').any():
+            msg = "can only read points for now when not returning a geodataframe"
+            raise NotImplementedError(msg)
 
-            dfrow = {
-                'i': expand * (record['properties'][icol] - 2),
-                'j': expand * (record['properties'][jcol] - 2),
-                'easting': geom[0],
-                'northing': geom[1],
-            }
-            for col in othercols:
-                dfrow[col] = record['properties'][col]
-
-            data.append(dfrow)
-
-    df = pandas.DataFrame(data).set_index(['j', 'i'])
-    columns = ['easting', 'northing']
-    columns.extend(othercols)
-    return df.sort_index()[columns]
+        return grid.assign(easting=grid['geometry'].x, northing=grid['geometry'].y)[final_cols]
 
 
 def write_points(X, Y, template, outputfile, river=None, reach=0, elev=None):

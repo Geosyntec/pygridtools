@@ -11,7 +11,7 @@ URL = "https://github.com/Geosyntec/pygridtools"
 DOWNLOAD_URL = "https://github.com/Geosyntec/pygridtools/archive/master.zip"
 LICENSE = "BSD 3-clause"
 PACKAGES = find_packages()
-PLATFORMS = "Python 2.7, 3.3 and later."
+PLATFORMS = "Python 3.5 and later."
 CLASSIFIERS = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
@@ -20,10 +20,10 @@ CLASSIFIERS = [
     "Topic :: Formats and Protocols :: Data Formats",
     "Topic :: Scientific/Engineering :: Earth Sciences",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    'Programming Language :: Python :: 2.7',
-    'Programming Language :: Python :: 3.4',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
 ]
-INSTALL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'fiona', 'pandas']
+INSTALL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'fiona', 'pandas', 'geopandas']
 PACKAGE_DATA = {}
 DATA_FILES = []
 

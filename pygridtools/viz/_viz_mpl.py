@@ -131,3 +131,11 @@ def _plot_cells(x, y, mask=None, ax=None, **plot_opts):
     ax.margins(0.1, 0.1)
 
     return fig
+
+
+def _rotate_tick_labels(ax, angle=45):
+    for label in ax.get_xticklabels():
+        label.set_rotation_mode('anchor')
+        label.set_rotation(angle)
+        label.set_horizontalalignment('right')
+    return ax

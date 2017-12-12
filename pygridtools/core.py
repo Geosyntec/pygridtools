@@ -1005,7 +1005,7 @@ class ModelGrid(object):
         if geom.lower() == 'point':
             x, y = self._get_x_y(which, usemask=usemask)
             iotools.write_points(x, y, template, outputfile, river=river,
-                                reach=reach, elev=elev)
+                                 reach=reach, elev=elev)
 
         elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
             if usemask:
@@ -1014,7 +1014,7 @@ class ModelGrid(object):
                 mask = None
             x, y = self._get_x_y('nodes', usemask=False)
             iotools.write_cells(x, y, mask, template, outputfile, river=river,
-                              reach=reach, elev=elev, triangles=triangles)
+                                reach=reach, elev=elev, triangles=triangles)
             if which == 'cells':
                 warnings.warn("polygons always constructed from nodes")
         else:

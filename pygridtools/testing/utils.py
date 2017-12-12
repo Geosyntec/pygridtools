@@ -1,7 +1,6 @@
 import numpy as np
 from numpy import nan
 import pandas
-import fiona
 import geopandas
 
 import numpy.testing as nptest

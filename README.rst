@@ -7,8 +7,10 @@
 
 .. image:: https://travis-ci.org/Geosyntec/pygridtools.svg?branch=master
     :target: https://travis-ci.org/Geosyntec/pygridtools
-.. image:: https://coveralls.io/repos/Geosyntec/pygridtools/badge.svg?branch=master&service=github
-  :target: https://coveralls.io/github/Geosyntec/pygridtools?branch=master
+
+.. image:: https://codecov.io/gh/Geosyntec/pygridtools/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/Geosyntec/pygridtools
+
 
 A high-level interface for curvilinear-orthogonal grid generation, manipulation, and visualization.
 
@@ -31,7 +33,7 @@ Until we figure that out, you can do the following in the source directory.
 
 ::
 
-    conda install seaborn fiona=1.5
+    conda install seaborn geopandas
     pip install -e .
     
 You won't be able to generate new grids, but you should be able to manipulate existing grids.
@@ -47,7 +49,7 @@ The remaining python depedencies are the following:
 * numpy
 * matplotlib, seaborn
 * pyproj (only if working with geographic coordinates)
-* fiona (for shapfile I/O)
+* fiona, geopandas (for shapfile I/O)
 * pandas (for easy data I/O and manipulation)
 
 Grid Generation

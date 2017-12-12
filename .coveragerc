@@ -1,22 +1,24 @@
 # .coveragerc to control coverage.py
 [run]
-source = pygritools
+source = pygridtools
 branch = True
 include = pygridtools/*.py
-omit = tests/*
+omit = pygridtools/tests/*
 
 [report]
 include = pygridtools/*.py
-omit = tests/*
 ignore_errors = True
+omit =
+    pygridtools/tests/*
+    pygridtools/testing/*
 
 # Regexes for lines to exclude from consideration
 exclude_lines =
-    # Have to re-enable the standard pragma
     pragma: no cover
-
-    # Don't complain if tests don't hit defensive assertion code:
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
     raise NotImplementedError
-    except NotImplementedError
-    # Ignore pass
-    pass
+    if 0:
+    if __name__ == .__main__.:

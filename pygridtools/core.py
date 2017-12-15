@@ -823,9 +823,9 @@ class ModelGrid(object):
 
         """
         outfile = iotools._outputfile(outputdir, filename)
-        df = self.to_dataframe().stack(level='i', dropna=True).reset_index()
-        df['i'] += shift
-        df['j'] += shift
+        df = self.to_dataframe().stack(level='ii', dropna=True).reset_index()
+        df['ii'] += shift
+        df['jj'] += shift
         iotools._write_gridext_file(df, outfile)
         return df
 
@@ -917,11 +917,11 @@ class ModelGrid(object):
         def make_cols(top_level):
             columns = pandas.MultiIndex.from_product(
                 [[top_level], range(x.shape[1])],
-                names=['coord', 'i']
+                names=['coord', 'ii']
             )
             return columns
 
-        index = pandas.Index(range(x.shape[0]), name='j')
+        index = pandas.Index(range(x.shape[0]), name='jj')
         easting_cols = make_cols('easting')
         northing_cols = make_cols('northing')
 
@@ -1021,7 +1021,8 @@ class ModelGrid(object):
             raise ValueError("geom must be either 'Point' or 'Polygon'")
 
     @classmethod
-    def from_dataframe(cls, df, xcol='easting', ycol='northing', ilevel='ii'):
+    def from_dataframe(cls, df, icol='ii', jcol='jj',
+                       xcol='easting', ycol='northing'):
         """
         Build a ModelGrid from a DataFrame of I/J indexes and x/y
         columns.
@@ -1032,7 +1033,7 @@ class ModelGrid(object):
             Must have a MultiIndex of I/J cell index values.
         xcol, ycol : str, optional
             The names of the columns for the x and y coordinates.
-        ilevel : str, optional
+        icol : str, optional
             The index level specifying the I-index of the grid.
 
         Returns
@@ -1040,10 +1041,9 @@ class ModelGrid(object):
         ModelGrid
 
         """
-
-        nodes_x = df[xcol].unstack(level=ilevel)
-        nodes_y = df[ycol].unstack(level=ilevel)
-        return cls(nodes_x, nodes_y)
+        all_cols = [icol, jcol, xcol, ycol]
+        xtab = df.reset_index()[all_cols].set_index([icol, jcol]).unstack(level=icol)
+        return cls(xtab[xcol], xtab[ycol]).update_cell_mask()
 
     @classmethod
     def from_shapefile(cls, shapefile, icol='ii', jcol='jj'):
@@ -1065,7 +1065,7 @@ class ModelGrid(object):
         """
 
         df = iotools.read_grid(shapefile, icol=icol, jcol=jcol)
-        return cls.from_dataframes(df['easting'], df['northing'])
+        return cls.from_dataframe(df).update_cell_mask()
 
     @classmethod
     def from_Gridgen(cls, gridgen):
@@ -1081,7 +1081,7 @@ class ModelGrid(object):
         ModelGrid
 
         """
-        return cls(gridgen.x, gridgen.y)
+        return cls(gridgen.x, gridgen.y).update_cell_mask()
 
 
 def makeGrid(ny, nx, domain, bathydata=None, verbose=False,

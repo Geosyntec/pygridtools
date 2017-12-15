@@ -176,8 +176,8 @@ def read_grid(shapefile, icol='ii', jcol='jj', othercols=None, expand=1,
 
     grid = (
         geopandas.read_file(shapefile)
-                 .rename(columns={icol: 'i', jcol: 'j'})
-                 .set_index(['i', 'j'])
+                 .rename(columns={icol: 'ii', jcol: 'jj'})
+                 .set_index(['ii', 'jj'])
                  .sort_index()
     )
     if as_gdf:
@@ -442,7 +442,7 @@ def _write_gridout_file(xcoords, ycoords, outfile):
     return df
 
 
-def _write_gridext_file(tidydf, outfile, icol='i', jcol='j',
+def _write_gridext_file(tidydf, outfile, icol='ii', jcol='jj',
                         xcol='easting', ycol='northing'):
     # make sure cols are in the right order
     df = tidydf[[icol, jcol, xcol, ycol]]

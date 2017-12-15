@@ -352,8 +352,8 @@ def test_ModelGrid_template(g1):
 ])
 def test_ModelGrid_to_dataframe(g1, usemask, which, error):
     def name_cols(df):
-        df.columns.names = ['coord', 'i']
-        df.index.names = ['j']
+        df.columns.names = ['coord', 'ii']
+        df.index.names = ['jj']
         return df
 
     if error:

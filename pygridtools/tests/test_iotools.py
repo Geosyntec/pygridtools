@@ -195,8 +195,8 @@ def test_read_grid():
     result_df = iotools.read_grid(pntfile, othercols=['elev', 'river'])
     known_df = pandas.DataFrame(
         data={'easting': [1., 2., 3.] * 4, 'northing': sorted([4., 5., 6., 7.] * 3)},
-        index=pandas.MultiIndex.from_product([[2, 3, 4, 5], [2, 3, 4]], names=list('ji'))
-    ).assign(elev=0.0).assign(river='test').reset_index().set_index(['i', 'j']).sort_index()
+        index=pandas.MultiIndex.from_product([[2, 3, 4, 5], [2, 3, 4]], names=['jj', 'ii'])
+    ).assign(elev=0.0).assign(river='test').reset_index().set_index(['ii', 'jj']).sort_index()
 
     pdtest.assert_frame_equal(result_df, known_df)
 

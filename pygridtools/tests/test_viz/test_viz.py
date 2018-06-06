@@ -4,7 +4,6 @@ from pygridtools import viz
 
 import pytest
 import numpy.testing as nptest
-import pygridtools.testing as pgtest
 
 
 @pytest.mark.parametrize('engine', ['mpl'])

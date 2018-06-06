@@ -37,11 +37,6 @@ def C():
     return numpy.arange(25).reshape(5, 5).astype(float)
 
 
-@pytest.fixture
-def template():
-    return resource_filename('pygridtools.tests.test_data', 'schema_template.shp')
-
-
 @pytest.mark.parametrize('fxn', [numpy.fliplr, numpy.flipud, numpy.fliplr])
 def test_transform(A, fxn):
     result = core.transform(A, fxn)
@@ -276,22 +271,20 @@ def mg(simple_nodes):
 
 
 @pytest.fixture
-def g1(simple_nodes, template):
+def g1(simple_nodes):
     xn, yn = simple_nodes
     g = core.ModelGrid(xn[:, :3], yn[:, :3])
 
     mask = g.cell_mask
     mask[:2, :2] = True
     g.cell_mask = mask
-    g.template = template
     return g
 
 
 @pytest.fixture
-def g2(simple_nodes, template):
+def g2(simple_nodes):
     xn, yn = simple_nodes
     g = core.ModelGrid(xn[2:5, 3:], yn[2:5, 3:])
-    g.template = template
     return g
 
 
@@ -336,13 +329,6 @@ def test_ModelGrid_cell_mask(g1):
         [0, 0], [0, 0], [0, 0], [0, 0],
     ])
     nptest.assert_array_equal(g1.cell_mask, expected_mask)
-
-
-def test_ModelGrid_template(g1):
-    assert g1.template.endswith('schema_template.shp')
-
-    g1.template = 'junk'
-    assert (g1.template == 'junk')
 
 
 @pytest.mark.parametrize(('usemask', 'which', 'error'), [

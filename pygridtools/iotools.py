@@ -6,7 +6,6 @@ import warnings
 import numpy
 import pandas
 from shapely.geometry import Point, Polygon
-import fiona
 import geopandas
 
 from pygridtools import misc
@@ -192,7 +191,7 @@ def read_grid(shapefile, icol='ii', jcol='jj', othercols=None, expand=1,
         return grid.assign(easting=grid['geometry'].x, northing=grid['geometry'].y)[final_cols]
 
 
-def write_points(X, Y, template, outputfile, river=None, reach=0, elev=None):
+def write_points(X, Y, crs, outputfile, river=None, reach=0, elev=None):
     """ Saves grid-related attributes of a pygridgen.Gridgen object to a
     shapefile with geomtype = 'Point'.
 
@@ -200,8 +199,9 @@ def write_points(X, Y, template, outputfile, river=None, reach=0, elev=None):
     ----------
     X, Y : numpy (masked) arrays, same dimensions
         Attributes of the gridgen object representing the x- and y-coords.
-    template : string
-        Path to a template shapfiles with the desired schema.
+    crs : string
+        A geopandas/proj/fiona-compatible string describing the coordinate
+        reference system of the x/y values.
     outputfile : string
         Path to the point shapefile to which the data will be written.
     river : optional string (default = None)
@@ -225,10 +225,6 @@ def write_points(X, Y, template, outputfile, river=None, reach=0, elev=None):
     # check elev shape
     elev = validate.elev_or_mask(X, elev, 'elev', offset=0)
 
-    # load the template
-    with fiona.open(template, 'r') as src:
-        src_crs = src.crs
-
     # start writting or appending to the output
     row = 0
     geodata = []
@@ -251,12 +247,12 @@ def write_points(X, Y, template, outputfile, river=None, reach=0, elev=None):
 
                 geodata.append(record)
 
-    gdf = geopandas.GeoDataFrame(geodata, crs=src_crs, geometry='geometry')
+    gdf = geopandas.GeoDataFrame(geodata, crs=crs, geometry='geometry')
     gdf.to_file(outputfile)
     return gdf
 
 
-def write_cells(X, Y, mask, template, outputfile, river=None, reach=0,
+def write_cells(X, Y, mask, crs, outputfile, river=None, reach=0,
                 elev=None, triangles=False):
     """ Saves a shapefile of quadrilaterals representing grid cells.
 
@@ -268,8 +264,9 @@ def write_cells(X, Y, mask, template, outputfile, river=None, reach=0,
         Array describing which cells to mask (exclude) from the output.
         Shape should be N-1 by M-1, where N and M are the dimensions of
         `X` and `Y`.
-    template : string
-        Path to a template shapfiles with the desired schema.
+    crs : string
+        A geopandas/proj/fiona-compatible string describing the coordinate
+        reference system of the x/y values.
     outputfile : string
         Path to the point shapefile to which the data will be written.
     river : optional string (default = None)
@@ -302,10 +299,6 @@ def write_cells(X, Y, mask, template, outputfile, river=None, reach=0,
     Y = numpy.ma.masked_invalid(Y)
     ny, nx = X.shape
 
-    # load the template
-    with fiona.open(template, 'r') as src:
-        src_crs = src.crs
-
     row = 0
     geodata = []
     for ii in range(nx - 1):
@@ -333,7 +326,7 @@ def write_cells(X, Y, mask, template, outputfile, river=None, reach=0,
                 if coords is not None:
                     geodata.append(record)
 
-    gdf = geopandas.GeoDataFrame(geodata, crs=src_crs, geometry='geometry')
+    gdf = geopandas.GeoDataFrame(geodata, crs=crs, geometry='geometry')
     gdf.to_file(outputfile)
     return gdf
 
@@ -454,7 +447,7 @@ def _write_gridext_file(tidydf, outfile, icol='ii', jcol='jj',
     return df
 
 
-def convert_gridext_to_shp(inputfile, outputfile, template, river='na', reach=0):
+def convert_gridext_to_shp(inputfile, outputfile, crs=None, river='na', reach=0):
     """ Converts gridext.inp from the rtools to a shapefile with
     `geomtype = 'Point'`.
 
@@ -464,8 +457,9 @@ def convert_gridext_to_shp(inputfile, outputfile, template, river='na', reach=0)
         Path and filename of the gridext.inp file
     outputfile : string
         Path and filename of the destination shapefile
-    template : string
-        Path to a template shapfiles with the desired schema.
+    crs : string, optional
+        A geopandas/proj/fiona-compatible string describing the coordinate
+        reference system of the x/y values.
     river : optional string (default = None)
         The river to be listed in the shapefile's attribute table.
     reach : optional int (default = 0)
@@ -482,12 +476,6 @@ def convert_gridext_to_shp(inputfile, outputfile, template, river='na', reach=0)
     if not os.path.exists(inputfile):
         raise ValueError(errmsg.format(inputfile, os.getcwd()))
 
-    # load the template
-    if not os.path.exists(template):
-        raise ValueError(errmsg.format(inputfile, os.getcwd()))
-
-    with fiona.open(template, 'r') as src:
-        src_crs = src.crs
     gdf = (
         pandas.read_csv(inputfile, sep='\s+', engine='python', header=None,
                         dtype={'ii': int, 'jj': int, 'x': float, 'y': float},
@@ -499,7 +487,7 @@ def convert_gridext_to_shp(inputfile, outputfile, template, river='na', reach=0)
               .assign(elev=0.0, river=river, reach=reach)
               .assign(geometry=lambda df: df.apply(lambda r: Point((r['x'], r['y'])), axis=1))
               .drop(['x', 'y'], axis='columns')
-              .pipe(geopandas.GeoDataFrame, geometry='geometry', crs=src_crs)
+              .pipe(geopandas.GeoDataFrame, geometry='geometry', crs=crs)
     )
 
     gdf.to_file(outputfile)

@@ -1,7 +1,6 @@
 from pygridtools.viz import _viz_bokeh
 
 import pytest
-import pygridtools.testing as pgtest
 
 
 def test__plot_domain(simple_boundary):

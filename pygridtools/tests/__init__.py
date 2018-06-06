@@ -1,19 +1,23 @@
 from pkg_resources import resource_filename
 
 import pygridtools
+from .helpers import requires
 
 
-def test(*args, **kwargs):
-    try:
-        import pytest
-    except ImportError:
-        raise ImportError("pytest is requires to run tests")
+try:
+    import pytest
+except ImportError:
+    pytest = None
 
-    alltests = kwargs.pop('alltests', True)
-    if alltests:
-        options = [resource_filename('pygridtools', '')]
-    else:
-        options = []
 
+@requires(pytest, 'pytest')
+def test(*args):
+    options = [resource_filename('pygridtools', '')]
     options.extend(list(args))
+    return pytest.main(options)
+
+
+@requires(pytest, 'pytest')
+def teststrict():
+    options = [resource_filename('pygridtools', ''), '--pep', '--mpl']
     return pytest.main(options)

@@ -5,4 +5,4 @@ from . import viz
 from . import validate
 from . import testing
 
-from .tests import test
+from .tests import test, teststrict

@@ -746,8 +746,8 @@ def test_writeGEFDCGridextFiles(mg):
 def test_ModelGrid_plots_basic(simple_nodes):
     mg = core.ModelGrid(*simple_nodes)
     mg.cell_mask = numpy.ma.masked_invalid(mg.xc).mask
-
-    return mg.plotCells()
+    fig, artists = mg.plotCells()
+    return fig
 
 
 @pytest.mark.parametrize(('otherargs', 'gridtype'), [

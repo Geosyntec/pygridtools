@@ -1,5 +1,4 @@
 import numpy
-from matplotlib import pyplot
 
 
 def mpl_ax(ax, fallback='new'):
@@ -23,6 +22,7 @@ def mpl_ax(ax, fallback='new'):
     """
 
     if ax is None:
+        from matplotlib import pyplot
         if fallback == 'new':
             fig, ax = pyplot.subplots()
         elif fallback == 'current':
@@ -31,12 +31,12 @@ def mpl_ax(ax, fallback='new'):
         else:
             raise ValueError("fallback must be either 'new' or 'current'")
 
-    elif isinstance(ax, pyplot.Axes):
-        fig = ax.figure
-
     else:
-        msg = "`ax` must be a matplotlib Axes instance or None"
-        raise ValueError(msg)
+        try:
+            fig = ax.figure
+        except AttributeError:
+            msg = "`ax` must be a matplotlib Axes instance or None"
+            raise ValueError(msg)
 
     return fig, ax
 

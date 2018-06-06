@@ -30,7 +30,7 @@ install:
 
 
 script:
-  - coverage run --source pygridtools check_pygridtools.py --verbose --pep8
+  - coverage run --source pygridtools check_pygridtools.py --verbose --pep8 --mpl
 
 after_success:
   - if [ ${COVERAGE} = true ]; then

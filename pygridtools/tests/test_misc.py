@@ -5,7 +5,7 @@ import pytest
 import numpy.testing as nptest
 
 from pygridtools import misc
-from pygridtools import testing
+from . import utils
 
 numpy.set_printoptions(linewidth=150, nanstr='-')
 
@@ -82,7 +82,7 @@ def test_make_record(geom, geomtype, error, as_array):
     if as_array:
         geom = numpy.array(geom)
 
-    with testing.raises(error):
+    with utils.raises(error):
         record = misc.make_record(1, geom, geomtype, props)
         assert record == expected_geoms[geomtype.lower()]
 
@@ -289,7 +289,7 @@ def test_padded_stack_a_bunch(stackgrids):
 
 @pytest.mark.parametrize(('how', 'where'), [('junk', '+'), ('h', 'junk')])
 def test_padded_stack_errors(stackgrids, how, where):
-    with testing.raises(ValueError):
+    with utils.raises(ValueError):
         misc.padded_stack(stackgrids['input']['g1'], stackgrids['input']['g3'],
                           how=how, where=where, shift=2)
 

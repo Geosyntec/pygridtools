@@ -13,7 +13,7 @@ import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from pygridtools import iotools
-from pygridtools import testing
+from . import utils
 
 
 TEST_CRS = {'init': 'epsg:26916'}
@@ -91,7 +91,7 @@ def test_write_points(usemasks, fname):
         outfile = os.path.join(outputdir, fname)
         basefile = os.path.join(baselinedir, fname)
         gdf = iotools.write_points(x, y, TEST_CRS, outfile, river=river)
-        testing.compareShapefiles(outfile, basefile)
+        utils.compareShapefiles(outfile, basefile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
 
 
@@ -121,7 +121,7 @@ def test_write_cells(usemasks, fname, simple_grid):
         basefile = os.path.join(baselinedir, fname)
         gdf = iotools.write_cells(simple_grid.x, simple_grid.y, mask, TEST_CRS,
                                   outfile, river=river)
-        testing.compareShapefiles(basefile, outfile)
+        utils.compareShapefiles(basefile, outfile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
 
 
@@ -141,7 +141,7 @@ def test_write_cellinp(maxcols, knownfile):
     with tempfile.TemporaryDirectory() as outputdir:
         outfile = os.path.join(outputdir, 'cell.inp')
         iotools._write_cellinp(cells, outfile, maxcols=maxcols)
-        testing.compareTextFiles(outfile, knownfile)
+        utils.compareTextFiles(outfile, knownfile)
 
 
 def test_convert_gridext_to_shp():
@@ -153,7 +153,7 @@ def test_convert_gridext_to_shp():
     with tempfile.TemporaryDirectory() as outputdir:
         outputfile = os.path.join(outputdir, 'gridext.shp')
         iotools.convert_gridext_to_shp(gridextfile, outputfile, TEST_CRS, river=river)
-        testing.compareShapefiles(baselinefile, outputfile)
+        utils.compareShapefiles(baselinefile, outputfile)
 
 
 def test__write_gefdc_control_file():
@@ -161,7 +161,7 @@ def test__write_gefdc_control_file():
         result_filename = os.path.join(outputdir, 'maingefdc.inp')
         known_filename = resource_filename('pygridtools.tests.baseline_files', 'maingefdc.inp')
         iotools._write_gefdc_control_file(result_filename, 'Test Input File', 100, 25, 0)
-        testing.compareTextFiles(result_filename, known_filename)
+        utils.compareTextFiles(result_filename, known_filename)
 
 
 def test__write_gridext_file():
@@ -176,7 +176,7 @@ def test__write_gridext_file():
         ]), columns=['x', 'ii', 'jj', 'y'])
         iotools._write_gridext_file(df, result_filename, icol='ii', jcol='jj',
                                     xcol='x', ycol='y')
-        testing.compareTextFiles(result_filename, known_filename)
+        utils.compareTextFiles(result_filename, known_filename)
 
 
 def test__write_gridout_file(simple_nodes):
@@ -187,7 +187,7 @@ def test__write_gridout_file(simple_nodes):
         result_filename = os.path.join(outdir, 'testgrid.out')
 
         iotools._write_gridout_file(x, y, result_filename)
-        testing.compareTextFiles(result_filename, known_filename)
+        utils.compareTextFiles(result_filename, known_filename)
 
 
 def test_read_grid():
@@ -201,5 +201,5 @@ def test_read_grid():
 
     pdtest.assert_frame_equal(result_df, known_df)
 
-    with testing.raises(NotImplementedError):
+    with utils.raises(NotImplementedError):
         result_df = iotools.read_grid(cellfile)

@@ -86,7 +86,7 @@ def test_split_rows(C, index, axis, first, second):
         nptest.assert_array_equal(a, expected[first])
         nptest.assert_array_equal(b, expected[second])
     else:
-        with pytest.raises(ValueError):
+        with testing.raises(ValueError):
             left, right = core.split(C, index, axis=axis)
 
 
@@ -115,7 +115,7 @@ def test__interp_between_vectors(N):
         result = core._interp_between_vectors(vector1, vector2, n_nodes=N)
         nptest.assert_array_equal(result, expected[N])
     else:
-        with pytest.raises(ValueError):
+        with testing.raises(ValueError):
             core._interp_between_vectors(vector1, vector2, n_nodes=0)
 
 
@@ -302,7 +302,7 @@ def polyverts():
 
 def test_ModelGrid_bad_shapes(simple_cells):
     xc, yc = simple_cells
-    with pytest.raises(ValueError):
+    with testing.raises(ValueError):
         mg = core.ModelGrid(xc, yc[2:, 2:])
 
 
@@ -357,7 +357,7 @@ def test_ModelGrid_to_dataframe(g1, usemask, which, error):
         return df
 
     if error:
-        with pytest.raises(ValueError):
+        with testing.raises(ValueError):
             g1.to_dataframe(usemask=usemask, which=which)
     else:
 
@@ -412,7 +412,7 @@ def test_ModelGrid_to_dataframe(g1, usemask, which, error):
 ])
 def test_ModelGrid_to_coord_pairs(g1, usemask, which, error):
     if error:
-        with pytest.raises(error):
+        with testing.raises(error):
             g1.to_coord_pairs(usemask=usemask, which=which)
     else:
 
@@ -630,7 +630,7 @@ def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside,
     [dict(triangles=True), NotImplementedError],
 ])
 def test_ModelGrid_mask_cells_errors(mg, polyverts, kwargs, error):
-    with pytest.raises(error):
+    with testing.raises(error):
         mg.mask_cells_with_polygon(polyverts, use_centroids=False, **kwargs)
 
 
@@ -643,7 +643,7 @@ def test_ModelGrid_to_shapefile_nodes(g1, geom, expectedfile):
     with tempfile.TemporaryDirectory() as outdir:
         outfile = os.path.join(outdir, 'outfile.shp')
         if expectedfile is None:
-            with pytest.raises(ValueError):
+            with testing.raises(ValueError):
                 g1.to_shapefile(outfile, which='nodes', geom=geom, usemask=False)
         else:
                 resultfile = resource_filename('pygridtools.tests.baseline_files', expectedfile)
@@ -676,7 +676,7 @@ def test_ModelGrid_to_shapefile_cells(g1, geom, usemask):
 ])
 def test_ModelGrid__get_x_y_nodes_and_mask(g1, which, usemask, error):
     if error:
-        with pytest.raises(error):
+        with testing.raises(error):
             g1._get_x_y(which, usemask=usemask)
     else:
         x, y = g1._get_x_y(which, usemask=usemask)
@@ -746,8 +746,8 @@ def test_writeGEFDCGridextFiles(mg):
 def test_ModelGrid_plots_basic(simple_nodes):
     mg = core.ModelGrid(*simple_nodes)
     mg.cell_mask = numpy.ma.masked_invalid(mg.xc).mask
-
-    return mg.plotCells()
+    fig, artists = mg.plotCells()
+    return fig
 
 
 @pytest.mark.parametrize(('otherargs', 'gridtype'), [

@@ -26,6 +26,7 @@ install:
   - conda create --yes --channel=conda-forge --name=test python=$TRAVIS_PYTHON_VERSION pygridgen fiona geopandas scipy matplotlib pytest pytest-mpl pytest-cov pytest-pep8 coverage docopt requests pyyaml
   - source activate test
   - pip install codecov
+  - pip install .
 
 
 script:

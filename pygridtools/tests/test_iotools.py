@@ -16,6 +16,9 @@ from pygridtools import iotools
 from pygridtools import testing
 
 
+TEST_CRS = {'init': 'epsg:26916'}
+
+
 @pytest.mark.parametrize(('folder', 'expected'), [
     ('this', os.path.join('this', 'that.txt')),
     (None, os.path.join('.', 'that.txt'))
@@ -82,13 +85,12 @@ def test_write_points(usemasks, fname):
         x = numpy.ma.masked_array(x, mask)
         y = numpy.ma.masked_array(y, mask)
 
-    template = resource_filename('pygridtools.tests.test_data', 'schema_template.shp')
     baselinedir = resource_filename('pygridtools.tests', 'baseline_files')
     river = 'test'
     with tempfile.TemporaryDirectory() as outputdir:
         outfile = os.path.join(outputdir, fname)
         basefile = os.path.join(baselinedir, fname)
-        gdf = iotools.write_points(x, y, template, outfile, river=river)
+        gdf = iotools.write_points(x, y, TEST_CRS, outfile, river=river)
         testing.compareShapefiles(outfile, basefile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
 
@@ -112,13 +114,12 @@ def test_write_cells(usemasks, fname, simple_grid):
     else:
         mask = None
 
-    template = resource_filename('pygridtools.tests.test_data', 'schema_template.shp')
     baselinedir = resource_filename('pygridtools.tests', 'baseline_files')
     river = 'test'
     with tempfile.TemporaryDirectory() as outputdir:
         outfile = os.path.join(outputdir, fname)
         basefile = os.path.join(baselinedir, fname)
-        gdf = iotools.write_cells(simple_grid.x, simple_grid.y, mask, template,
+        gdf = iotools.write_cells(simple_grid.x, simple_grid.y, mask, TEST_CRS,
                                   outfile, river=river)
         testing.compareShapefiles(basefile, outfile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
@@ -145,13 +146,13 @@ def test_write_cellinp(maxcols, knownfile):
 
 def test_convert_gridext_to_shp():
     gridextfile = resource_filename('pygridtools.tests.test_data', 'gridext.inp')
-    template = resource_filename('pygridtools.tests.test_data', 'schema_template.shp')
     baselinefile = resource_filename('pygridtools.tests.baseline_files', 'gridext.shp')
     river = 'test'
     reach = 1
+
     with tempfile.TemporaryDirectory() as outputdir:
         outputfile = os.path.join(outputdir, 'gridext.shp')
-        iotools.convert_gridext_to_shp(gridextfile, outputfile, template, river=river)
+        iotools.convert_gridext_to_shp(gridextfile, outputfile, TEST_CRS, river=river)
         testing.compareShapefiles(baselinefile, outputfile)
 
 
@@ -200,5 +201,5 @@ def test_read_grid():
 
     pdtest.assert_frame_equal(result_df, known_df)
 
-    with pytest.raises(NotImplementedError):
+    with testing.raises(NotImplementedError):
         result_df = iotools.read_grid(cellfile)

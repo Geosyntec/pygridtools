@@ -215,13 +215,13 @@ class ModelGrid(object):
         M-by-N arrays of node (vertex) coordinates for the grid.
 
     """
-    def __init__(self, nodes_x, nodes_y):
+    def __init__(self, nodes_x, nodes_y, crs=None):
         if not numpy.all(nodes_x.shape == nodes_y.shape):
             raise ValueError('input arrays must have the same shape')
 
         self.nodes_x = numpy.asarray(nodes_x)
         self.nodes_y = numpy.asarray(nodes_y)
-        self._template = None
+        self._crs = None
         self._cell_mask = numpy.zeros(self.cell_shape, dtype=bool)
 
         self._domain = None
@@ -325,13 +325,13 @@ class ModelGrid(object):
         self._cell_mask = value
 
     @property
-    def template(self):
-        """ Template shapefile (schema) for export """
-        return self._template
+    def crs(self):
+        """ Coordinate reference csystem for (shapefile) export """
+        return self._crs
 
-    @template.setter
-    def template(self, value):
-        self._template = value
+    @crs.setter
+    def crs(self, value):
+        self._crs = value
 
     @property
     def domain(self):
@@ -862,7 +862,8 @@ class ModelGrid(object):
         if cell_kws is None:
             cell_kws = {}
         fig = viz.plotCells(self.xn, self.yn, engine=engine, ax=ax,
-                            mask=self.cell_mask, **cell_kws)
+                            # mask=self.cell_mask,
+                            **cell_kws)
 
         if domain_kws is not None:
             fig = viz.plotDomain(data=self.domain, engine=engine, ax=ax, **domain_kws)
@@ -952,7 +953,7 @@ class ModelGrid(object):
         return numpy.array(list(zip(x.flatten(), y.flatten())))
 
     def to_shapefile(self, outputfile, usemask=True, which='cells',
-                     river=None, reach=0, elev=None, template=None,
+                     river=None, reach=0, elev=None, crs=None,
                      geom='Polygon', mode='w', triangles=False):
         """
         Converts a grid to a shapefile via the *fiona* package.
@@ -974,9 +975,9 @@ class ModelGrid(object):
         elev : numpy.ndarray, optional
             Bathymetry data to be assigned to each record in the
             shapefile.
-        template : str, optional
-            The shapefile schema template. If not provided, the
-            ``template`` attribute of the ModelGrid object is used.
+    crs : string
+        A geopandas/proj/fiona-compatible string describing the coordinate
+        reference system of the x/y values.
         geom : str, optional
             The type of geometry to use. If "Point", either the grid
             nodes or the centroids of the can be used (see the
@@ -999,12 +1000,12 @@ class ModelGrid(object):
 
         """
 
-        if template is None:
-            template = self.template
+        if crs is None:
+            crs = self.crs
 
         if geom.lower() == 'point':
             x, y = self._get_x_y(which, usemask=usemask)
-            iotools.write_points(x, y, template, outputfile, river=river,
+            iotools.write_points(x, y, crs, outputfile, river=river,
                                  reach=reach, elev=elev)
 
         elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
@@ -1013,7 +1014,7 @@ class ModelGrid(object):
             else:
                 mask = None
             x, y = self._get_x_y('nodes', usemask=False)
-            iotools.write_cells(x, y, mask, template, outputfile, river=river,
+            iotools.write_cells(x, y, mask, crs, outputfile, river=river,
                                 reach=reach, elev=elev, triangles=triangles)
             if which == 'cells':
                 warnings.warn("polygons always constructed from nodes")

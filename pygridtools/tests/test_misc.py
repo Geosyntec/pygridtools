@@ -5,7 +5,7 @@ import pytest
 import numpy.testing as nptest
 
 from pygridtools import misc
-
+from pygridtools import testing
 
 numpy.set_printoptions(linewidth=150, nanstr='-')
 
@@ -44,10 +44,10 @@ def test_make_poly_coords_base(masked, z, triangles):
 
 @pytest.mark.parametrize('as_array', [True, False])
 @pytest.mark.parametrize(('geom', 'geomtype', 'error'), [
-    ([1, 2], 'Point', False),
-    ([[1, 2], [5, 6], [5, 2]], 'LineString', False),
-    ([[1, 2], [5, 6], [5, 2]], 'Polygon', False),
-    ([[1, 2], [5, 6], [5, 2]], 'Circle', True),
+    ([1, 2], 'Point', None),
+    ([[1, 2], [5, 6], [5, 2]], 'LineString', None),
+    ([[1, 2], [5, 6], [5, 2]], 'Polygon', None),
+    ([[1, 2], [5, 6], [5, 2]], 'Circle', ValueError),
 
 ])
 def test_make_record(geom, geomtype, error, as_array):
@@ -82,10 +82,7 @@ def test_make_record(geom, geomtype, error, as_array):
     if as_array:
         geom = numpy.array(geom)
 
-    if error:
-        with pytest.raises(ValueError):
-            misc.make_record(1, geom, geomtype, props)
-    else:
+    with testing.raises(error):
         record = misc.make_record(1, geom, geomtype, props)
         assert record == expected_geoms[geomtype.lower()]
 
@@ -292,7 +289,7 @@ def test_padded_stack_a_bunch(stackgrids):
 
 @pytest.mark.parametrize(('how', 'where'), [('junk', '+'), ('h', 'junk')])
 def test_padded_stack_errors(stackgrids, how, where):
-    with pytest.raises(ValueError):
+    with testing.raises(ValueError):
         misc.padded_stack(stackgrids['input']['g1'], stackgrids['input']['g3'],
                           how=how, where=where, shift=2)
 

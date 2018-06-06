@@ -201,5 +201,5 @@ def test_read_grid():
 
     pdtest.assert_frame_equal(result_df, known_df)
 
-    with pytest.raises(NotImplementedError):
+    with testing.raises(NotImplementedError):
         result_df = iotools.read_grid(cellfile)

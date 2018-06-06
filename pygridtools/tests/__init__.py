@@ -1,7 +1,7 @@
 from pkg_resources import resource_filename
 
 import pygridtools
-from .helpers import requires
+from pygridtools.testing import requires
 
 
 try:

@@ -4,11 +4,13 @@ from matplotlib import pyplot
 import pytest
 import numpy.testing as nptest
 
+
 from pygridtools import validate
+from pygridtools import testing
 
 
 def test_mpl_ax_invalid():
-    with pytest.raises(ValueError):
+    with testing.raises(ValueError):
         validate.mpl_ax('junk')
 
 
@@ -34,10 +36,7 @@ def test_mpl_ax_with_None():
     ([[(2, 2), (5, 2), (5, 5), (2, 5)], [(2, 2), (5, 2), (5, 5), (2, 5)]], ValueError)
 ])
 def Test_polygon(polycoords, error):
-    if error:
-        with pytest.raises(error):
-            poly = validate.polygon(polycoords)
-    else:
+    with testing.raises(error):
         poly = validate.polygon(polycoords)
         nptest.assert_array_equal(numpy.array(polycoords), poly)
 
@@ -62,7 +61,7 @@ def test_xy_array_as_pairs():
 
 
 def test_xy_array_diff_shapes():
-    with pytest.raises(ValueError):
+    with testing.raises(ValueError):
         validate.xy_array(numpy.zeros((3, 3)), numpy.zeros((4, 4)))
 
 
@@ -82,7 +81,7 @@ def test_xy_array_diff_masks():
 
     y = numpy.ma.MaskedArray(data=_y, mask=mask1)
     x = numpy.ma.MaskedArray(data=_x, mask=mask2)
-    with pytest.raises(ValueError):
+    with testing.raises(ValueError):
         validate.xy_array(x, y)
 
 
@@ -96,23 +95,21 @@ def test_xy_array_only_one_mask():
     _y, _x = numpy.mgrid[:3, :3]
     y = numpy.ma.MaskedArray(data=_y, mask=mask1)
 
-    with pytest.raises(ValueError):
+    with testing.raises(ValueError):
         validate.xy_array(_x, y)
 
 
-@pytest.mark.parametrize(('mode', 'expected'), [
-    ('z', None),
-    ('A', 'a'),
-    ('a', 'a'),
-    ('W', 'w'),
-    ('w', 'w')
+@pytest.mark.parametrize(('mode', 'expected', 'error'), [
+    ('z', None, ValueError),
+    ('A', 'a', None),
+    ('a', 'a', None),
+    ('W', 'w', None),
+    ('w', 'w', None)
 ])
-def test_file_mode(mode, expected):
-    if expected is None:
-        with pytest.raises(ValueError):
-            validate.file_mode(mode)
-    else:
-        assert expected == validate.file_mode(mode)
+def test_file_mode(mode, expected, error):
+    with testing.raises(error):
+        result = validate.file_mode(mode)
+        assert expected == result
 
 
 @pytest.mark.parametrize(('x', 'y', 'offset', 'expected'), [
@@ -123,7 +120,7 @@ def test_file_mode(mode, expected):
 ])
 def test_elev_or_mask(x, y, offset, expected):
     if expected is None:
-        with pytest.raises(ValueError):
+        with testing.raises(ValueError):
             validate.elev_or_mask(x, y, failNone=True)
     else:
         result = validate.elev_or_mask(x, y, offset=offset)
@@ -149,7 +146,7 @@ def test_equivalent_masks():
         1, 2, 3, nan, nan, nan,
         1, 2, 3, nan, nan, 7,
     ])
-    with pytest.raises(ValueError):
+    with testing.raises(ValueError):
         validate.equivalent_masks(X, Y2)
 
     x, y = validate.equivalent_masks(X, Y1)

@@ -16,17 +16,6 @@ from pygridtools import iotools
 from . import utils
 
 
-TEST_CRS = {'init': 'epsg:26916'}
-
-
-@pytest.mark.parametrize(('folder', 'expected'), [
-    ('this', os.path.join('this', 'that.txt')),
-    (None, os.path.join('.', 'that.txt'))
-])
-def test__outputfile(folder, expected):
-    assert iotools._outputfile(folder, 'that.txt') == expected
-
-
 @pytest.mark.parametrize(('filterfxn', 'points_in_boundary'), [
     (None, 19),
 ])
@@ -77,7 +66,7 @@ def test_read_polygons(as_gdf):
     (False, 'array_point.shp'),
     (True, 'mask_point.shp'),
 ])
-def test_write_points(usemasks, fname):
+def test_write_points(usemasks, fname, example_crs):
     x = numpy.array([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
     y = numpy.array([[4, 4, 4], [5, 5, 5], [6, 6, 6], [7, 7, 7]])
     mask = numpy.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]], dtype=bool)
@@ -90,7 +79,7 @@ def test_write_points(usemasks, fname):
     with tempfile.TemporaryDirectory() as outputdir:
         outfile = os.path.join(outputdir, fname)
         basefile = os.path.join(baselinedir, fname)
-        gdf = iotools.write_points(x, y, TEST_CRS, outfile, river=river)
+        gdf = iotools.write_points(x, y, example_crs, outfile, river=river)
         utils.compareShapefiles(outfile, basefile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
 
@@ -99,7 +88,7 @@ def test_write_points(usemasks, fname):
     (False, 'array_grid.shp'),
     # (True, 'mask_grid.shp'),
 ])
-def test_write_cells(usemasks, fname, simple_grid):
+def test_write_cells(usemasks, fname, simple_grid, example_crs):
     if usemasks:
         mask = numpy.array([
             [0, 0, 1, 1, 1, 1],
@@ -119,75 +108,10 @@ def test_write_cells(usemasks, fname, simple_grid):
     with tempfile.TemporaryDirectory() as outputdir:
         outfile = os.path.join(outputdir, fname)
         basefile = os.path.join(baselinedir, fname)
-        gdf = iotools.write_cells(simple_grid.x, simple_grid.y, mask, TEST_CRS,
+        gdf = iotools.write_cells(simple_grid.x, simple_grid.y, mask, example_crs,
                                   outfile, river=river)
         utils.compareShapefiles(basefile, outfile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
-
-
-@pytest.mark.parametrize(('maxcols', 'knownfile'), [
-    (150, resource_filename('pygridtools.tests.baseline_files', 'cell_basic.inp')),
-    (5, resource_filename('pygridtools.tests.baseline_files', 'cell_chunked.inp'))
-])
-def test_write_cellinp(maxcols, knownfile):
-    cells = numpy.array([
-        [9, 9, 9, 9, 9, 9, 0, 0, 0],
-        [9, 3, 5, 5, 2, 9, 9, 9, 9],
-        [9, 5, 5, 5, 5, 5, 5, 5, 9],
-        [9, 5, 5, 5, 5, 5, 5, 5, 9],
-        [9, 4, 5, 5, 1, 9, 9, 9, 9],
-        [9, 9, 9, 9, 9, 9, 0, 0, 0],
-    ])
-    with tempfile.TemporaryDirectory() as outputdir:
-        outfile = os.path.join(outputdir, 'cell.inp')
-        iotools._write_cellinp(cells, outfile, maxcols=maxcols)
-        utils.compareTextFiles(outfile, knownfile)
-
-
-def test_convert_gridext_to_shp():
-    gridextfile = resource_filename('pygridtools.tests.test_data', 'gridext.inp')
-    baselinefile = resource_filename('pygridtools.tests.baseline_files', 'gridext.shp')
-    river = 'test'
-    reach = 1
-
-    with tempfile.TemporaryDirectory() as outputdir:
-        outputfile = os.path.join(outputdir, 'gridext.shp')
-        iotools.convert_gridext_to_shp(gridextfile, outputfile, TEST_CRS, river=river)
-        utils.compareShapefiles(baselinefile, outputfile)
-
-
-def test__write_gefdc_control_file():
-    with tempfile.TemporaryDirectory() as outputdir:
-        result_filename = os.path.join(outputdir, 'maingefdc.inp')
-        known_filename = resource_filename('pygridtools.tests.baseline_files', 'maingefdc.inp')
-        iotools._write_gefdc_control_file(result_filename, 'Test Input File', 100, 25, 0)
-        utils.compareTextFiles(result_filename, known_filename)
-
-
-def test__write_gridext_file():
-    with tempfile.TemporaryDirectory() as outputdir:
-        known_filename = resource_filename('pygridtools.tests.baseline_files', 'testgridext.inp')
-        result_filename = os.path.join(outputdir, 'testgridext.inp')
-        df = pandas.DataFrame(numpy.array([
-            [1.25, 3, 4, 3.75],
-            [1.75, 4, 4, 3.25],
-            [1.25, 4, 5, 3.75],
-            [1.75, 5, 5, 3.25],
-        ]), columns=['x', 'ii', 'jj', 'y'])
-        iotools._write_gridext_file(df, result_filename, icol='ii', jcol='jj',
-                                    xcol='x', ycol='y')
-        utils.compareTextFiles(result_filename, known_filename)
-
-
-def test__write_gridout_file(simple_nodes):
-    known_filename = resource_filename('pygridtools.tests.baseline_files', 'testgrid.out')
-    x, y = simple_nodes
-
-    with tempfile.TemporaryDirectory() as outdir:
-        result_filename = os.path.join(outdir, 'testgrid.out')
-
-        iotools._write_gridout_file(x, y, result_filename)
-        utils.compareTextFiles(result_filename, known_filename)
 
 
 def test_read_grid():

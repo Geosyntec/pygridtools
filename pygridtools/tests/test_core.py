@@ -562,14 +562,14 @@ def test_extract(mg, simple_nodes):
     nptest.assert_array_equal(result.nodes_y, yn[2:5, 3:6])
 
 
-@pytest.mark.parametrize(('use_centroids', 'inside', 'use_existing'), [
-    (True, True, False),
-    (True, True, True),
-    (True, False, False)
+@pytest.mark.parametrize(('inside', 'use_existing'), [
+    (True, False),
+    (True, True),
+    (False, False)
 ])
-def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside, use_existing):
+def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
     expected = {
-        (True, True, False): numpy.array([
+        (True, False): numpy.array([
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 0],
@@ -579,7 +579,7 @@ def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside,
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0]
         ]),
-        (True, True, True): numpy.array([
+        (True, True): numpy.array([
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1],
             [0, 0, 0, 1, 1, 0],
@@ -589,7 +589,7 @@ def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside,
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1]
         ]),
-        (True, False, False):  numpy.array([
+        (False, False):  numpy.array([
             [1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1],
             [1, 1, 1, 0, 0, 1],
@@ -601,12 +601,11 @@ def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside,
         ])
     }
 
-    result = mg.mask_cells_with_polygon(polyverts, inside=inside,
-                                        use_existing=use_existing,
-                                        use_centroids=use_centroids)
+    result = mg.mask_centroids(polyverts, inside=inside, use_existing=use_existing)
+
     nptest.assert_array_equal(
         result.cell_mask.astype(int),
-        expected[(use_centroids, inside, use_existing)].astype(int)
+        expected[(inside, use_existing)].astype(int)
     )
 
 
@@ -615,9 +614,9 @@ def test_ModelGrid_mask_cells_with_polygon(mg, polyverts, use_centroids, inside,
     [dict(min_nodes=5), ValueError],
     [dict(triangles=True), NotImplementedError],
 ])
-def test_ModelGrid_mask_cells_errors(mg, polyverts, kwargs, error):
+def test_ModelGrid_mask_nodes_errors(mg, polyverts, kwargs, error):
     with utils.raises(error):
-        mg.mask_cells_with_polygon(polyverts, use_centroids=False, **kwargs)
+        mg.mask_nodes(polyverts, **kwargs)
 
 
 @pytest.mark.parametrize(['geom', 'expectedfile'], [

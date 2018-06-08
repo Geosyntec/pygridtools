@@ -618,7 +618,7 @@ class ModelGrid(object):
         merged = ModelGrid(nodes_x, nodes_y).update_cell_mask()
         return merged
 
-    def update_cell_mask(self, mask=None):
+    def update_cell_mask(self, mask=None, merge_existing=True):
         """
         Regenerate the cell mask based on either the NaN cells
         or a user-provided mask. This is usefull after splitting,
@@ -629,7 +629,12 @@ class ModelGrid(object):
         mask : numpy.ndarray of bools, optional
             The custom make to apply. If ommited, the mask will be
             determined by the missing values in the cells arrays.
+        merge_existing : bool (default is True)
+            If True, the new mask is bitwise OR'd with the existing
+            mask.
 
+        Returns
+        -------
         masked : ModelGrid
             A new :class:`~ModelGrid` wit the final mask to be applied
             to the cells.
@@ -639,24 +644,21 @@ class ModelGrid(object):
         if mask is None:
             mask = numpy.ma.masked_invalid(self.xc).mask
 
+        if merge_existing:
+            mask = numpy.bitwise_or(self.cell_mask, mask)
+
         masked = self.copy()
         masked.cell_mask = mask
         return masked
 
-    def mask_cells_with_polygon(self, polyverts, use_centroids=True,
-                                min_nodes=3, inside=True,
-                                use_existing=True, triangles=False):
-
-        """ Create mask for the cells of the ModelGrid with a polygon.
+    def mask_nodes(self, polyverts, min_nodes=3, inside=False, use_existing=False,
+                   triangles=False):
+        """ Create mask the ModelGrid based on its nodes with a polygon .
 
         Parameters
         ----------
         polyverts : sequence of a polygon's vertices
             A sequence of x-y pairs for each vertex of the polygon.
-        use_centroids : bool (default = True)
-            When True, the cell centroid will be used to determine
-            whether the cell is "inside" the polygon. If False, the
-            nodes are used instead.
         min_nodes : int (default = 3)
             Only used when ``use_centroids`` is False. This is the
             minimum number of nodes inside the polygon required to mark
@@ -665,8 +667,45 @@ class ModelGrid(object):
         inside : bool (default = True)
             Toggles masking of cells either *inside* (True) or *outside*
             (False) the polygon.
-        triangles : bool
-            Not yet implemented.
+        use_existing : bool (default = True)
+            When True, the newly computed mask is combined (via a
+            bit-wise `or` operation) with the existing ``cell_mask``
+            attribute of the MdoelGrid.
+
+        Returns
+        -------
+        masked : ModelGrid
+            A new :class:`~ModelGrid` wit the final mask to be applied
+            to the cells.
+
+        """
+        if triangles:
+            raise NotImplementedError("triangular cells are not yet implemented")
+
+        if min_nodes <= 0 or min_nodes > 4:
+            raise ValueError("`min_nodes` must be greater than 0 and no more than 4.")
+
+        _node_mask = misc.mask_with_polygon(self.xn, self.yn, polyverts,
+                                            inside=inside).astype(int)
+        cell_mask = (
+            _node_mask[1:, 1:] + _node_mask[:-1, :-1] +
+            _node_mask[:-1, 1:] + _node_mask[1:, :-1]
+        ) >= min_nodes
+        cell_mask = cell_mask.astype(bool)
+
+        return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
+
+    def mask_centroids(self, polyverts, inside=True, use_existing=True):
+
+        """ Create mask for the cells of the ModelGrid with a polygon.
+
+        Parameters
+        ----------
+        polyverts : sequence of a polygon's vertices
+            A sequence of x-y pairs for each vertex of the polygon.
+        inside : bool (default = True)
+            Toggles masking of cells either *inside* (True) or *outside*
+            (False) the polygon.
         use_existing : bool (default = True)
             When True, the newly computed mask is combined (via a
             bit-wise `or` operation) with the existing ``cell_mask``
@@ -680,27 +719,15 @@ class ModelGrid(object):
 
         """
 
-        if triangles:
-            raise NotImplementedError("triangles are not yet implemented.")
+        cell_mask = misc.mask_with_polygon(self.xc, self.yc, polyverts, inside=inside)
+        return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
 
+    @numpy.deprecate(message='deprecated, use mask_nodes or mask_centroids')
+    def mask_cells_with_polygon(self, polyverts, use_centroids=True, **kwargs):
         if use_centroids:
-            cell_mask = misc.mask_with_polygon(self.xc, self.yc, polyverts, inside=inside)
+            return self.mask_centroids(polyverts, **kwargs)
         else:
-            if min_nodes <= 0 or min_nodes > 4:
-                raise ValueError("`min_nodes` must be greater than 0 and no more than 4.")
-
-            _node_mask = misc.mask_with_polygon(self.xn, self.yn, polyverts,
-                                                inside=inside).astype(int)
-            cell_mask = (
-                _node_mask[1:, 1:] + _node_mask[:-1, :-1] +
-                _node_mask[:-1, 1:] + _node_mask[1:, :-1]
-            ) >= min_nodes
-            cell_mask = cell_mask.astype(bool)
-
-        if use_existing:
-            cell_mask = numpy.bitwise_or(self.cell_mask, cell_mask)
-
-        return self.update_cell_mask(mask=cell_mask)
+            return self.mask_nodes(polyverts, **kwargs)
 
     def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
                               bathyrows=0, title='test'):
@@ -975,9 +1002,9 @@ class ModelGrid(object):
         elev : numpy.ndarray, optional
             Bathymetry data to be assigned to each record in the
             shapefile.
-    crs : string
-        A geopandas/proj/fiona-compatible string describing the coordinate
-        reference system of the x/y values.
+        crs : string
+            A geopandas/proj/fiona-compatible string describing the coordinate
+            reference system of the x/y values.
         geom : str, optional
             The type of geometry to use. If "Point", either the grid
             nodes or the centroids of the can be used (see the

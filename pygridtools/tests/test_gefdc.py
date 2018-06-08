@@ -80,13 +80,12 @@ def test_write_gridout_file(simple_nodes):
         utils.compareTextFiles(result_filename, known_filename)
 
 
-def test_writeGEFDCControlFile(mg):
+def test_writer_control_file(mg):
     with tempfile.TemporaryDirectory() as result_path:
         writer = gefdc.GEFDCWriter(mg, result_path)
         known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_gefdc.inp')
         result_file = 'modelgrid_gefdc.inp'
         writer.control_file(
-            outputdir=result_path,
             filename=result_file,
             title='Model Grid Test'
         )
@@ -96,13 +95,12 @@ def test_writeGEFDCControlFile(mg):
         )
 
 
-def test_writeGEFDCCellFile(mg):
+def test_writer_cell_file(mg):
     with tempfile.TemporaryDirectory() as result_path:
         writer = gefdc.GEFDCWriter(mg, result_path)
         known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_cell.inp')
         result_file = 'modelgrid_cell.inp'
         writer.cell_file(
-            outputdir=result_path,
             filename=result_file,
         )
         utils.compareTextFiles(
@@ -111,13 +109,12 @@ def test_writeGEFDCCellFile(mg):
         )
 
 
-def test_writeGEFDCGridFile(mg):
+def test_writer_gridout_file(mg):
     with tempfile.TemporaryDirectory() as result_path:
         writer = gefdc.GEFDCWriter(mg, result_path)
         known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_grid.out')
         result_file = 'modelgrid_grid.out'
         writer.gridout_file(
-            outputdir=result_path,
             filename=result_file,
         )
         utils.compareTextFiles(
@@ -126,14 +123,13 @@ def test_writeGEFDCGridFile(mg):
         )
 
 
-def test_writeGEFDCGridextFiles(mg):
+def test_writer_gridext_file(mg):
     with tempfile.TemporaryDirectory() as result_path:
         writer = gefdc.GEFDCWriter(mg, result_path)
         known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_gridext.inp')
 
         result_file = 'modelgrid_gridext.inp'
         writer.gridext_file(
-            outputdir=result_path,
             filename=result_file,
         )
         utils.compareTextFiles(

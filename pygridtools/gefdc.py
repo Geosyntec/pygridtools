@@ -229,7 +229,7 @@ class GEFDCWriter:
         self.mg = mg
         self.directory = Path(directory)
 
-    def control_file(self, outputdir=None, filename='gefdc.inp', bathyrows=0,
+    def control_file(self, filename='gefdc.inp', bathyrows=0,
                      title=None):
         """
         Generates the GEFDC control (gefdc.inp) file for the EFDC grid
@@ -237,8 +237,6 @@ class GEFDCWriter:
 
         Parameters
         ----------
-        outputdir : str, optional
-            The path to where the should be saved.
         filename : str, optional
             The name of the output file.
         bathyrows : int, optional
@@ -267,7 +265,7 @@ class GEFDCWriter:
         )
         return gefdc
 
-    def cell_file(self, outputdir=None, filename='cell.inp', triangles=False,
+    def cell_file(self, filename='cell.inp', triangles=False,
                   maxcols=125):
         """
         Generates the cell definition/ASCII-art file for GEFDC.
@@ -277,8 +275,6 @@ class GEFDCWriter:
 
         Parameters
         ----------
-        outputdir : str, optional
-            The path to where the should be saved.
         filename : str, optional
             The name of the output file.
         triangles : bool, optional
@@ -308,14 +304,12 @@ class GEFDCWriter:
         write_cellinp(cells, outputfile=outfile, flip=True, maxcols=maxcols)
         return cells
 
-    def gridout_file(self, outputdir=None, filename='grid.out'):
+    def gridout_file(self, filename='grid.out'):
         """
         Writes to the nodes as coordinate pairs for GEFDC.
 
         Parameters
         ----------
-        outputdir : str, optional
-            The path to where the should be saved.
         filename : str, optional
             The name of the output file.
 
@@ -330,14 +324,12 @@ class GEFDCWriter:
         df = write_gridout_file(self.mg.xn, self.mg.yn, outfile)
         return df
 
-    def gridext_file(self, outputdir, filename='gridext.inp', shift=2):
+    def gridext_file(self, filename='gridext.inp', shift=2):
         """
         Writes to the nodes and I/J cell index as to a file for GEFDC.
 
         Parameters
         ----------
-        outputdir : str, optional
-            The path to where the should be saved.
         filename : str, optional
             The name of the output file.
         shift : int, optional

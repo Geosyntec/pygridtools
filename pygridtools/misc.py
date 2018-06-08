@@ -278,8 +278,8 @@ def mask_with_polygon(x, y, polyverts, inside=True):
         NxM arrays of x- and y-coordinates.
     polyverts : sequence of a polygon's vertices
         A sequence of x-y pairs for each vertex of the polygon.
-    inside : bool (default = True)
-        Toggles returning a mask *inside* or *outside* the polygon.
+    inside : bool (default is True)
+        Toggles masking the inside or outside the polygon
 
     Returns
     -------
@@ -287,19 +287,16 @@ def mask_with_polygon(x, y, polyverts, inside=True):
         The NxM mask that can be applied to ``x`` and ``y``.
 
     """
-
     # validate input
     polyverts = validate.polygon(polyverts)
     points = validate.xy_array(x, y, as_pairs=True)
 
     # compute the mask
     mask = mpath.Path(polyverts).contains_points(points).reshape(x.shape)
-
-    # invert if we're masking things outside the polygon
-    if not inside:
-        mask = ~mask
-
-    return mask
+    if inside:
+        return mask
+    else:
+        return ~mask
 
 
 def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):

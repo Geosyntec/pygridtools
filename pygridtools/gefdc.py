@@ -104,7 +104,7 @@ def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
         tens = ''.join([c[2] for c in colstr])
         ones = ''.join([c[3] for c in colstr])
 
-        with open(outputfile, mode) as outfile:
+        with Path(outputfile).open(mode) as outfile:
             if writeheader:
                 title = 'C -- cell.inp for EFDC model by pygridtools\n'
                 outfile.write(title)
@@ -129,7 +129,7 @@ def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
 def write_gefdc_control_file(outfile, title, max_i, max_j, bathyrows):
     gefdc = GEFDC_TEMPLATE.format(title, max_i, max_j, bathyrows)
 
-    with open(outfile, 'w') as f:
+    with Path(outfile).open('w') as f:
         f.write(gefdc)
 
     return gefdc
@@ -145,7 +145,7 @@ def write_gridout_file(xcoords, ycoords, outfile):
         'y': ycoords.flatten()
     })
 
-    with open(outfile, 'w') as f:
+    with Path(outfile).open('w') as f:
         f.write('## {:d} x {:d}\n'.format(nx, ny))
         df.to_csv(f, sep=' ', na_rep='NaN', index=False,
                   header=False, float_format='%.3f')
@@ -158,7 +158,7 @@ def write_gridext_file(tidydf, outfile, icol='ii', jcol='jj',
     # make sure cols are in the right order
     df = tidydf[[icol, jcol, xcol, ycol]]
 
-    with open(outfile, 'w') as f:
+    with Path(outfile).open('w') as f:
         df.to_csv(f, sep=' ', index=False, header=False,
                   float_format=None)
 

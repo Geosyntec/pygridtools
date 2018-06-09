@@ -254,23 +254,6 @@ def test_merge(A, B, how, where, shift):
 
 
 @pytest.fixture
-def mg(simple_nodes):
-    xn, yn = simple_nodes
-    g = core.ModelGrid(xn, yn)
-    g.cell_mask = numpy.array([
-        [0, 0, 1, 1, 1, 1],
-        [0, 0, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 1, 1, 1, 1],
-        [0, 0, 1, 1, 1, 1],
-        [0, 0, 1, 1, 1, 1],
-        [0, 0, 1, 1, 1, 1]
-    ], dtype=bool)
-    return g
-
-
-@pytest.fixture
 def g1(simple_nodes):
     xn, yn = simple_nodes
     g = core.ModelGrid(xn[:, :3], yn[:, :3])
@@ -667,64 +650,6 @@ def test_ModelGrid__get_x_y_nodes_and_mask(g1, which, usemask, error):
         x, y = g1._get_x_y(which, usemask=usemask)
         nptest.assert_array_equal(x, getattr(g1, 'x' + which[0]))
         nptest.assert_array_equal(y, getattr(g1, 'y' + which[0]))
-
-
-def test_writeGEFDCControlFile(mg):
-    with tempfile.TemporaryDirectory() as result_path:
-        known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_gefdc.inp')
-        result_file = 'modelgrid_gefdc.inp'
-        mg.writeGEFDCControlFile(
-            outputdir=result_path,
-            filename=result_file,
-            title='Model Grid Test'
-        )
-        utils.compareTextFiles(
-            os.path.join(result_path, result_file),
-            known_filename
-        )
-
-
-def test_writeGEFDCCellFile(mg):
-    with tempfile.TemporaryDirectory() as result_path:
-        known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_cell.inp')
-        result_file = 'modelgrid_cell.inp'
-        mg.writeGEFDCCellFile(
-            outputdir=result_path,
-            filename=result_file,
-        )
-        utils.compareTextFiles(
-            os.path.join(result_path, result_file),
-            known_filename
-        )
-
-
-def test_writeGEFDCGridFile(mg):
-    with tempfile.TemporaryDirectory() as result_path:
-        known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_grid.out')
-        result_file = 'modelgrid_grid.out'
-        mg.writeGEFDCGridFile(
-            outputdir=result_path,
-            filename=result_file,
-        )
-        utils.compareTextFiles(
-            os.path.join(result_path, result_file),
-            known_filename
-        )
-
-
-def test_writeGEFDCGridextFiles(mg):
-    with tempfile.TemporaryDirectory() as result_path:
-        known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_gridext.inp')
-
-        result_file = 'modelgrid_gridext.inp'
-        mg.writeGEFDCGridextFile(
-            outputdir=result_path,
-            filename=result_file,
-        )
-        utils.compareTextFiles(
-            os.path.join(result_path, result_file),
-            known_filename
-        )
 
 
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)

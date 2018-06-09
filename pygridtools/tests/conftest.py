@@ -4,6 +4,8 @@ import pandas
 
 import pytest
 
+from pygridtools import ModelGrid
+
 
 class FakeGrid(object):
     def __init__(self):
@@ -130,3 +132,25 @@ def simple_cells():
     ])
 
     return numpy.ma.masked_invalid(x), numpy.ma.masked_invalid(y)
+
+
+@pytest.fixture(scope='module')
+def mg(simple_nodes):
+    xn, yn = simple_nodes
+    g = ModelGrid(xn, yn)
+    g.cell_mask = numpy.array([
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1]
+    ], dtype=bool)
+    return g
+
+
+@pytest.fixture(scope='module')
+def example_crs():
+    return {'init': 'epsg:26916'}

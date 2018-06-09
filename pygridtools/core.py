@@ -11,6 +11,7 @@ from pygridtools import misc
 from pygridtools import iotools
 from pygridtools import viz
 from pygridtools import validate
+from pygridtools.gefdc import GEFDCWriter
 
 
 def transform(nodes, fxn, *args, **kwargs):
@@ -729,133 +730,6 @@ class ModelGrid(object):
         else:
             return self.mask_nodes(polyverts, **kwargs)
 
-    def writeGEFDCControlFile(self, outputdir=None, filename='gefdc.inp',
-                              bathyrows=0, title='test'):
-        """
-        Generates the GEFDC control (gefdc.inp) file for the EFDC grid
-        preprocessor.
-
-        Parameters
-        ----------
-        outputdir : str, optional
-            The path to where the should be saved.
-        filename : str, optional
-            The name of the output file.
-        bathyrows : int, optional
-            The number of rows in the grid's bathymetry data file.
-        title : str, optional
-            The title of the grid as portrayed in ``filename``.
-
-        Returns
-        -------
-        gefdc : str
-            The text of the output file.
-
-        """
-
-        outfile = iotools._outputfile(outputdir, filename)
-
-        gefdc = iotools._write_gefdc_control_file(
-            outfile,
-            title,
-            self.inodes + 1,
-            self.jnodes + 1,
-            bathyrows
-        )
-        return gefdc
-
-    def writeGEFDCCellFile(self, outputdir=None, filename='cell.inp',
-                           triangles=False, maxcols=125):
-        """
-        Generates the cell definition/ASCII-art file for GEFDC.
-
-        .. warning:
-           This whole thing is probably pretty buggy.
-
-        Parameters
-        ----------
-        outputdir : str, optional
-            The path to where the should be saved.
-        filename : str, optional
-            The name of the output file.
-        triangles : bool, optional
-            Toggles the inclusion of triangular cells.
-
-            .. warning:
-               This is experimental and probably buggy if it has been
-               implmented at all.
-
-        maxcols : int, optional
-            The maximum number of columns to write to each row. Cells
-            beyond this number will be writted in separate section at
-            the bottom of the file.
-
-        Returns
-        -------
-        cells : str
-            The text of the output file.
-
-        """
-
-        cells = misc.make_gefdc_cells(
-            ~numpy.isnan(self.xn), self.cell_mask, triangles=triangles
-        )
-        outfile = iotools._outputfile(outputdir, filename)
-
-        iotools._write_cellinp(cells, outputfile=outfile,
-                               flip=True, maxcols=maxcols)
-        return cells
-
-    def writeGEFDCGridFile(self, outputdir=None, filename='grid.out'):
-        """
-        Writes to the nodes as coordinate pairs for GEFDC.
-
-        Parameters
-        ----------
-        outputdir : str, optional
-            The path to where the should be saved.
-        filename : str, optional
-            The name of the output file.
-
-        Returns
-        -------
-        df : pandas.DataFrame
-            The dataframe of node coordinate pairs.
-
-        """
-
-        outfile = iotools._outputfile(outputdir, filename)
-        df = iotools._write_gridout_file(self.xn, self.yn, outfile)
-        return df
-
-    def writeGEFDCGridextFile(self, outputdir, filename='gridext.inp', shift=2):
-        """
-        Writes to the nodes and I/J cell index as to a file for GEFDC.
-
-        Parameters
-        ----------
-        outputdir : str, optional
-            The path to where the should be saved.
-        filename : str, optional
-            The name of the output file.
-        shift : int, optional
-            The shift that should be applied to the I/J index. The
-            default value to 2 means that the first cell is at (2, 2)
-            instead of (0, 0).
-
-        Returns
-        -------
-        df : pandas.DataFrame
-            The dataframe of coordinates and I/J index.
-
-        """
-        outfile = iotools._outputfile(outputdir, filename)
-        df = self.to_dataframe().stack(level='ii', dropna=True).reset_index()
-        df['ii'] += shift
-        df['jj'] += shift
-        iotools._write_gridext_file(df, outfile)
-        return df
-
     def plotCells(self, engine='mpl', ax=None,
                   usemask=True, cell_kws=None,
                   domain_kws=None, extent_kws=None,
@@ -1047,6 +921,9 @@ class ModelGrid(object):
                 warnings.warn("polygons always constructed from nodes")
         else:
             raise ValueError("geom must be either 'Point' or 'Polygon'")
+
+    def to_gefdc(self, directory):
+        return GEFDCWriter(self, directory)
 
     @classmethod
     def from_dataframe(cls, df, icol='ii', jcol='jj',

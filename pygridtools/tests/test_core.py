@@ -656,7 +656,13 @@ def test_ModelGrid__get_x_y_nodes_and_mask(g1, which, usemask, error):
 def test_ModelGrid_plots_basic(simple_nodes):
     mg = core.ModelGrid(*simple_nodes)
     mg.cell_mask = numpy.ma.masked_invalid(mg.xc).mask
-    fig, artists = mg.plotCells()
+    fig, artists = mg.plot_cells()
+    return fig
+
+
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
+def test_ModelGrid_plots_masked(river_grid, river_bathy):
+    fig, artists = river_grid.plot_cells(cell_kws=dict(colors=river_bathy, cmap='Reds_r'))
     return fig
 
 

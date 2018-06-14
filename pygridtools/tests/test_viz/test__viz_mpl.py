@@ -131,3 +131,10 @@ def test_points_array(simple_nodes):
 def test_cells_array(simple_nodes):
     fig, artist = _viz_mpl._plot_cells(*simple_nodes)
     return fig
+
+
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
+def test_cells_array_masked(river_grid, river_bathy):
+    fig, artist = _viz_mpl._plot_cells(river_grid.xn, river_grid.yn, colors=river_bathy,
+                                       edgecolor='0.45', cmap='Blues_r', lw=0.75)
+    return fig

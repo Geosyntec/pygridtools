@@ -730,10 +730,10 @@ class ModelGrid(object):
         else:
             return self.mask_nodes(polyverts, **kwargs)
 
-    def plotCells(self, engine='mpl', ax=None,
-                  usemask=True, cell_kws=None,
-                  domain_kws=None, extent_kws=None,
-                  showisland=True, island_kws=None):
+    def plot_cells(self, engine='mpl', ax=None,
+                   usemask=True, cell_kws=None,
+                   domain_kws=None, extent_kws=None,
+                   showisland=True, island_kws=None):
         """
         Creates a figure of the cells, boundary, domain, and islands.
 
@@ -763,7 +763,7 @@ class ModelGrid(object):
         if cell_kws is None:
             cell_kws = {}
         fig = viz.plotCells(self.xn, self.yn, engine=engine, ax=ax,
-                            # mask=self.cell_mask,
+                            mask=self.cell_mask,
                             **cell_kws)
 
         if domain_kws is not None:

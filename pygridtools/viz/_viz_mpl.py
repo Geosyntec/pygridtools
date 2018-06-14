@@ -97,12 +97,11 @@ def _plot_points(x, y, ax=None, **plot_opts):
 def _plot_cells(x, y, mask=None, colors=None, ax=None, **plot_opts):
     fig, ax = validate.mpl_ax(ax)
 
-    if mask is not None:
-        x = numpy.ma.masked_array(x, mask)
-        y = numpy.ma.masked_array(y, mask)
+    if mask is None:
+        mask = numpy.zeros(x.shape)[1:, 1:]
 
     if colors is None:
-        colors = numpy.ones(x.shape)
+        colors = numpy.ma.masked_array(mask + 1, mask)
         vmin, vmax = 0, 2
     else:
         vmin = plot_opts.pop('vmin', None)
@@ -114,7 +113,7 @@ def _plot_cells(x, y, mask=None, colors=None, ax=None, **plot_opts):
     cmap = plot_opts.pop('cmap', 'Greys')
 
     cells = ax.pcolor(x, y, colors, edgecolors=ec, lw=lw,
-                      vmin=vmin, vmax=vmax, cmap='Greys',
+                      vmin=vmin, vmax=vmax, cmap=cmap,
                       **plot_opts)
     ax.margins(0.1, tight=False)
     return fig, {'cells': cells}

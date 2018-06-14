@@ -8,6 +8,7 @@ import geopandas
 
 from pygridtools import iotools
 from pygridtools import misc
+from pygridtools import validate
 
 
 GEFDC_TEMPLATE = dedent("""\
@@ -136,8 +137,7 @@ def write_gefdc_control_file(outfile, title, max_i, max_j, bathyrows):
 
 
 def write_gridout_file(xcoords, ycoords, outfile):
-    if xcoords.shape != ycoords.shape:
-        raise ValueError('input dimensions must be equivalent')
+    xcoords, ycoords = validate.xy_array(xcoords, ycoords, as_pairs=False)
 
     ny, nx = xcoords.shape
     df = pandas.DataFrame({
@@ -147,8 +147,8 @@ def write_gridout_file(xcoords, ycoords, outfile):
 
     with Path(outfile).open('w') as f:
         f.write('## {:d} x {:d}\n'.format(nx, ny))
-        df.to_csv(f, sep=' ', na_rep='NaN', index=False,
-                  header=False, float_format='%.3f')
+        df.to_csv(f, sep=' ', index=False, header=False,
+                  na_rep='NaN', float_format='%.3f')
 
     return df
 

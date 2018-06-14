@@ -13,21 +13,21 @@ def _check_engine(engine):
         raise ValueError("'{}' is not a valid engine".format(engine))
 
 
-def plotDomain(*args, **kwargs):
+def plot_domain(*args, **kwargs):
     engine_module = _check_engine(kwargs.pop('engine', 'mpl'))
     return engine_module._plot_domain(*args, **kwargs)
 
 
-def plotBoundaries(*args, **kwargs):
+def plot_boundaries(*args, **kwargs):
     engine_module = _check_engine(kwargs.pop('engine', 'mpl'))
     return engine_module._plot_boundaries(*args, **kwargs)
 
 
-def plotPoints(*args, **kwargs):
+def plot_points(*args, **kwargs):
     engine_module = _check_engine(kwargs.pop('engine', 'mpl'))
     return engine_module._plot_points(*args, **kwargs)
 
 
-def plotCells(*args, **kwargs):
+def plot_cells(*args, **kwargs):
     engine_module = _check_engine(kwargs.pop('engine', 'mpl'))
     return engine_module._plot_cells(*args, **kwargs)

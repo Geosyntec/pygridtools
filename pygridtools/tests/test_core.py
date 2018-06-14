@@ -656,7 +656,13 @@ def test_ModelGrid__get_x_y_nodes_and_mask(g1, which, usemask, error):
 def test_ModelGrid_plots_basic(simple_nodes):
     mg = core.ModelGrid(*simple_nodes)
     mg.cell_mask = numpy.ma.masked_invalid(mg.xc).mask
-    fig, artists = mg.plotCells()
+    fig, artists = mg.plot_cells()
+    return fig
+
+
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
+def test_ModelGrid_plots_masked(river_grid, river_bathy):
+    fig, artists = river_grid.plot_cells(cell_kws=dict(colors=river_bathy, cmap='Reds_r'))
     return fig
 
 
@@ -666,13 +672,13 @@ def test_ModelGrid_plots_basic(simple_nodes):
     (dict(rawgrid=False), core.ModelGrid)
 ])
 @pytest.mark.skipif(not HASPGG, reason='pygridgen unavailabile')
-def test_makeGrid(simple_boundary, simple_bathy, otherargs, gridtype):
+def test_make_grid(simple_boundary, simple_bathy, otherargs, gridtype):
     if not gridtype:
         gridtype = pygridgen.Gridgen
 
     gridparams = {'nnodes': 12, 'verbose': False, 'ul_idx': 0}
     gridparams.update(otherargs)
-    grid = core.makeGrid(
+    grid = core.make_grid(
         9, 7,
         domain=simple_boundary,
         bathydata=simple_bathy.dropna(),

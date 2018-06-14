@@ -152,5 +152,43 @@ def mg(simple_nodes):
 
 
 @pytest.fixture(scope='module')
+def river():
+    return [
+        (2.5, 59),
+        (2.5, 57),
+        (5.5, 56),
+        (5.5, 52),
+        (13.0, 51),
+        (13.0, 53),
+        (10.0, 54),
+        (10.0, 55),
+        (8.5, 55),
+        (8.5, 59),
+        (2.5, 59),
+    ]
+
+
+@pytest.fixture(scope='module')
+def river_grid(river):
+    _x = numpy.array([[
+        0., 1.9, 3.7, 5.1, 6.4, 7.4, 8.2, 8.8, 9.3, 9.7,
+        10., 10.3, 10.7, 11.2, 11.8, 12.6, 13.6, 14.9, 16.3, 18.1
+    ] * 20]).reshape((20, 20))
+
+    _y = numpy.array([[
+        50., 50.2, 50.4, 50.6, 50.7, 50.9, 51.2, 51.5, 51.9, 52.4,
+        52.9, 53.5, 54.2, 54.9, 55.6, 56.3, 57.1, 57.8, 58.5, 59.3
+    ] * 20]).reshape((20, 20)).T
+
+    return ModelGrid(_x, _y).mask_nodes(river, min_nodes=2)
+
+
+@pytest.fixture(scope='module')
+def river_bathy(river_grid):
+    Z = numpy.abs((river_grid.xc - 10)**2 + 4 * (river_grid.yc - 30))
+    return numpy.ma.masked_array(Z, river_grid.cell_mask)
+
+
+@pytest.fixture(scope='module')
 def example_crs():
     return {'init': 'epsg:26916'}

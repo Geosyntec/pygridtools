@@ -730,10 +730,10 @@ class ModelGrid(object):
         else:
             return self.mask_nodes(polyverts, **kwargs)
 
-    def plotCells(self, engine='mpl', ax=None,
-                  usemask=True, cell_kws=None,
-                  domain_kws=None, extent_kws=None,
-                  showisland=True, island_kws=None):
+    def plot_cells(self, engine='mpl', ax=None,
+                   usemask=True, cell_kws=None,
+                   domain_kws=None, extent_kws=None,
+                   showisland=True, island_kws=None):
         """
         Creates a figure of the cells, boundary, domain, and islands.
 
@@ -762,18 +762,18 @@ class ModelGrid(object):
 
         if cell_kws is None:
             cell_kws = {}
-        fig = viz.plotCells(self.xn, self.yn, engine=engine, ax=ax,
-                            # mask=self.cell_mask,
+        fig = viz.plot_cells(self.xn, self.yn, engine=engine, ax=ax,
+                            mask=self.cell_mask,
                             **cell_kws)
 
         if domain_kws is not None:
-            fig = viz.plotDomain(data=self.domain, engine=engine, ax=ax, **domain_kws)
+            fig = viz.plot_domain(data=self.domain, engine=engine, ax=ax, **domain_kws)
 
         if extent_kws:
-            fig = viz.plotBoundaries(extent=self.extent, engine=engine, ax=ax, **extent_kws)
+            fig = viz.plot_boundaries(extent=self.extent, engine=engine, ax=ax, **extent_kws)
 
         if island_kws:
-            fig = viz.plotBoundaries(islands=self.islands, engine=engine, ax=ax, **island_kws)
+            fig = viz.plot_boundaries(islands=self.islands, engine=engine, ax=ax, **island_kws)
 
         return fig
 
@@ -989,7 +989,7 @@ class ModelGrid(object):
         return cls(gridgen.x, gridgen.y).update_cell_mask()
 
 
-def makeGrid(ny, nx, domain, bathydata=None, verbose=False,
+def make_grid(ny, nx, domain, bathydata=None, verbose=False,
              rawgrid=True, **gparams):
     """
     Generate a :class:`~pygridgen.Gridgen` or :class:`~ModelGrid`

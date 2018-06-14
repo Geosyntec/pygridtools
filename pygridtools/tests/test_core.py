@@ -672,13 +672,13 @@ def test_ModelGrid_plots_masked(river_grid, river_bathy):
     (dict(rawgrid=False), core.ModelGrid)
 ])
 @pytest.mark.skipif(not HASPGG, reason='pygridgen unavailabile')
-def test_makeGrid(simple_boundary, simple_bathy, otherargs, gridtype):
+def test_make_grid(simple_boundary, simple_bathy, otherargs, gridtype):
     if not gridtype:
         gridtype = pygridgen.Gridgen
 
     gridparams = {'nnodes': 12, 'verbose': False, 'ul_idx': 0}
     gridparams.update(otherargs)
-    grid = core.makeGrid(
+    grid = core.make_grid(
         9, 7,
         domain=simple_boundary,
         bathydata=simple_bathy.dropna(),

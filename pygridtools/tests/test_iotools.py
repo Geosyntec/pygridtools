@@ -80,7 +80,7 @@ def test_write_points(usemasks, fname, example_crs):
         outfile = os.path.join(outputdir, fname)
         basefile = os.path.join(baselinedir, fname)
         gdf = iotools.write_points(x, y, example_crs, outfile, river=river)
-        utils.compareShapefiles(outfile, basefile)
+        utils.assert_shapefiles_equal(outfile, basefile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
 
 
@@ -110,7 +110,7 @@ def test_write_cells(usemasks, fname, simple_grid, example_crs):
         basefile = os.path.join(baselinedir, fname)
         gdf = iotools.write_cells(simple_grid.x, simple_grid.y, mask, example_crs,
                                   outfile, river=river)
-        utils.compareShapefiles(basefile, outfile)
+        utils.assert_shapefiles_equal(basefile, outfile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
 
 

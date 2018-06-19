@@ -1,6 +1,7 @@
 from pkg_resources import resource_filename
 from contextlib import contextmanager
 from functools import wraps
+import filecmp
 
 import pytest
 import numpy.testing as nptest
@@ -9,17 +10,11 @@ import pandas.util.testing as pdtest
 import geopandas
 
 
-def compareTextFiles(baselinefile, outputfile):
-    with open(outputfile) as output:
-        results = output.read()
-
-    with open(baselinefile) as baseline:
-        expected = baseline.read()
-
-    assert (results == expected)
+def assert_textfiles_equal(baselinefile, outputfile):
+    assert filecmp.cmp(baselinefile, outputfile)
 
 
-def compareShapefiles(baselinefile, outputfile, atol=0.001):
+def assert_shapefiles_equal(baselinefile, outputfile, atol=0.001):
     expected = geopandas.read_file(baselinefile)
     result = geopandas.read_file(outputfile)
     pdtest.assert_frame_equal(

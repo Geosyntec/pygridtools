@@ -616,7 +616,7 @@ def test_ModelGrid_to_shapefile_nodes(g1, geom, expectedfile):
         else:
                 resultfile = resource_filename('pygridtools.tests.baseline_files', expectedfile)
                 g1.to_shapefile(outfile, which='nodes', geom=geom, usemask=False)
-                utils.compareShapefiles(outfile, resultfile)
+                utils.assert_shapefiles_equal(outfile, resultfile)
 
 
 @pytest.mark.parametrize('usemask', [True, False])
@@ -633,7 +633,7 @@ def test_ModelGrid_to_shapefile_cells(g1, geom, usemask):
         expected = resource_filename('pygridtools.tests.baseline_files',
                                      expectedfile[usemask, geom])
         g1.to_shapefile(outfile, which='cells', geom=geom, usemask=usemask)
-        utils.compareShapefiles(outfile, expected)
+        utils.assert_shapefiles_equal(outfile, expected)
 
 
 @pytest.mark.parametrize(('which', 'usemask', 'error'), [

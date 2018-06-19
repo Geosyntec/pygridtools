@@ -31,7 +31,7 @@ def test_write_cellinp(maxcols, knownfile):
     with tempfile.TemporaryDirectory() as outputdir:
         outfile = os.path.join(outputdir, 'cell.inp')
         gefdc.write_cellinp(cells, outfile, maxcols=maxcols)
-        utils.compareTextFiles(outfile, knownfile)
+        utils.assert_textfiles_equal(knownfile, outfile)
 
 
 def test_convert_gridext_to_shp(example_crs):
@@ -43,7 +43,7 @@ def test_convert_gridext_to_shp(example_crs):
     with tempfile.TemporaryDirectory() as outputdir:
         outputfile = os.path.join(outputdir, 'gridext.shp')
         gefdc.convert_gridext_to_shp(gridextfile, outputfile, example_crs, river=river)
-        utils.compareShapefiles(baselinefile, outputfile)
+        utils.assert_shapefiles_equal(baselinefile, outputfile)
 
 
 def test_write_gefdc_control_file():
@@ -51,7 +51,7 @@ def test_write_gefdc_control_file():
         result_filename = os.path.join(outputdir, 'maingefdc.inp')
         known_filename = resource_filename('pygridtools.tests.baseline_files', 'maingefdc.inp')
         gefdc.write_gefdc_control_file(result_filename, 'Test Input File', 100, 25, 0)
-        utils.compareTextFiles(result_filename, known_filename)
+        utils.assert_textfiles_equal(known_filename, result_filename)
 
 
 def test_write_gridext_file():
@@ -66,7 +66,7 @@ def test_write_gridext_file():
         ]), columns=['x', 'ii', 'jj', 'y'])
         gefdc.write_gridext_file(df, result_filename, icol='ii', jcol='jj',
                                  xcol='x', ycol='y')
-        utils.compareTextFiles(result_filename, known_filename)
+        utils.assert_textfiles_equal(known_filename, result_filename)
 
 
 @pytest.mark.xfail
@@ -77,8 +77,8 @@ def test_write_gridout_file(simple_nodes):
     with tempfile.TemporaryDirectory() as outdir:
         result_filename = os.path.join(outdir, 'testgrid.out')
 
-        gefdc.write_gridout_file(x, y, result_filename)
-        utils.compareTextFiles(known_filename, result_filename)
+        df = gefdc.write_gridout_file(x, y, result_filename)
+        utils.assert_textfiles_equal(known_filename, result_filename)
 
 
 def test_writer_control_file(mg):
@@ -90,7 +90,7 @@ def test_writer_control_file(mg):
             filename=result_file,
             title='Model Grid Test'
         )
-        utils.compareTextFiles(
+        utils.assert_textfiles_equal(
             known_filename,
             os.path.join(result_path, result_file)
         )
@@ -104,7 +104,7 @@ def test_writer_cell_file(mg):
         writer.cell_file(
             filename=result_file,
         )
-        utils.compareTextFiles(
+        utils.assert_textfiles_equal(
             known_filename,
             os.path.join(result_path, result_file)
         )
@@ -117,7 +117,7 @@ def test_writer_gridout_file(mg):
         known_filename = resource_filename('pygridtools.tests.baseline_files', 'modelgrid_grid.out')
         result_file = 'modelgrid_grid.out'
         writer.gridout_file(filename=result_file)
-        utils.compareTextFiles(
+        utils.assert_textfiles_equal(
             known_filename,
             os.path.join(result_path, result_file),
         )
@@ -130,7 +130,7 @@ def test_writer_gridext_file(mg):
 
         result_file = 'modelgrid_gridext.inp'
         writer.gridext_file(filename=result_file)
-        utils.compareTextFiles(
+        utils.assert_textfiles_equal(
             known_filename,
             os.path.join(result_path, result_file),
         )

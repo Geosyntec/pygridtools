@@ -951,16 +951,21 @@ class ModelGrid(object):
         return cls(xtab[xcol], xtab[ycol]).update_cell_mask()
 
     @classmethod
-    def from_shapefile(cls, shapefile, icol='ii', jcol='jj'):
+    @numpy.deprecate
+    def from_shapefile(cls, *args, **kwargs):
+        return cls.from_gis(*args, **kwargs)
+
+    @classmethod
+    def from_gis(cls, gisfile, icol='ii', jcol='jj'):
         """
-        Build a ModelGrid from a shapefile of *nodes*.
+        Build a ModelGrid from a GIS file (e.g, shapefile, geojson) of *nodes*.
 
         Parameters
         ----------
         outputfile : str
-            The name of the shapefile of the grid *nodes*.
+            The name of the geopandas/fiona-compatible file of the grid *nodes*.
         icol, jcol : str, optional
-            The names of the columns in the shapefile containing the
+            The names of the columns in the file containing the
             I/J index of the nodes.
 
         Returns
@@ -969,7 +974,7 @@ class ModelGrid(object):
 
         """
 
-        df = iotools.read_grid(shapefile, icol=icol, jcol=jcol)
+        df = iotools.read_grid(gisfile, icol=icol, jcol=jcol)
         return cls.from_dataframe(df).update_cell_mask()
 
     @classmethod

@@ -62,6 +62,28 @@ def test_read_polygons(as_gdf):
             nptest.assert_array_almost_equal(res, exp)
 
 
+@pytest.mark.parametrize(('gisfile', 'error'), [
+    ('array_point.shp', None),
+    ('array_grid.shp', NotImplementedError)
+])
+def test_read_grid(gisfile, error):
+    _file = resource_filename('pygridtools.tests.baseline_files', gisfile)
+
+    data = {'easting': [1., 2., 3.] * 4, 'northing': sorted([4., 5., 6., 7.] * 3)}
+    index = pandas.MultiIndex.from_product([[2, 3, 4, 5], [2, 3, 4]], names=['jj', 'ii'])
+    known_df = (
+        pandas.DataFrame(data=data, index=index)
+            .assign(elev=0.0, river='test')
+            .reset_index()
+            .set_index(['ii', 'jj'])
+            .sort_index()
+    )
+
+    with utils.raises(error):
+        result_df = iotools.read_grid(_file, othercols=['elev', 'river'])
+        pdtest.assert_frame_equal(result_df, known_df)
+
+
 @pytest.mark.parametrize(('usemasks', 'fname'), [
     (False, 'array_point.shp'),
     (True, 'mask_point.shp'),
@@ -112,18 +134,3 @@ def test_write_cells(usemasks, fname, simple_grid, example_crs):
                                   outfile, river=river)
         utils.assert_shapefiles_equal(basefile, outfile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
-
-
-def test_read_grid():
-    pntfile = resource_filename('pygridtools.tests.baseline_files', 'array_point.shp')
-    cellfile = resource_filename('pygridtools.tests.baseline_files', 'array_grid.shp')
-    result_df = iotools.read_grid(pntfile, othercols=['elev', 'river'])
-    known_df = pandas.DataFrame(
-        data={'easting': [1., 2., 3.] * 4, 'northing': sorted([4., 5., 6., 7.] * 3)},
-        index=pandas.MultiIndex.from_product([[2, 3, 4, 5], [2, 3, 4]], names=['jj', 'ii'])
-    ).assign(elev=0.0).assign(river='test').reset_index().set_index(['ii', 'jj']).sort_index()
-
-    pdtest.assert_frame_equal(result_df, known_df)
-
-    with utils.raises(NotImplementedError):
-        result_df = iotools.read_grid(cellfile)

@@ -1,10 +1,8 @@
-from pkg_resources import resource_filename
 from contextlib import contextmanager
 from functools import wraps
 import filecmp
 
 import pytest
-import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 import geopandas

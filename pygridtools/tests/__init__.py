@@ -3,7 +3,6 @@ from pkg_resources import resource_filename
 import pygridtools
 from .utils import requires
 
-
 try:
     import pytest
 except ImportError:
@@ -19,5 +18,5 @@ def test(*args):
 
 @requires(pytest, 'pytest')
 def teststrict():
-    options = [resource_filename('pygridtools', ''), '--pep', '--mpl']
+    options = [resource_filename('pygridtools', ''), '--pep8', '--mpl']
     return pytest.main(options)

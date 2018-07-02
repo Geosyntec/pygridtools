@@ -2,10 +2,11 @@ import sys
 import matplotlib
 from matplotlib import style
 
-import pygridtools
-
 matplotlib.use('agg')
 style.use('classic')
+
+import pygridtools
+
 
 if '--strict' in sys.argv:
     sys.argv.remove('--strict')

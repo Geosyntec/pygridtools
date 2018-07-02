@@ -29,7 +29,8 @@ def read_boundary(shapefile, betacol='beta', reachcol=None, sortcol=None,
         Expected schema of the shapefile...
 
         - order: numeric sort order of the points
-        - beta: the 'beta' parameter used in grid generation to define turning points
+        - beta: the 'beta' parameter used in grid generation to define
+          turning points
 
     betacol : string (default='beta')
         Column in the attribute table specifying the beta parameter's

@@ -612,12 +612,10 @@ class ModelGrid(object):
 
         """
 
-        nodes_x = merge(self.nodes_x, other.nodes_x, how=how,
-                        where=where, shift=shift)
-        nodes_y = merge(self.nodes_y, other.nodes_y, how=how,
-                        where=where, shift=shift)
-        merged = ModelGrid(nodes_x, nodes_y).update_cell_mask()
-        return merged
+        return ModelGrid(
+            merge(self.nodes_x, other.nodes_x, how=how, where=where, shift=shift),
+            merge(self.nodes_y, other.nodes_y, how=how, where=where, shift=shift)
+        ).update_cell_mask()
 
     def update_cell_mask(self, mask=None, merge_existing=True):
         """
@@ -762,9 +760,9 @@ class ModelGrid(object):
 
         if cell_kws is None:
             cell_kws = {}
+
         fig = viz.plot_cells(self.xn, self.yn, engine=engine, ax=ax,
-                            mask=self.cell_mask,
-                            **cell_kws)
+                             mask=self.cell_mask, **cell_kws)
 
         if domain_kws is not None:
             fig = viz.plot_domain(data=self.domain, engine=engine, ax=ax, **domain_kws)
@@ -990,7 +988,7 @@ class ModelGrid(object):
 
 
 def make_grid(ny, nx, domain, bathydata=None, verbose=False,
-             rawgrid=True, **gparams):
+              rawgrid=True, **gparams):
     """
     Generate a :class:`~pygridgen.Gridgen` or :class:`~ModelGrid`
     from scratch. This can take a large number of parameters passed
@@ -1091,16 +1089,16 @@ def make_grid(ny, nx, domain, bathydata=None, verbose=False,
     except ImportError:  # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot make grid.")
 
-    if verbose:
-        print('generating grid')
+    # if verbose:
+    #     print('generating grid')
 
     grid = pygridgen.Gridgen(domain.x, domain.y, domain.beta, (ny, nx), **gparams)
 
-    if verbose:
-        print('interpolating bathymetry')
+    # if verbose:
+    #     print('interpolating bathymetry')
 
-    newbathy = misc.interpolate_bathymetry(bathydata, grid.x_rho, grid.y_rho,
-                                           xcol='x', ycol='y', zcol='z')
+    # newbathy = misc.interpolate_bathymetry(bathydata, grid.x_rho, grid.y_rho,
+    #                                        xcol='x', ycol='y', zcol='z')
     if rawgrid:
         return grid
     else:

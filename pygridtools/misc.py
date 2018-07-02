@@ -3,6 +3,7 @@ import warnings
 import numpy
 import matplotlib.path as mpath
 import pandas
+from pygridgen import csa
 
 from pygridtools import validate
 
@@ -157,8 +158,12 @@ def interpolate_bathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='
     yy[numpy.isnan(y_points)] = y_points.max() + 5
 
     # use cubic-spline approximation to interpolate the grid
-    csa = pygridgen.csa(gridbathy[xcol].values, gridbathy[ycol].values, gridbathy[zcol].values)
-    return csa(xx, yy)
+    interpolate = csa.CSA(
+        gridbathy[xcol].values,
+        gridbathy[ycol].values,
+        gridbathy[zcol].values
+    )
+    return interpolate(xx, yy)
 
 
 def padded_stack(a, b, how='vert', where='+', shift=0, padval=numpy.nan):

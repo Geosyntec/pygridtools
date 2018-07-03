@@ -1,4 +1,4 @@
-.. include:: ../readme.rst
+.. include:: ../README.rst
 
 
 Tutorials
@@ -7,9 +7,9 @@ Tutorials
 .. toctree::
    :maxdepth: 1
 
-   tutorial/01_GridgenBasics.rst
-   tutorial/02_ShapefilesAndCellMasks.rst
-   tutorial/03_MergingSpliting.rst
+   tutorial/01_GridgenBasics
+   tutorial/02_ShapefilesAndCellMasks
+   tutorial/03_MergingSpliting
 
 API Reference
 -------------

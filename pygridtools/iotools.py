@@ -18,18 +18,19 @@ def _warn_filterfxn(filterfxn):
         warnings.warn(msg)
 
 
-def read_boundary(shapefile, betacol='beta', reachcol=None, sortcol=None,
+def read_boundary(gisfile, betacol='beta', reachcol=None, sortcol=None,
                   upperleftcol=None, filterfxn=None):
-    """ Loads boundary points from a shapefile.
+    """ Loads boundary points from a GIS File.
 
     Parameters
     ----------
-    shapefile : string
-        Path to the shapefile containaing boundary points.
-        Expected schema of the shapefile...
+    gisfile : string
+        Path to the GIS file containaing boundary points.
+        Expected schema of the file...
 
         - order: numeric sort order of the points
-        - beta: the 'beta' parameter used in grid generation to define turning points
+        - beta: the 'beta' parameter used in grid generation to define
+          turning points
 
     betacol : string (default='beta')
         Column in the attribute table specifying the beta parameter's
@@ -69,7 +70,7 @@ def read_boundary(shapefile, betacol='beta', reachcol=None, sortcol=None,
 
     _warn_filterfxn(filterfxn)
     gdf = (
-        geopandas.read_file(shapefile)
+        geopandas.read_file(gisfile)
                  .assign(x=lambda df: df['geometry'].x)
                  .assign(y=lambda df: df['geometry'].y)
                  .assign(beta=lambda df: _get_col_val(df, betacol, 0))
@@ -83,13 +84,13 @@ def read_boundary(shapefile, betacol='beta', reachcol=None, sortcol=None,
     return gdf.loc[:, ['x', 'y', 'beta', 'upperleft', 'reach', 'order', 'geometry']]
 
 
-def read_polygons(shapefile, filterfxn=None, squeeze=True, as_gdf=False):
-    """ Load polygons (e.g., water bodies, islands) from a shapefile.
+def read_polygons(gisfile, filterfxn=None, squeeze=True, as_gdf=False):
+    """ Load polygons (e.g., water bodies, islands) from a GIS file.
 
     Parameters
     ----------
-    shapefile : string
-        Path to the shapefile containaing boundary points.
+    gisfile : string
+        Path to the gisfile containaing boundary points.
     filterfxn : function or lambda expression or None (default)
         Removed. Use the `as_gdf` and the `query` method of the resulting
         GeoDataFrame.
@@ -113,7 +114,7 @@ def read_polygons(shapefile, filterfxn=None, squeeze=True, as_gdf=False):
 
     """
     _warn_filterfxn(filterfxn)
-    gdf = geopandas.read_file(shapefile)
+    gdf = geopandas.read_file(gisfile)
     if as_gdf:
         return gdf
     else:
@@ -123,13 +124,13 @@ def read_polygons(shapefile, filterfxn=None, squeeze=True, as_gdf=False):
         return data
 
 
-def read_grid(shapefile, icol='ii', jcol='jj', othercols=None, expand=1,
+def read_grid(gisfile, icol='ii', jcol='jj', othercols=None, expand=1,
               as_gdf=False):
     if othercols is None:
         othercols = []
 
     grid = (
-        geopandas.read_file(shapefile)
+        geopandas.read_file(gisfile)
                  .rename(columns={icol: 'ii', jcol: 'jj'})
                  .set_index(['ii', 'jj'])
                  .sort_index()
@@ -148,7 +149,7 @@ def read_grid(shapefile, icol='ii', jcol='jj', othercols=None, expand=1,
 
 def write_points(X, Y, crs, outputfile, river=None, reach=0, elev=None):
     """ Saves grid-related attributes of a pygridgen.Gridgen object to a
-    shapefile with geomtype = 'Point'.
+    GIS file with geomtype = 'Point'.
 
     Parameters
     ----------
@@ -158,11 +159,11 @@ def write_points(X, Y, crs, outputfile, river=None, reach=0, elev=None):
         A geopandas/proj/fiona-compatible string describing the coordinate
         reference system of the x/y values.
     outputfile : string
-        Path to the point shapefile to which the data will be written.
+        Path to the point-geometry GIS file to which the data will be written.
     river : optional string (default = None)
-        The river to be listed in the shapefile's attribute table.
+        The river to be listed in the GIS files's attribute table.
     reach : optional int (default = 0)
-        The reach of the river to be listed in the shapefile's attribute
+        The reach of the river to be listed in the GIS file's attribute
         table.
     elev : optional array or None (defauly)
         The elevation of the grid cells. Array dimensions must be 1 less than
@@ -209,7 +210,7 @@ def write_points(X, Y, crs, outputfile, river=None, reach=0, elev=None):
 
 def write_cells(X, Y, mask, crs, outputfile, river=None, reach=0,
                 elev=None, triangles=False):
-    """ Saves a shapefile of quadrilaterals representing grid cells.
+    """ Saves a GIS file of quadrilaterals representing grid cells.
 
     Parameters
     ----------
@@ -223,11 +224,11 @@ def write_cells(X, Y, mask, crs, outputfile, river=None, reach=0,
         A geopandas/proj/fiona-compatible string describing the coordinate
         reference system of the x/y values.
     outputfile : string
-        Path to the point shapefile to which the data will be written.
+        Path to the point GIS file to which the data will be written.
     river : optional string (default = None)
-        The river to be listed in the shapefile's attribute table.
+        The river to be listed in the GIS file's attribute table.
     reach : optional int (default = 0)
-        The reach of the river to be listed in the shapefile's attribute
+        The reach of the river to be listed in the GIS file's attribute
         table.
     elev : optional array or None (defauly)
         The elevation of the grid cells. Shape should be N-1 by M-1,

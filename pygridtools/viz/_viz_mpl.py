@@ -94,8 +94,10 @@ def _plot_points(x, y, ax=None, **plot_opts):
     return fig, {'points': dots}
 
 
-def _plot_cells(x, y, mask=None, colors=None, ax=None, **plot_opts):
+def _plot_cells(x, y, mask=None, colors=None, ax=None, sticky_edges=False,
+                **plot_opts):
     fig, ax = validate.mpl_ax(ax)
+    ax.use_sticky_edges = sticky_edges
 
     if mask is None:
         mask = numpy.zeros(x.shape)[1:, 1:]
@@ -107,15 +109,16 @@ def _plot_cells(x, y, mask=None, colors=None, ax=None, **plot_opts):
         vmin = plot_opts.pop('vmin', None)
         vmax = plot_opts.pop('vmax', None)
 
+    cell_colors = numpy.ma.masked_array(data=colors, mask=mask)
+
     ec = plot_opts.pop('edgecolor', None) or plot_opts.pop('ec', '0.125')
     lw = plot_opts.pop('linewidth', None) or plot_opts.pop('lw', 0.75)
     fc = plot_opts.pop('facecolor', None) or plot_opts.pop('fc', '0.875')
     cmap = plot_opts.pop('cmap', 'Greys')
 
-    cells = ax.pcolor(x, y, colors, edgecolors=ec, lw=lw,
+    cells = ax.pcolor(x, y, cell_colors, edgecolors=ec, lw=lw,
                       vmin=vmin, vmax=vmax, cmap=cmap,
                       **plot_opts)
-    ax.margins(0.1, tight=False)
     return fig, {'cells': cells}
 
 

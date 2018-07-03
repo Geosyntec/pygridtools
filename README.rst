@@ -14,7 +14,7 @@
 
 A high-level interface for curvilinear-orthogonal grid generation, manipulation, and visualization.
 
-Depends heavily on `gridgen <https://github.com/sakov/gridgen-c>`_ and Paul Hobson's fork of `pygridgen <https://phobson.github.io/pygridgen>`_
+Depends heavily on `gridgen <https://github.com/sakov/gridgen-c>`_ and `pygridgen <https://pygridgen.github.io/pygridgen>`_
 
 The full documentation for this for library is `here <https://Geosyntec.github.io/pygridtools>`_.
 
@@ -27,7 +27,7 @@ Install with
 ::
 
    conda install pygridtools --channel=conda-forge
-   
+
 Building (``gridgen-c``) on Windows has been a tough nut to crack and help is very much wanted in that department.
 Until we figure that out, you can do the following in the source directory.
 
@@ -35,11 +35,11 @@ Until we figure that out, you can do the following in the source directory.
 
     conda install seaborn geopandas
     pip install -e .
-    
+
 You won't be able to generate new grids, but you should be able to manipulate existing grids.
 
-Other Python Dependencies
--------------------------
+Dependencies
+------------
 
 Basics
 ~~~~~~
@@ -47,27 +47,41 @@ Basics
 The remaining python depedencies are the following:
 
 * numpy
-* matplotlib, seaborn
-* pyproj (only if working with geographic coordinates)
-* fiona, geopandas (for shapfile I/O)
+* matplotlib
 * pandas (for easy data I/O and manipulation)
+* geopandas (for shapfile I/O)
 
 Grid Generation
 ~~~~~~~~~~~~~~~
 
-If you wish to generate new grids from scratch, you'll need `pygridgen <https://github.com/phobson/pygridgen>`_, which is also available through the conda-forge channel.
+If you wish to generate new grids from scratch, you'll need `pygridgen <https://github.com/pygridgen/pygridgen>`_, which is also available through the conda-forge channel.
 
 ::
 
-   conda install pygridgen --channel=conda-forge 
-   
-The documentation `pygridgen` has a `more detailed tutorial <http://phobson.github.io/pygridgen/tutorial/basics.html>`_ on generating new grids.
+   conda install pygridgen --channel=conda-forge
+
+The documentation `pygridgen` has a `more detailed tutorial <http://pygridgen.github.io/pygridgen/tutorial/basics.html>`_ on generating new grids.
 
 Testing
 ~~~~~~~
 
-Tests are written using the `nose` package.
-From the source tree, run them simply with by invoking ``nosetests`` in a terminal.
+Tests are written using the `pytest` package.
+From the source tree, run them simply with by invoking ``pytest`` in a terminal.
+If you're editing the source code, it helps to have `pytest-pep8` installed to check code style.
+
+Alternatively, from the source tree you can run ``python check_pygridtools.py --strict`` to run the units tests, style checker, and doctests.
+
+Documentation
+~~~~~~~~~~~~~
+Building the HTML documentation requires:
+
+* sphinx
+* sphinx_rtd_theme
+* numpydoc
+* jupyter-notebook
+* nbsphinx
+* pandas
+* seaborn
 
 
 Source code and Issue Tracker

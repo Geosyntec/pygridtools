@@ -20,6 +20,7 @@ API Reference
    api/core.rst
    api/iotools.rst
    api/misc.rst
+   api/gefdc.rst
 
 
 Indices and tables

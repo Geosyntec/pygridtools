@@ -607,21 +607,21 @@ def test_ModelGrid_mask_nodes_errors(mg, polyverts, kwargs, error):
     ('polygon', 'mgshp_nomask_cells_polys.shp'),
     ('line', None),
 ])
-def test_ModelGrid_to_shapefile_nodes(g1, geom, expectedfile):
+def test_ModelGrid_to_gis_nodes(g1, geom, expectedfile):
     with tempfile.TemporaryDirectory() as outdir:
         outfile = os.path.join(outdir, 'outfile.shp')
         if expectedfile is None:
             with utils.raises(ValueError):
-                g1.to_shapefile(outfile, which='nodes', geom=geom, usemask=False)
+                g1.to_gis(outfile, which='nodes', geom=geom, usemask=False)
         else:
                 resultfile = resource_filename('pygridtools.tests.baseline_files', expectedfile)
-                g1.to_shapefile(outfile, which='nodes', geom=geom, usemask=False)
-                utils.assert_shapefiles_equal(outfile, resultfile)
+                g1.to_gis(outfile, which='nodes', geom=geom, usemask=False)
+                utils.assert_gis_files_equal(outfile, resultfile)
 
 
 @pytest.mark.parametrize('usemask', [True, False])
 @pytest.mark.parametrize('geom', ['point', 'polygon'])
-def test_ModelGrid_to_shapefile_cells(g1, geom, usemask):
+def test_ModelGrid_to_gis_cells(g1, geom, usemask):
     expectedfile = {
         (True, 'point'): 'mgshp_mask_cells_points.shp',
         (True, 'polygon'): 'mgshp_mask_cells_polys.shp',
@@ -632,8 +632,8 @@ def test_ModelGrid_to_shapefile_cells(g1, geom, usemask):
         outfile = os.path.join(outdir, 'outfile.shp')
         expected = resource_filename('pygridtools.tests.baseline_files',
                                      expectedfile[usemask, geom])
-        g1.to_shapefile(outfile, which='cells', geom=geom, usemask=usemask)
-        utils.assert_shapefiles_equal(outfile, expected)
+        g1.to_gis(outfile, which='cells', geom=geom, usemask=usemask)
+        utils.assert_gis_files_equal(outfile, expected)
 
 
 @pytest.mark.parametrize(('which', 'usemask', 'error'), [

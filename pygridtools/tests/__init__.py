@@ -21,6 +21,7 @@ def teststrict(*args):
     options = list(set([
         resource_filename('pygridtools', ''),
         '--pep',
-        '--mpl'
+        '--mpl',
+        '--doctest-modules'
     ] + list(args)))
     return pytest.main(options)

@@ -34,7 +34,7 @@ def test_write_cellinp(maxcols, knownfile):
         utils.assert_textfiles_equal(knownfile, outfile)
 
 
-def test_convert_gridext_to_shp(example_crs):
+def test_convert_gridext_to_gis(example_crs):
     gridextfile = resource_filename('pygridtools.tests.test_data', 'gridext.inp')
     baselinefile = resource_filename('pygridtools.tests.baseline_files', 'gridext.shp')
     river = 'test'
@@ -42,8 +42,8 @@ def test_convert_gridext_to_shp(example_crs):
 
     with tempfile.TemporaryDirectory() as outputdir:
         outputfile = os.path.join(outputdir, 'gridext.shp')
-        gefdc.convert_gridext_to_shp(gridextfile, outputfile, example_crs, river=river)
-        utils.assert_shapefiles_equal(baselinefile, outputfile)
+        gefdc.convert_gridext_to_gis(gridextfile, outputfile, example_crs, river=river)
+        utils.assert_gis_files_equal(baselinefile, outputfile)
 
 
 def test_write_gefdc_control_file():

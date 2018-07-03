@@ -165,8 +165,8 @@ def write_gridext_file(tidydf, outfile, icol='ii', jcol='jj',
     return df
 
 
-def convert_gridext_to_shp(inputfile, outputfile, crs=None, river='na', reach=0):
-    """ Converts gridext.inp from the rtools to a shapefile with
+def convert_gridext_to_gis(inputfile, outputfile, crs=None, river='na', reach=0):
+    """ Converts gridext.inp from the rtools to a GIS file with
     `geomtype = 'Point'`.
 
     Parameters
@@ -174,15 +174,14 @@ def convert_gridext_to_shp(inputfile, outputfile, crs=None, river='na', reach=0)
     inputfile : string
         Path and filename of the gridext.inp file
     outputfile : string
-        Path and filename of the destination shapefile
+        Path and filename of the destination GIS file
     crs : string, optional
         A geopandas/proj/fiona-compatible string describing the coordinate
         reference system of the x/y values.
     river : optional string (default = None)
-        The river to be listed in the shapefile's attribute table.
+        The river to be listed in the output file's attributes.
     reach : optional int (default = 0)
-        The reach of the river to be listed in the shapefile's attribute
-        table.
+        The reach of the river to be listed in the output file's attributes.
 
     Returns
     -------

@@ -327,7 +327,7 @@ class ModelGrid(object):
 
     @property
     def crs(self):
-        """ Coordinate reference csystem for (shapefile) export """
+        """ Coordinate reference system for GIS data export """
         return self._crs
 
     @crs.setter
@@ -587,24 +587,32 @@ class ModelGrid(object):
         modelgrid
             A new :class:`~ModelGrid` is returned.
 
-
         Examples
         --------
-        >>> domain1 = pandas.DataFrame({
-            'x': [2, 5, 5, 2],
-            'y': [6, 6, 4, 4],
-            'beta': [1, 1, 1, 1]
-        })
-        >>> domain2 = pandas.DataFrame({
-            'x': [6, 11, 11, 5],
-            'y': [5, 5, 3, 3],
-            'beta': [1, 1, 1, 1]
-        })
-        >>> grid1 = pgt.makeGrid(domain=domain1, nx=6, ny=5, rawgrid=False)
-        >>> grid2 = pgt.makeGrid(domain=domain2, nx=8, ny=7, rawgrid=False)
-        >>> merged = grid1.merge(grid2, how='horiz')
-        >>> # update the cell mask to include new NA points:
-        >>> grid1.cell_mask = numpy.ma.masked_invalid(grid1.xc).mask
+        .. plot ::
+           :include-source:
+
+            import matplotlib.pyplot as plt
+            import pandas
+            import pygridtools
+            domain1 = pandas.DataFrame({
+                'x': [2, 5, 5, 2],
+                'y': [6, 6, 4, 4],
+                'beta': [1, 1, 1, 1]
+            })
+            domain2 = pandas.DataFrame({
+                'x': [6, 11, 11, 5],
+                'y': [5, 5, 3, 3],
+                'beta': [1, 1, 1, 1]
+            })
+            grid1 = pygridtools.make_grid(domain=domain1, nx=6, ny=5, rawgrid=False)
+            grid2 = pygridtools.make_grid(domain=domain2, nx=8, ny=7, rawgrid=False)
+            merged = grid1.merge(grid2, how='horiz')
+            fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(6, 6))
+            grid1.plot_cells(ax=ax1, cell_kws=dict(cmap='Blues'))
+            grid2.plot_cells(ax=ax1, cell_kws=dict(cmap='Greens'))
+            merged.plot_cells(ax=ax2, cell_kws=dict(cmap='BuPu'))
+            plt.show()
 
         See Also
         --------
@@ -669,7 +677,7 @@ class ModelGrid(object):
         use_existing : bool (default = True)
             When True, the newly computed mask is combined (via a
             bit-wise `or` operation) with the existing ``cell_mask``
-            attribute of the MdoelGrid.
+            attribute of the ModelGrid.
 
         Returns
         -------
@@ -721,7 +729,7 @@ class ModelGrid(object):
         cell_mask = misc.mask_with_polygon(self.xc, self.yc, polyverts, inside=inside)
         return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
 
-    @numpy.deprecate(message='deprecated, use mask_nodes or mask_centroids')
+    @numpy.deprecate(message='use mask_nodes or mask_centroids')
     def mask_cells_with_polygon(self, polyverts, use_centroids=True, **kwargs):
         if use_centroids:
             return self.mask_centroids(polyverts, **kwargs)
@@ -752,7 +760,7 @@ class ModelGrid(object):
             of the figure.
 
             .. note:
-            ``cell_kws`` and ``island_kws`` are feed to
+            ``cell_kws`` and ``island_kws`` are fed to
             :func:`~matplotlib.pyplot.Polygon`. All others are sent
             to :meth:`~ax.plot`.
 
@@ -802,6 +810,7 @@ class ModelGrid(object):
         usemask : bool, optional
             Toggles the ommission of masked values (as determined by
             :meth:`~cell_mask`.
+
         which : str, optional ('nodes')
             This can be "nodes" (default) or "cells". Specifies which
             coordinates should be used.
@@ -838,6 +847,7 @@ class ModelGrid(object):
         usemask : bool, optional
             Toggles the ommission of masked values (as determined by
             :meth:`~cell_mask`.
+
         which : str, optional ('nodes')
             This can be "nodes" (default) or "cells". Specifies which
             coordinates should be used.
@@ -851,16 +861,16 @@ class ModelGrid(object):
         x, y = self._get_x_y(which, usemask=usemask)
         return numpy.array(list(zip(x.flatten(), y.flatten())))
 
-    def to_shapefile(self, outputfile, usemask=True, which='cells',
-                     river=None, reach=0, elev=None, crs=None,
-                     geom='Polygon', mode='w', triangles=False):
+    def to_gis(self, outputfile, usemask=True, which='cells',
+               river=None, reach=0, elev=None, crs=None,
+               geom='Polygon', mode='w', triangles=False):
         """
-        Converts a grid to a shapefile via the *fiona* package.
+        Converts a grid to a GIS file via the *geopands* package.
 
         Parameters
         ----------
         outputfile : str
-            The name of the shapefile where the data will be saved.
+            The path of the destination GIS file.
         usemask : bool, optional
             Toggles the ommission of masked values (as determined by
             :meth:`~cell_mask`.
@@ -872,8 +882,7 @@ class ModelGrid(object):
         reach : int or str, optional
             Indetifier of the reach of ``river``.
         elev : numpy.ndarray, optional
-            Bathymetry data to be assigned to each record in the
-            shapefile.
+            Bathymetry data to be assigned to each record.
         crs : string
             A geopandas/proj/fiona-compatible string describing the coordinate
             reference system of the x/y values.
@@ -949,16 +958,16 @@ class ModelGrid(object):
         return cls(xtab[xcol], xtab[ycol]).update_cell_mask()
 
     @classmethod
-    def from_shapefile(cls, shapefile, icol='ii', jcol='jj'):
+    def from_gis(cls, gisfile, icol='ii', jcol='jj'):
         """
-        Build a ModelGrid from a shapefile of *nodes*.
+        Build a ModelGrid from a GIS file of *nodes*.
 
         Parameters
         ----------
-        outputfile : str
-            The name of the shapefile of the grid *nodes*.
+        gisfile : str
+            The path to the GIS file of the grid *nodes*.
         icol, jcol : str, optional
-            The names of the columns in the shapefile containing the
+            The names of the columns in the *gisfile* containing the
             I/J index of the nodes.
 
         Returns
@@ -967,7 +976,7 @@ class ModelGrid(object):
 
         """
 
-        df = iotools.read_grid(shapefile, icol=icol, jcol=jcol)
+        df = iotools.read_grid(gisfile, icol=icol, jcol=jcol)
         return cls.from_dataframe(df).update_cell_mask()
 
     @classmethod

@@ -51,7 +51,7 @@ def make_poly_coords(xarr, yarr, zpnt=None, triangles=False):
 
 
 def make_record(ID, coords, geomtype, props):
-    """ Creates a record to be appended to a shapefile via fiona.
+    """ Creates a record to be appended to a GIS file via *geopandas*.
 
     Parameters
     ----------
@@ -69,8 +69,7 @@ def make_record(ID, coords, geomtype, props):
     Returns
     -------
     record : dict
-        A nested dictionary suitable for the fiona package to append to
-        a shapefile
+        A nested dictionary suitable for the a *geopandas.GeoDataFrame*,
 
     Notes
     -----
@@ -181,12 +180,14 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=numpy.nan):
         mind that the origin of an array's index is in the upper-left
         corner, `'+'` indicates that the second array will be placed
         at higher index relative to the first array. Essentially:
-         - if how == 'vert'
+
+        - if how == 'vert'
             - `'+'` -> `a` is above (higher index) `b`
             - `'-'` -> `a` is below (lower index) `b`
-         - if how == 'horiz'
+        - if how == 'horiz'
             - `'+'` -> `a` is to the left of `b`
             - `'-'` -> `a` is to the right of `b`
+
         See the examples for more info.
     shift : int (default = 0)
         The number of indices the second array should be shifted in
@@ -206,20 +207,20 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=numpy.nan):
     >>> import pygridtools as pgt
     >>> a = numpy.arange(12).reshape(4, 3) * 1.0
     >>> b = numpy.arange(8).reshape(2, 4) * -1.0
-    >>> pgt.padded_stack(a, b, how='vert', where='+', shift=1)
-        array([[  0.,   1.,   2.,  nan,  nan],
-               [  3.,   4.,   5.,  nan,  nan],
-               [  6.,   7.,   8.,  nan,  nan],
-               [  9.,  10.,  11.,  nan,  nan],
-               [ nan,  -0.,  -1.,  -2.,  -3.],
-               [ nan,  -4.,  -5.,  -6.,  -7.]])
+    >>> pgt.padded_stack(a, b, how='vert', where='+', shift=2)
+    array([[ 0.,  1.,  2.,   -,   -,   -],
+           [ 3.,  4.,  5.,   -,   -,   -],
+           [ 6.,  7.,  8.,   -,   -,   -],
+           [ 9., 10., 11.,   -,   -,   -],
+           [  -,   -, -0., -1., -2., -3.],
+           [  -,   -, -4., -5., -6., -7.]])
 
-    >>> pgt.padded_stack(a, b, how='h', where='-', shift=-2)
-        array([[ nan,  nan,  nan,  nan,   0.,   1.,   2.],
-               [ nan,  nan,  nan,  nan,   3.,   4.,   5.],
-               [ -0.,  -1.,  -2.,  -3.,   6.,   7.,   8.],
-               [ -4.,  -5.,  -6.,  -7.,   9.,  10.,  11.]]
-
+    >>> pgt.padded_stack(a, b, how='h', where='-', shift=-1)
+    array([[-0., -1., -2., -3.,   -,   -,   -],
+           [-4., -5., -6., -7.,  0.,  1.,  2.],
+           [  -,   -,   -,   -,  3.,  4.,  5.],
+           [  -,   -,   -,   -,  6.,  7.,  8.],
+           [  -,   -,   -,   -,  9., 10., 11.]])
 
     """
 
@@ -308,8 +309,8 @@ def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
     """ Take an array defining the nodes as wet (1) or dry (0) create
     the array of cell values needed for GEFDC.
 
-    Input
-    -----
+    Parameters
+    ----------
     node_mask : numpy bool array (N x M)
         Bool array specifying if a *node* is present in the raw
         (unmasked) grid.

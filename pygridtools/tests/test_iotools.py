@@ -20,8 +20,8 @@ from . import utils
     (None, 19),
 ])
 def test_read_boundary(filterfxn, points_in_boundary):
-    shapefile = resource_filename('pygridtools.tests.test_data', 'simple_boundary.shp')
-    df = iotools.read_boundary(shapefile, filterfxn=filterfxn)
+    gisfile = resource_filename('pygridtools.tests.test_data', 'simple_boundary.shp')
+    df = iotools.read_boundary(gisfile, filterfxn=filterfxn)
 
     df_columns = ['x', 'y', 'beta', 'upperleft', 'reach', 'order', 'geometry']
     assert (isinstance(df, geopandas.GeoDataFrame))
@@ -31,7 +31,7 @@ def test_read_boundary(filterfxn, points_in_boundary):
 
 @pytest.mark.parametrize('as_gdf', [False, True])
 def test_read_polygons(as_gdf):
-    shapefile = resource_filename('pygridtools.tests.test_data', 'simple_islands.shp')
+    gisfile = resource_filename('pygridtools.tests.test_data', 'simple_islands.shp')
     known_islands = [
         numpy.array([
             [10.18915802,  3.71280277], [9.34025375,  7.21914648],
@@ -46,7 +46,7 @@ def test_read_polygons(as_gdf):
             [6.86735871,  3.71280277], [1.10957324,  3.67589389]
         ]),
     ]
-    islands = iotools.read_polygons(shapefile, as_gdf=as_gdf)
+    islands = iotools.read_polygons(gisfile, as_gdf=as_gdf)
     if as_gdf:
         expected = geopandas.GeoDataFrame({
             'id': [2, 1],
@@ -80,7 +80,7 @@ def test_write_points(usemasks, fname, example_crs):
         outfile = os.path.join(outputdir, fname)
         basefile = os.path.join(baselinedir, fname)
         gdf = iotools.write_points(x, y, example_crs, outfile, river=river)
-        utils.assert_shapefiles_equal(outfile, basefile)
+        utils.assert_gis_files_equal(outfile, basefile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
 
 
@@ -110,7 +110,7 @@ def test_write_cells(usemasks, fname, simple_grid, example_crs):
         basefile = os.path.join(baselinedir, fname)
         gdf = iotools.write_cells(simple_grid.x, simple_grid.y, mask, example_crs,
                                   outfile, river=river)
-        utils.assert_shapefiles_equal(basefile, outfile)
+        utils.assert_gis_files_equal(basefile, outfile)
         assert isinstance(gdf, geopandas.GeoDataFrame)
 
 

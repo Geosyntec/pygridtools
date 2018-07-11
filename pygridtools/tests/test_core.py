@@ -464,12 +464,62 @@ def test_ModelGrid_split_ax0(mg, simple_nodes):
     nptest.assert_array_equal(mgbottom.nodes_y, yn[3:, :])
 
 
+def test_ModelGrid_node_mask(simple_nodes):
+    g = core.ModelGrid(*simple_nodes).update_cell_mask()
+    expected = numpy.array([
+        [0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 1, 1, 1, 1]
+    ]).astype(bool)
+    nptest.assert_array_equal(expected, g.node_mask)
+
+
 def test_ModelGrid_merge(g1, g2, simple_nodes):
     g3 = g1.merge(g2, how='horiz', where='+', shift=2)
-    g4 = core.ModelGrid(*simple_nodes)
+    g4 = core.ModelGrid(*simple_nodes).update_cell_mask()
 
     nptest.assert_array_equal(g3.xn, g4.xn)
     nptest.assert_array_equal(g3.xc, g4.xc)
+
+
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
+def test_ModelGrid_merge_with_mask(simple_nodes):
+    mg1 = core.ModelGrid(*simple_nodes).update_cell_mask()
+    mg2 = (
+        mg1.transform_x(lambda x: x + 1)
+           .transform_y(lambda y: y + 5)
+           .update_cell_mask(mask=mg1.cell_mask)
+    )
+
+    merged = mg1.merge(mg2, where='+', shift=1, min_nodes=1)
+    expected = numpy.array([
+        [0, 0, 1, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 1, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1, 1],
+        [1, 0, 1, 1, 1, 1, 1],
+        [1, 0, 0, 1, 1, 1, 1],
+        [1, 0, 0, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 1, 1, 1, 1],
+        [1, 0, 0, 1, 1, 1, 1],
+        [1, 0, 0, 1, 1, 1, 1],
+        [1, 0, 0, 1, 1, 1, 1]
+    ]).astype(bool)
+    nptest.assert_array_equal(merged.cell_mask, expected)
+    fig, artists = merged.plot_cells()
+    return fig
 
 
 def test_ModelGrid_insert_3_ax0(mg):

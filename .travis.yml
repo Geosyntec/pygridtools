@@ -27,9 +27,8 @@ install:
   - pip install codecov
   - pip install .
 
-
 script:
-  - coverage run --source pygridtools check_pygridtools.py --verbose --pep8 --mpl
+  - coverage run --source pygridtools check_pygridtools.py --verbose --strict
 
 after_success:
   - if [ ${COVERAGE} = true ]; then

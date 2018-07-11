@@ -294,6 +294,35 @@ def test_padded_stack_errors(stackgrids, how, where):
                           how=how, where=where, shift=2)
 
 
+def test_padded_sum():
+    mask = numpy.array([
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+    ])
+
+    result = misc.padded_sum(mask, window=1)
+    expected = numpy.array([
+        [0, 0, 0, 2, 4, 4, 4],
+        [0, 0, 0, 2, 4, 4, 4],
+        [0, 0, 0, 2, 4, 4, 4],
+        [0, 0, 0, 1, 2, 2, 2],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 2, 2, 2],
+        [0, 0, 0, 2, 4, 4, 4],
+        [0, 0, 0, 2, 4, 4, 4],
+        [0, 0, 0, 2, 4, 4, 4]
+    ])
+    nptest.assert_array_equal(result, expected)
+
+
 @pytest.mark.parametrize(('inside', 'expected'), [
     (True, numpy.array([
         [0, 0, 0, 0, 0], [0, 1, 1, 1, 0],

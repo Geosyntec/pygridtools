@@ -214,6 +214,9 @@ class ModelGrid(object):
     ----------
     nodes_x, nodes_y : numpy.ndarray
         M-by-N arrays of node (vertex) coordinates for the grid.
+    crs : string
+        proj4-compliant coordinate reference system specification. See
+        http://geopandas.org/projections.html for more information.
 
     """
     def __init__(self, nodes_x, nodes_y, crs=None):
@@ -836,6 +839,9 @@ class ModelGrid(object):
         northing = pandas.DataFrame(y, index=index, columns=northing_cols)
         return easting.join(northing)
 
+    def to_geodataframe(self, usemask=True, which='nodes'):
+        pass
+
     def to_coord_pairs(self, usemask=False, which='nodes'):
         """
         Converts a grid to a long array of coordinates pairs.
@@ -930,6 +936,13 @@ class ModelGrid(object):
     def to_gefdc(self, directory):
         return GEFDCWriter(self, directory)
 
+    def reproject(self, crs):
+        return (
+            self.to_geodataframe(usemask=True, which='nodes')
+                .to_crs(crs)
+                .pipe(ModelGrid.from_geodataframe)
+        )
+
     @classmethod
     def from_dataframe(cls, df, icol='ii', jcol='jj',
                        xcol='easting', ycol='northing'):
@@ -954,6 +967,10 @@ class ModelGrid(object):
         all_cols = [icol, jcol, xcol, ycol]
         xtab = df.reset_index()[all_cols].set_index([icol, jcol]).unstack(level=icol)
         return cls(xtab[xcol], xtab[ycol]).update_cell_mask()
+
+    @classmethod
+    def from_geodataframe(cls, gdf, icol='ii', jcol='jj'):
+        pass
 
     @classmethod
     def from_gis(cls, gisfile, icol='ii', jcol='jj'):

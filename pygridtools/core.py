@@ -251,20 +251,12 @@ class ModelGrid(object):
     @property
     def cells_x(self):
         """Array of cell centroid x-coordinates"""
-        xc = 0.25 * (
-            self.xn[1:, 1:] + self.xn[1:, :-1] +
-            self.xn[:-1, 1:] + self.xn[:-1, :-1]
-        )
-        return xc
+        return 0.25 * misc.padded_sum(self.xn)
 
     @property
     def cells_y(self):
         """Array of cell centroid y-coordinates"""
-        yc = 0.25 * (
-            self.yn[1:, 1:] + self.yn[1:, :-1] +
-            self.yn[:-1, 1:] + self.yn[:-1, :-1]
-        )
-        return yc
+        return 0.25 * misc.padded_sum(self.yn)
 
     @property
     def shape(self):

@@ -273,6 +273,11 @@ def padded_stack(a, b, how='vert', where='+', shift=0, padval=numpy.nan):
     return stacked
 
 
+def padded_sum(padded, window=1):
+    return (padded[window:, window:] + padded[:-window, :-window] +
+            padded[:-window, window:] + padded[window:, :-window])
+
+
 def mask_with_polygon(x, y, polyverts, inside=True):
     """ Mask x-y arrays inside or outside a polygon
 

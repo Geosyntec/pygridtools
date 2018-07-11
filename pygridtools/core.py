@@ -326,13 +326,15 @@ class ModelGrid(object):
         self._cell_mask = value
 
     @property
+    def node_mask(self):
+        padded = numpy.pad(self.cell_mask, pad_width=1, mode='edge')
+        windowed = misc.padded_sum(padded.astype(int), window=1)
+        return (windowed == 4)
+
+    @property
     def crs(self):
         """ Coordinate reference system for GIS data export """
         return self._crs
-
-    @crs.setter
-    def crs(self, value):
-        self._crs = value
 
     @property
     def domain(self):
@@ -543,9 +545,10 @@ class ModelGrid(object):
         return self.transform(extract, jstart=jstart, istart=istart, jend=jend, iend=iend)
 
     def copy(self):
+        """ Returns a deep copy of the current ModelGrid """
         return deepcopy(self)
 
-    def merge(self, other, how='vert', where='+', shift=0):
+    def merge(self, other, how='vert', where='+', shift=0, min_nodes=1):
         """
         Merge with another grid using pygridtools.misc.padded_stack.
 
@@ -581,6 +584,8 @@ class ModelGrid(object):
             axis other than the one being merged. In other words,
             vertically stacked arrays can be shifted horizontally,
             and horizontally stacked arrays can be shifted vertically.
+        min_nodes : int (default = 1)
+            Minimum number of masked nodes required to mask a cell.
 
         Returns
         -------
@@ -620,10 +625,13 @@ class ModelGrid(object):
 
         """
 
+        node_mask = merge(self.node_mask, other.node_mask, how=how, where=where, shift=shift)
+        cell_mask = misc.padded_sum(node_mask) >= min_nodes
+
         return ModelGrid(
             merge(self.nodes_x, other.nodes_x, how=how, where=where, shift=shift),
             merge(self.nodes_y, other.nodes_y, how=how, where=where, shift=shift)
-        ).update_cell_mask()
+        ).update_cell_mask(mask=cell_mask)
 
     def update_cell_mask(self, mask=None, merge_existing=True):
         """
@@ -694,16 +702,12 @@ class ModelGrid(object):
 
         _node_mask = misc.mask_with_polygon(self.xn, self.yn, polyverts,
                                             inside=inside).astype(int)
-        cell_mask = (
-            _node_mask[1:, 1:] + _node_mask[:-1, :-1] +
-            _node_mask[:-1, 1:] + _node_mask[1:, :-1]
-        ) >= min_nodes
-        cell_mask = cell_mask.astype(bool)
+
+        cell_mask = (misc.padded_sum(_node_mask, window=1) >= min_nodes).astype(bool)
 
         return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
 
     def mask_centroids(self, polyverts, inside=True, use_existing=True):
-
         """ Create mask for the cells of the ModelGrid with a polygon.
 
         Parameters
@@ -736,10 +740,9 @@ class ModelGrid(object):
         else:
             return self.mask_nodes(polyverts, **kwargs)
 
-    def plot_cells(self, engine='mpl', ax=None,
-                   usemask=True, cell_kws=None,
-                   domain_kws=None, extent_kws=None,
-                   showisland=True, island_kws=None):
+    def plot_cells(self, engine='mpl', ax=None, usemask=True, showisland=True,
+                   cell_kws=None, domain_kws=None, extent_kws=None,
+                   island_kws=None):
         """
         Creates a figure of the cells, boundary, domain, and islands.
 
@@ -773,13 +776,16 @@ class ModelGrid(object):
                              mask=self.cell_mask, **cell_kws)
 
         if domain_kws is not None:
-            fig = viz.plot_domain(data=self.domain, engine=engine, ax=ax, **domain_kws)
+            fig = viz.plot_domain(data=self.domain, engine=engine,
+                                  ax=ax, **domain_kws)
 
         if extent_kws:
-            fig = viz.plot_boundaries(extent=self.extent, engine=engine, ax=ax, **extent_kws)
+            fig = viz.plot_boundaries(extent=self.extent, engine=engine,
+                                      ax=ax, **extent_kws)
 
         if island_kws:
-            fig = viz.plot_boundaries(islands=self.islands, engine=engine, ax=ax, **island_kws)
+            fig = viz.plot_boundaries(islands=self.islands, engine=engine,
+                                      ax=ax, **island_kws)
 
         return fig
 

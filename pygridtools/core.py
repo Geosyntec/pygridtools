@@ -270,42 +270,42 @@ class ModelGrid(object):
 
     @property
     def xn(self):
-        """Shortcut to x-coords of nodes"""
+        """ Shortcut to x-coords of nodes """
         return self.nodes_x
 
     @property
     def yn(self):
-        """Shortcut to y-coords of nodes"""
+        """ Shortcut to y-coords of nodes """
         return self.nodes_y
 
     @property
     def xc(self):
-        """ Shortcut to x-coords of cells/centroids"""
+        """ Shortcut to x-coords of cells/centroids """
         return self.cells_x
 
     @property
     def yc(self):
-        """ Shortcut to y-coords of cells/centroids"""
+        """ Shortcut to y-coords of cells/centroids """
         return self.cells_y
 
     @property
     def icells(self):
-        """ Number of rows of cells"""
+        """ Number of rows of cells """
         return self.cell_shape[1]
 
     @property
     def jcells(self):
-        """ Number of columns of cells"""
+        """ Number of columns of cells """
         return self.cell_shape[0]
 
     @property
     def inodes(self):
-        """Number of rows of nodes"""
+        """Number of rows of nodes """
         return self.shape[1]
 
     @property
     def jnodes(self):
-        """Number of columns of nodes"""
+        """Number of columns of nodes """
         return self.shape[0]
 
     @property

@@ -146,11 +146,11 @@ def write_gridout_file(xcoords, ycoords, outfile):
         'y': ycoords.flatten()
     })
 
-    with open(outfile, 'w') as f:
+    with Path(outfile).open('w') as f:
         f.write('## {:d} x {:d}\n'.format(nx, ny))
 
     # XXX: https://github.com/pandas-dev/pandas/issues/21882
-    with open(outfile, 'a') as f:
+    with Path(outfile).open('a') as f:
         df.to_csv(f, sep=' ', index=False, header=False,
                   na_rep='NaN', float_format='%.3f',
                   mode='a')

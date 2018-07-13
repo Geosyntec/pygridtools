@@ -391,22 +391,6 @@ class ModelGrid(object):
         nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
         return ModelGrid(self.nodes_x, nodes_y)
 
-    def copy(self):
-        """
-        Copies to nodes to a new model grid.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        modelgrid
-            A new :class:`~ModelGrid` is returned.
-
-        """
-        return self.transform(lambda x: x.copy())
-
     def transpose(self):
         """
         Transposes the node arrays of the model grid.
@@ -682,7 +666,7 @@ class ModelGrid(object):
         Returns
         -------
         masked : ModelGrid
-            A new :class:`~ModelGrid` wit the final mask to be applied
+            A new :class:`~ModelGrid` with the final mask to be applied
             to the cells.
 
         """

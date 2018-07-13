@@ -129,7 +129,7 @@ def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
 
 
 def write_gefdc_control_file(outfile, title, max_i, max_j, bathyrows):
-    gefdc = GEFDC_TEMPLATE.format(title, max_i, max_j, bathyrows)
+    gefdc = GEFDC_TEMPLATE.format(title[:80], max_i, max_j, bathyrows)
 
     with Path(outfile).open('w') as f:
         f.write(gefdc)
@@ -148,8 +148,12 @@ def write_gridout_file(xcoords, ycoords, outfile):
 
     with Path(outfile).open('w') as f:
         f.write('## {:d} x {:d}\n'.format(nx, ny))
+
+    # XXX: https://github.com/pandas-dev/pandas/issues/21882
+    with Path(outfile).open('a') as f:
         df.to_csv(f, sep=' ', index=False, header=False,
-                  na_rep='NaN', float_format='%.3f')
+                  na_rep='NaN', float_format='%.3f',
+                  mode='a')
 
     return df
 
@@ -211,6 +215,100 @@ def convert_gridext_to_gis(inputfile, outputfile, crs=None, river='na', reach=0)
     gdf.to_file(outputfile)
 
     return gdf
+
+
+def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
+    """ Take an array defining the nodes as wet (1) or dry (0) create
+    the array of cell values needed for GEFDC.
+
+    Parameters
+    ----------
+    node_mask : numpy bool array (N x M)
+        Bool array specifying if a *node* is present in the raw
+        (unmasked) grid.
+    cell_mask : optional numpy bool array (N-1 x M-1) or None (default)
+        Bool array specifying if a cell should be masked (e.g. due to
+        being an island or something like that).
+    triangles : optional bool (default = False)
+        Currently not implemented. Will eventually enable the writting of
+        triangular cells when True.
+
+    Returns
+    -------
+    cell_array : numpy array
+        Integer array of the values written to ``outfile``.
+
+    """
+
+    triangle_cells = {
+        0: 3,
+        1: 2,
+        3: 1,
+        2: 4,
+    }
+    land_cell = 0
+    water_cell = 5
+    bank_cell = 9
+
+    # I can't figure this out
+    if triangles:
+        warnings.warn('triangles are experimental')
+
+    # define the initial cells with everything labeled as a bank
+    ny, nx = cell_mask.shape
+    cells = numpy.zeros((ny + 2, nx + 2), dtype=int) + bank_cell
+
+    # loop through each *node*
+    for jj in range(1, ny + 1):
+        for ii in range(1, nx + 1):
+            # pull out the 4 nodes defining the cell (call it a quad)
+            quad = node_mask[jj - 1:jj + 1, ii - 1:ii + 1]
+            n_wet = quad.sum()
+
+            # anything that's masked is a "bank"
+            if not cell_mask[jj - 1, ii - 1]:
+                # if all 4 nodes are wet (=1), then the cell is 5
+                if n_wet == 4:
+                    cells[jj, ii] = water_cell
+
+                # if only 3  are wet, might be a triangle, but...
+                # this ignored since we already raised an error
+                elif n_wet == 3 and triangles:
+                    dry_node = numpy.argmin(quad.flatten())
+                    cells[jj, ii] = triangle_cells[dry_node]
+
+            # otherwise it's just a bank
+            else:
+                cells[jj, ii] = bank_cell
+
+    padded_cells = numpy.pad(cells, 1, mode='constant', constant_values=bank_cell)
+    for cj in range(cells.shape[0]):
+        for ci in range(cells.shape[1]):
+            shift = 3
+            total = numpy.sum(padded_cells[cj:cj + shift, ci:ci + shift])
+            if total == bank_cell * shift**2:
+                cells[cj, ci] = land_cell
+
+    nrows = cells.shape[0]
+    ncols = cells.shape[1]
+
+    # nchunks = numpy.ceil(ncols / maxcols)
+    # if ncols > maxcols:
+    #     final_cells = numpy.zeros((nrows*nchunks, maxcols), dtype=int)
+    #     for n in numpy.arange(nchunks):
+    #         col_start = n * maxcols
+    #         col_stop = (n+1) * maxcols
+
+    #         row_start = n * nrows
+    #         row_stop = (n+1) * nrows
+
+    #         cells_to_move = cells[:, col_start:col_stop]
+    #         final_cells[row_start:row_stop, 0:cells_to_move.shape[1]] = cells_to_move
+    # else:
+    #     final_cells = cells.copy()
+
+    final_cells = cells.copy()
+    return final_cells
 
 
 class GEFDCWriter:
@@ -351,97 +449,3 @@ class GEFDCWriter:
         df['jj'] += shift
         write_gridext_file(df, outfile)
         return df
-
-
-def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
-    """ Take an array defining the nodes as wet (1) or dry (0) create
-    the array of cell values needed for GEFDC.
-
-    Parameters
-    ----------
-    node_mask : numpy bool array (N x M)
-        Bool array specifying if a *node* is present in the raw
-        (unmasked) grid.
-    cell_mask : optional numpy bool array (N-1 x M-1) or None (default)
-        Bool array specifying if a cell should be masked (e.g. due to
-        being an island or something like that).
-    triangles : optional bool (default = False)
-        Currently not implemented. Will eventually enable the writting of
-        triangular cells when True.
-
-    Returns
-    -------
-    cell_array : numpy array
-        Integer array of the values written to ``outfile``.
-
-    """
-
-    triangle_cells = {
-        0: 3,
-        1: 2,
-        3: 1,
-        2: 4,
-    }
-    land_cell = 0
-    water_cell = 5
-    bank_cell = 9
-
-    # I can't figure this out
-    if triangles:
-        warnings.warn('triangles are experimental')
-
-    # define the initial cells with everything labeled as a bank
-    ny, nx = cell_mask.shape
-    cells = numpy.zeros((ny + 2, nx + 2), dtype=int) + bank_cell
-
-    # loop through each *node*
-    for jj in range(1, ny + 1):
-        for ii in range(1, nx + 1):
-            # pull out the 4 nodes defining the cell (call it a quad)
-            quad = node_mask[jj - 1:jj + 1, ii - 1:ii + 1]
-            n_wet = quad.sum()
-
-            # anything that's masked is a "bank"
-            if not cell_mask[jj - 1, ii - 1]:
-                # if all 4 nodes are wet (=1), then the cell is 5
-                if n_wet == 4:
-                    cells[jj, ii] = water_cell
-
-                # if only 3  are wet, might be a triangle, but...
-                # this ignored since we already raised an error
-                elif n_wet == 3 and triangles:
-                    dry_node = numpy.argmin(quad.flatten())
-                    cells[jj, ii] = triangle_cells[dry_node]
-
-            # otherwise it's just a bank
-            else:
-                cells[jj, ii] = bank_cell
-
-    padded_cells = numpy.pad(cells, 1, mode='constant', constant_values=bank_cell)
-    for cj in range(cells.shape[0]):
-        for ci in range(cells.shape[1]):
-            shift = 3
-            total = numpy.sum(padded_cells[cj:cj + shift, ci:ci + shift])
-            if total == bank_cell * shift**2:
-                cells[cj, ci] = land_cell
-
-    nrows = cells.shape[0]
-    ncols = cells.shape[1]
-
-    # nchunks = numpy.ceil(ncols / maxcols)
-    # if ncols > maxcols:
-    #     final_cells = numpy.zeros((nrows*nchunks, maxcols), dtype=int)
-    #     for n in numpy.arange(nchunks):
-    #         col_start = n * maxcols
-    #         col_stop = (n+1) * maxcols
-
-    #         row_start = n * nrows
-    #         row_stop = (n+1) * nrows
-
-    #         cells_to_move = cells[:, col_start:col_stop]
-    #         final_cells[row_start:row_stop, 0:cells_to_move.shape[1]] = cells_to_move
-    # else:
-    #     final_cells = cells.copy()
-
-    final_cells = cells.copy()
-    return final_cells

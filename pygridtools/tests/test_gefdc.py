@@ -69,7 +69,6 @@ def test_write_gridext_file():
         utils.assert_textfiles_equal(known_filename, result_filename)
 
 
-@pytest.mark.xfail
 def test_write_gridout_file(simple_nodes):
     known_filename = resource_filename('pygridtools.tests.baseline_files', 'testgrid.out')
     x, y = simple_nodes
@@ -110,7 +109,6 @@ def test_writer_cell_file(mg):
         )
 
 
-@pytest.mark.xfail
 def test_writer_gridout_file(mg):
     with tempfile.TemporaryDirectory() as result_path:
         writer = gefdc.GEFDCWriter(mg, result_path)

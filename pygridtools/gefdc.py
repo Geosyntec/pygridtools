@@ -129,7 +129,7 @@ def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
 
 
 def write_gefdc_control_file(outfile, title, max_i, max_j, bathyrows):
-    gefdc = GEFDC_TEMPLATE.format(title, max_i, max_j, bathyrows)
+    gefdc = GEFDC_TEMPLATE.format(title[:80], max_i, max_j, bathyrows)
 
     with Path(outfile).open('w') as f:
         f.write(gefdc)

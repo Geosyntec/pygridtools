@@ -4,13 +4,13 @@ from matplotlib import pyplot
 import pytest
 import numpy.testing as nptest
 
-
 from pygridtools import validate
+from pygridgen.tests.utils import raises
 from . import utils
 
 
 def test_mpl_ax_invalid():
-    with utils.raises(ValueError):
+    with raises(ValueError):
         validate.mpl_ax('junk')
 
 
@@ -36,7 +36,7 @@ def test_mpl_ax_with_None():
     ([[(2, 2), (5, 2), (5, 5), (2, 5)], [(2, 2), (5, 2), (5, 5), (2, 5)]], ValueError)
 ])
 def Test_polygon(polycoords, error):
-    with utils.raises(error):
+    with raises(error):
         poly = validate.polygon(polycoords)
         nptest.assert_array_equal(numpy.array(polycoords), poly)
 
@@ -61,7 +61,7 @@ def test_xy_array_as_pairs():
 
 
 def test_xy_array_diff_shapes():
-    with utils.raises(ValueError):
+    with raises(ValueError):
         validate.xy_array(numpy.zeros((3, 3)), numpy.zeros((4, 4)))
 
 
@@ -81,7 +81,7 @@ def test_xy_array_diff_masks():
 
     y = numpy.ma.MaskedArray(data=_y, mask=mask1)
     x = numpy.ma.MaskedArray(data=_x, mask=mask2)
-    with utils.raises(ValueError):
+    with raises(ValueError):
         validate.xy_array(x, y)
 
 
@@ -95,7 +95,7 @@ def test_xy_array_only_one_mask():
     _y, _x = numpy.mgrid[:3, :3]
     y = numpy.ma.MaskedArray(data=_y, mask=mask1)
 
-    with utils.raises(ValueError):
+    with raises(ValueError):
         validate.xy_array(_x, y)
 
 
@@ -107,7 +107,7 @@ def test_xy_array_only_one_mask():
     ('w', 'w', None)
 ])
 def test_file_mode(mode, expected, error):
-    with utils.raises(error):
+    with raises(error):
         result = validate.file_mode(mode)
         assert expected == result
 
@@ -120,7 +120,7 @@ def test_file_mode(mode, expected, error):
 ])
 def test_elev_or_mask(x, y, offset, expected):
     if expected is None:
-        with utils.raises(ValueError):
+        with raises(ValueError):
             validate.elev_or_mask(x, y, failNone=True)
     else:
         result = validate.elev_or_mask(x, y, offset=offset)
@@ -146,7 +146,7 @@ def test_equivalent_masks():
         1, 2, 3, nan, nan, nan,
         1, 2, 3, nan, nan, 7,
     ])
-    with utils.raises(ValueError):
+    with raises(ValueError):
         validate.equivalent_masks(X, Y2)
 
     x, y = validate.equivalent_masks(X, Y1)

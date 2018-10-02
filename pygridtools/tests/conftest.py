@@ -8,21 +8,15 @@ from pygridtools import ModelGrid
 
 
 class FakeGrid(object):
-    def __init__(self):
+    def __init__(self, boundary):
         self.x, self.y = simple_nodes()
         self.xn, self.yn = simple_nodes()
-        boundary = simple_boundary()
         self.xbry = boundary['x']
         self.ybry = boundary['y']
         self.beta = boundary['beta']
         self.ny, self.nx = self.x.shape
         self.x_rho, self.y_rho = simple_cells()
         self.cell_mask = self.x_rho.mask.copy()
-
-
-@pytest.fixture(scope='module')
-def fakegrid():
-    return FakeGrid()
 
 
 @pytest.fixture(scope='module')
@@ -34,6 +28,11 @@ def simple_boundary():
 
 
 @pytest.fixture(scope='module')
+def fakegrid():
+    return FakeGrid(simple_boundary)
+
+
+@pytest.fixture(scope='module')
 def simple_islands():
     xbry = numpy.array([1.2, 1.7, 1.7, 1.2, 1.7, 3.2, 3.2, 1.7])
     ybry = numpy.array([3.7, 3.7, 2.2, 2.2, 1.7, 1.7, 1.2, 1.2])
@@ -42,19 +41,18 @@ def simple_islands():
 
 
 @pytest.fixture(scope='module')
-def simple_grid():
+def simple_grid(simple_boundary):
     '''
     Makes a basic grid for testing purposes
     '''
     try:
         import pygridgen
-        boundary = simple_boundary()
         numpy.random.seed(0)
         ny = 9
         nx = 7
         ul_idx = 0
-        grid = pygridgen.Gridgen(boundary.x, boundary.y, boundary.beta,
-                                 (ny, nx), ul_idx=ul_idx)
+        grid = pygridgen.Gridgen(simple_boundary.x, simple_boundary.y,
+                                 simple_boundary.beta, (ny, nx), ul_idx=ul_idx)
     except ImportError:
         grid = fakegrid()
 

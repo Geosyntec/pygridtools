@@ -12,6 +12,7 @@ import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from pygridtools import core
+from pygridgen.tests.utils import raises
 from . import utils
 
 BASELINE_IMAGES = 'baseline_files/test_core'
@@ -81,7 +82,7 @@ def test_split_rows(C, index, axis, first, second):
         nptest.assert_array_equal(a, expected[first])
         nptest.assert_array_equal(b, expected[second])
     else:
-        with utils.raises(ValueError):
+        with raises(ValueError):
             left, right = core.split(C, index, axis=axis)
 
 
@@ -110,7 +111,7 @@ def test__interp_between_vectors(N):
         result = core._interp_between_vectors(vector1, vector2, n_nodes=N)
         nptest.assert_array_equal(result, expected[N])
     else:
-        with utils.raises(ValueError):
+        with raises(ValueError):
             core._interp_between_vectors(vector1, vector2, n_nodes=0)
 
 
@@ -278,7 +279,7 @@ def polyverts():
 
 def test_ModelGrid_bad_shapes(simple_cells):
     xc, yc = simple_cells
-    with utils.raises(ValueError):
+    with raises(ValueError):
         mg = core.ModelGrid(xc, yc[2:, 2:])
 
 
@@ -326,7 +327,7 @@ def test_ModelGrid_to_dataframe(g1, usemask, which, error):
         return df
 
     if error:
-        with utils.raises(ValueError):
+        with raises(ValueError):
             g1.to_dataframe(usemask=usemask, which=which)
     else:
 
@@ -381,7 +382,7 @@ def test_ModelGrid_to_dataframe(g1, usemask, which, error):
 ])
 def test_ModelGrid_to_coord_pairs(g1, usemask, which, error):
     if error:
-        with utils.raises(error):
+        with raises(error):
             g1.to_coord_pairs(usemask=usemask, which=which)
     else:
 
@@ -648,7 +649,7 @@ def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
     [dict(triangles=True), NotImplementedError],
 ])
 def test_ModelGrid_mask_nodes_errors(mg, polyverts, kwargs, error):
-    with utils.raises(error):
+    with raises(error):
         mg.mask_nodes(polyverts, **kwargs)
 
 
@@ -661,7 +662,7 @@ def test_ModelGrid_to_gis_nodes(g1, geom, expectedfile):
     with tempfile.TemporaryDirectory() as outdir:
         outfile = os.path.join(outdir, 'outfile.shp')
         if expectedfile is None:
-            with utils.raises(ValueError):
+            with raises(ValueError):
                 g1.to_gis(outfile, which='nodes', geom=geom, usemask=False)
         else:
                 resultfile = resource_filename('pygridtools.tests.baseline_files', expectedfile)
@@ -694,7 +695,7 @@ def test_ModelGrid_to_gis_cells(g1, geom, usemask):
 ])
 def test_ModelGrid__get_x_y_nodes_and_mask(g1, which, usemask, error):
     if error:
-        with utils.raises(error):
+        with raises(error):
             g1._get_x_y(which, usemask=usemask)
     else:
         x, y = g1._get_x_y(which, usemask=usemask)

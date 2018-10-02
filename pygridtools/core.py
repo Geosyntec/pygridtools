@@ -214,6 +214,8 @@ class ModelGrid(object):
     ----------
     nodes_x, nodes_y : numpy.ndarray
         M-by-N arrays of node (vertex) coordinates for the grid.
+    crs : dict or str, optional
+        Output projection parameters as string or in dictionary form.
 
     """
     def __init__(self, nodes_x, nodes_y, crs=None):
@@ -222,7 +224,7 @@ class ModelGrid(object):
 
         self.nodes_x = numpy.asarray(nodes_x)
         self.nodes_y = numpy.asarray(nodes_y)
-        self._crs = None
+        self._crs = crs
         self._cell_mask = numpy.zeros(self.cell_shape, dtype=bool)
 
         self._domain = None
@@ -381,15 +383,15 @@ class ModelGrid(object):
 
         nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
         nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
-        return ModelGrid(nodes_x, nodes_y)
+        return ModelGrid(nodes_x, nodes_y, crs=self.crs)
 
     def transform_x(self, fxn, *args, **kwargs):
         nodes_x = transform(self.nodes_x, fxn, *args, **kwargs)
-        return ModelGrid(nodes_x, self.nodes_y)
+        return ModelGrid(nodes_x, self.nodes_y, crs=self.crs)
 
     def transform_y(self, fxn, *args, **kwargs):
         nodes_y = transform(self.nodes_y, fxn, *args, **kwargs)
-        return ModelGrid(self.nodes_x, nodes_y)
+        return ModelGrid(self.nodes_x, nodes_y, crs=self.crs)
 
     def transpose(self):
         """
@@ -469,7 +471,7 @@ class ModelGrid(object):
 
         x1, x2 = split(self.nodes_x, index, axis=axis)
         y1, y2 = split(self.nodes_y, index, axis=axis)
-        return ModelGrid(x1, y1), ModelGrid(x2, y2)
+        return ModelGrid(x1, y1, crs=self.crs), ModelGrid(x2, y2, crs=self.crs)
 
     def insert(self, index, axis=0, n_nodes=1):
         """
@@ -606,7 +608,8 @@ class ModelGrid(object):
 
         return ModelGrid(
             merge(self.nodes_x, other.nodes_x, how=how, where=where, shift=shift),
-            merge(self.nodes_y, other.nodes_y, how=how, where=where, shift=shift)
+            merge(self.nodes_y, other.nodes_y, how=how, where=where, shift=shift),
+            crs=self.crs
         ).update_cell_mask(mask=cell_mask)
 
     def update_cell_mask(self, mask=None, merge_existing=True):
@@ -780,6 +783,19 @@ class ModelGrid(object):
 
         return x, y
 
+    def to_point_geodataframe(self, which='nodes', usemask=True, elev=None):
+        x, y = self._get_x_y(which, usemask=usemask)
+        return misc.gdf_of_points(x, y, crs=self.crs, elev=elev)
+
+    def to_polygon_geodataframe(self, usemask=True, elev=None):
+        x, y = self._get_x_y(which='nodes', usemask=False)
+        if usemask:
+            mask = self.cell_mask.copy()
+        else:
+            mask = None
+
+        return misc.gdf_of_cells(x, y, mask, crs=self.crs, elev=elev, triangles=False)
+
     def to_dataframe(self, usemask=False, which='nodes'):
         """
         Converts a grid to a wide dataframe of coordinates.
@@ -840,80 +856,13 @@ class ModelGrid(object):
         x, y = self._get_x_y(which, usemask=usemask)
         return numpy.array(list(zip(x.flatten(), y.flatten())))
 
-    def to_gis(self, outputfile, usemask=True, which='cells',
-               river=None, reach=0, elev=None, crs=None,
-               geom='Polygon', mode='w', triangles=False):
-        """
-        Converts a grid to a GIS file via the *geopands* package.
-
-        Parameters
-        ----------
-        outputfile : str
-            The path of the destination GIS file.
-        usemask : bool, optional
-            Toggles the ommission of masked values (as determined by
-            :meth:`~cell_mask`.
-        which : str, optional
-            This can be "nodes" (default) or "cells". Specifies which
-            coordinates should be used.
-        river : str, optional
-            Identifier of the river.
-        reach : int or str, optional
-            Indetifier of the reach of ``river``.
-        elev : numpy.ndarray, optional
-            Bathymetry data to be assigned to each record.
-        crs : string
-            A geopandas/proj/fiona-compatible string describing the coordinate
-            reference system of the x/y values.
-        geom : str, optional
-            The type of geometry to use. If "Point", either the grid
-            nodes or the centroids of the can be used (see the
-            ``which`` parameter). However, if "Polygon" is specified,
-            cells will be generated from the nodes, regardless of the
-            value of ``which``.
-        mode : str, optional
-            The mode in which ``outputfile`` will be opened. Should be
-            either 'w' (write) or 'a' (append).
-        triangles : bool, optional
-            Toggles the inclusion of triangular cells.
-
-            .. warning:
-               This is experimental and probably buggy if it has been
-               implmented at all.
-
-        Returns
-        -------
-        None
-
-        """
-
-        if crs is None:
-            crs = self.crs
-
-        if geom.lower() == 'point':
-            x, y = self._get_x_y(which, usemask=usemask)
-            iotools.write_points(x, y, crs, outputfile, river=river,
-                                 reach=reach, elev=elev)
-
-        elif geom.lower() in ('cell', 'cells', 'grid', 'polygon'):
-            if usemask:
-                mask = self.cell_mask.copy()
-            else:
-                mask = None
-            x, y = self._get_x_y('nodes', usemask=False)
-            iotools.write_cells(x, y, mask, crs, outputfile, river=river,
-                                reach=reach, elev=elev, triangles=triangles)
-            if which == 'cells':
-                warnings.warn("polygons always constructed from nodes")
-        else:
-            raise ValueError("geom must be either 'Point' or 'Polygon'")
-
     def to_gefdc(self, directory):
         return GEFDCWriter(self, directory)
 
     @classmethod
     def from_dataframe(cls, df, icol='ii', jcol='jj',
-                       xcol='easting', ycol='northing'):
+                       xcol='easting', ycol='northing',
+                       crs=None):
         """
         Build a ModelGrid from a DataFrame of I/J indexes and x/y
         columns.
@@ -926,6 +875,8 @@ class ModelGrid(object):
             The names of the columns for the x and y coordinates.
         icol : str, optional
             The index level specifying the I-index of the grid.
+        crs : dict or str, optional
+            Output projection parameters as string or in dictionary form.
 
         Returns
         -------
@@ -934,7 +885,7 @@ class ModelGrid(object):
         """
         all_cols = [icol, jcol, xcol, ycol]
         xtab = df.reset_index()[all_cols].set_index([icol, jcol]).unstack(level=icol)
-        return cls(xtab[xcol], xtab[ycol]).update_cell_mask()
+        return cls(xtab[xcol], xtab[ycol], crs=crs).update_cell_mask()
 
     @classmethod
     def from_gis(cls, gisfile, icol='ii', jcol='jj'):
@@ -955,28 +906,29 @@ class ModelGrid(object):
 
         """
 
-        df = iotools.read_grid(gisfile, icol=icol, jcol=jcol)
-        return cls.from_dataframe(df).update_cell_mask()
+        gdf = iotools.read_grid(gisfile, icol=icol, jcol=jcol)
+        return cls.from_dataframe(gdf, crs=gdf.crs).update_cell_mask()
 
     @classmethod
-    def from_Gridgen(cls, gridgen):
+    def from_Gridgen(cls, gridgen, crs=None):
         """
         Build a ModelGrid from a :class:`~pygridgen.Gridgen` object.
 
         Parameters
         ----------
         gridgen : pygridgen.Gridgen
+        crs : dict or str, optional
+            Output projection parameters as string or in dictionary form.
 
         Returns
         -------
         ModelGrid
 
         """
-        return cls(gridgen.x, gridgen.y).update_cell_mask()
+        return cls(gridgen.x, gridgen.y, crs=crs).update_cell_mask()
 
 
-def make_grid(ny, nx, domain, bathydata=None, verbose=False,
-              rawgrid=True, **gparams):
+def make_grid(ny, nx, domain, crs=None, rawgrid=True, **gparams):
     """
     Generate a :class:`~pygridgen.Gridgen` or :class:`~ModelGrid`
     from scratch. This can take a large number of parameters passed
@@ -995,18 +947,8 @@ def make_grid(ny, nx, domain, bathydata=None, verbose=False,
           - 'x' (easting)
           - 'y' (northing),
           - 'beta' (turning points, must sum to 1)
-
-    bathydata : optional pandas.DataFrame or None (default)
-        Point bathymetry/elevation data. Will be interpolated unto the
-        grid if provided. If None, a default value of 0 will be used.
-        Required columns:
-
-          - 'x' (easting)
-          - 'y' (northing),
-          - 'z' (elevation)
-
-    verbose : bool, optional
-        Toggles on the printing of status updates.
+    crs : dict or str, optional
+        Output projection parameters as string or in dictionary form.
     rawgrid : bool (default = True)
         When True, returns a pygridgen.Gridgen object. Otherwise, a
         pygridtools.ModelGrid object is returned.
@@ -1064,7 +1006,7 @@ def make_grid(ny, nx, domain, bathydata=None, verbose=False,
     -----
     If your boundary has a lot of points, this really can take quite
     some time. Setting verbose=True will help track the progress of the
-    grid generattion.
+    grid generation.
 
     See Also
     --------
@@ -1077,17 +1019,9 @@ def make_grid(ny, nx, domain, bathydata=None, verbose=False,
     except ImportError:  # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot make grid.")
 
-    # if verbose:
-    #     print('generating grid')
-
     grid = pygridgen.Gridgen(domain.x, domain.y, domain.beta, (ny, nx), **gparams)
 
-    # if verbose:
-    #     print('interpolating bathymetry')
-
-    # newbathy = misc.interpolate_bathymetry(bathydata, grid.x_rho, grid.y_rho,
-    #                                        xcol='x', ycol='y', zcol='z')
     if rawgrid:
         return grid
     else:
-        return ModelGrid.from_Gridgen(grid)
+        return ModelGrid.from_Gridgen(grid, crs=crs)

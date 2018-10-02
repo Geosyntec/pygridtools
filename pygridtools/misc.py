@@ -4,6 +4,7 @@ from shapely.geometry import Point, Polygon
 import numpy
 import matplotlib.path as mpath
 import pandas
+from shapely import geometry
 import geopandas
 from pygridgen import csa
 

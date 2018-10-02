@@ -1,6 +1,7 @@
 import numpy
 from matplotlib import pyplot
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiPolygon
+import geopandas
 
 import pytest
 import numpy.testing as nptest
@@ -8,6 +9,55 @@ import numpy.testing as nptest
 from pygridtools import validate
 from pygridgen.tests.utils import raises
 from . import utils
+
+
+@pytest.fixture
+def multipoly_gdf():
+    return geopandas.GeoDataFrame({
+        'A': [1, 2, 3],
+        'B': ['cat', 'dog', 'bird']
+    }, geometry=[
+        MultiPolygon([
+            Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
+            Polygon([(2, 2), (2, 4), (4, 4), (4, 2)]),
+        ]),
+        MultiPolygon([
+            Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
+        ]),
+        MultiPolygon([
+            Polygon([(0, 0), (0, 2), (2, 2), (2, 0)])
+        ])
+    ])
+
+
+@pytest.fixture
+def mixedpoly_gdf():
+    return geopandas.GeoDataFrame({
+        'A': [1, 2, 3],
+        'B': ['cat', 'dog', 'bird']
+    }, geometry=[
+        MultiPolygon([
+            Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
+            Polygon([(2, 2), (2, 4), (4, 4), (4, 2)]),
+        ]),
+        MultiPolygon([
+            Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
+        ]),
+        Polygon([(0, 0), (0, 2), (2, 2), (2, 0)])
+    ])
+
+
+@pytest.fixture
+def exploded_gdf():
+    return geopandas.GeoDataFrame({
+        'A': [1, 1, 2, 3],
+        'B': ['cat', 'cat', 'dog', 'bird']
+    }, geometry=[
+        Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
+        Polygon([(2, 2), (2, 4), (4, 4), (4, 2)]),
+        Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
+        Polygon([(0, 0), (0, 2), (2, 2), (2, 0)])
+    ])
 
 
 def test_mpl_ax_invalid():
@@ -41,6 +91,27 @@ def test_polygon(polycoords, error):
     with raises(error):
         poly = validate.polygon(polycoords)
         nptest.assert_array_equal(numpy.array([(2, 2), (5, 2), (5, 5), (2, 5)]), poly)
+
+
+def test__explode_geom(multipoly_gdf, exploded_gdf):
+    row = next(multipoly_gdf.iterfeatures())
+    expected = exploded_gdf.loc[lambda df: df['A'] == 1, :]
+    result = validate._explode_geom(row)
+    utils.assert_gdfs_equal(expected, result)
+
+
+def test__explode_gdf(multipoly_gdf, exploded_gdf):
+    result = validate._explode_gdf(multipoly_gdf)
+    utils.assert_gdfs_equal(exploded_gdf, result)
+
+
+def test_simple_polygon_gdf(mixedpoly_gdf, exploded_gdf):
+    result = (
+        validate.simple_polygon_gdf(mixedpoly_gdf)
+            .sort_values(by=['A'])
+            .reset_index(drop=True)
+    )
+    utils.assert_gdfs_equal(exploded_gdf, result)
 
 
 def test_xy_array_not_as_pairs():

@@ -645,9 +645,9 @@ class ModelGrid(object):
         masked.cell_mask = mask
         return masked
 
-    def mask_nodes(self, polyverts, min_nodes=3, inside=False, use_existing=False,
-                   triangles=False):
-        """ Create mask the ModelGrid based on its nodes with a polygon .
+    def mask_nodes(self, gdf, min_nodes=3, inside=False,
+                   use_existing=False, triangles=False):
+        """ Create mask the ModelGrid based on its nodes with a polygon.
 
         Parameters
         ----------
@@ -679,14 +679,15 @@ class ModelGrid(object):
         if min_nodes <= 0 or min_nodes > 4:
             raise ValueError("`min_nodes` must be greater than 0 and no more than 4.")
 
-        _node_mask = misc.mask_with_polygon(self.xn, self.yn, polyverts,
-                                            inside=inside).astype(int)
+        poly = validate.simple_polygon_gdf(gdf).geometry.tolist()
+        _node_mask = misc.mask_with_polygon(self.xn, self.yn, *poly, inside=inside)
 
-        cell_mask = (misc.padded_sum(_node_mask, window=1) >= min_nodes).astype(bool)
-
+        cell_mask = (
+            misc.padded_sum(_node_mask.astype(int), window=1) >= min_nodes
+        ).astype(bool)
         return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
 
-    def mask_centroids(self, polyverts, inside=True, use_existing=True):
+    def mask_centroids(self, gdf, inside=True, use_existing=True):
         """ Create mask for the cells of the ModelGrid with a polygon.
 
         Parameters
@@ -699,7 +700,7 @@ class ModelGrid(object):
         use_existing : bool (default = True)
             When True, the newly computed mask is combined (via a
             bit-wise `or` operation) with the existing ``cell_mask``
-            attribute of the MdoelGrid.
+            attribute of the ModelGrid.
 
         Returns
         -------
@@ -708,8 +709,8 @@ class ModelGrid(object):
             to the cells.
 
         """
-
-        cell_mask = misc.mask_with_polygon(self.xc, self.yc, polyverts, inside=inside)
+        poly = validate.simple_polygon_gdf(gdf).geometry.tolist()
+        cell_mask = misc.mask_with_polygon(self.xc, self.yc, *poly, inside=inside)
         return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
 
     @numpy.deprecate(message='use mask_nodes or mask_centroids')

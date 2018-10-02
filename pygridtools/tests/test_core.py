@@ -6,6 +6,7 @@ import tempfile
 import numpy
 from numpy import nan
 import pandas
+from shapely.geometry import Polygon
 import geopandas
 
 import pytest
@@ -275,7 +276,7 @@ def g2(simple_nodes):
 
 @pytest.fixture
 def polyverts():
-    return [(2.4, 0.9), (3.6, 0.9), (3.6, 2.4), (2.4, 2.4)]
+    return geopandas.GeoSeries(Polygon([(2.4, 0.9), (3.6, 0.9), (3.6, 2.4), (2.4, 2.4)]))
 
 
 def test_ModelGrid_bad_shapes(simple_cells):

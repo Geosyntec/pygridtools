@@ -350,7 +350,7 @@ def test_mask_with_polygon(size, inside):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-       ], dtype=bool)
+        ], dtype=bool)
     }
 
     expected = expected_masks[size]
@@ -360,8 +360,8 @@ def test_mask_with_polygon(size, inside):
     y, x = numpy.mgrid[:size, :size]
 
     polyverts = [
-        [(0.5, 2.5), (3.5, 2.5), (3.5, 0.5), (0.5, 0.5),],
-        [(2.5, 4.5), (5.5, 4.5), (5.5, 2.5), (2.5, 2.5),]
+        [(0.5, 2.5), (3.5, 2.5), (3.5, 0.5), (0.5, 0.5)],
+        [(2.5, 4.5), (5.5, 4.5), (5.5, 2.5), (2.5, 2.5)]
     ]
 
     mask = misc.mask_with_polygon(x, y, *polyverts, inside=inside)

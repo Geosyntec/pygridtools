@@ -1,6 +1,8 @@
 import numpy
 from numpy import nan
 import pandas
+from shapely.geometry import Polygon
+import geopandas
 
 import pytest
 
@@ -151,7 +153,7 @@ def mg(simple_nodes):
 
 @pytest.fixture(scope='module')
 def river():
-    return [
+    return geopandas.GeoSeries(Polygon([
         (2.5, 59),
         (2.5, 57),
         (5.5, 56),
@@ -163,7 +165,7 @@ def river():
         (8.5, 55),
         (8.5, 59),
         (2.5, 59),
-    ]
+    ]))
 
 
 @pytest.fixture(scope='module')

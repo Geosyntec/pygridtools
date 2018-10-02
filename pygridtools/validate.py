@@ -1,5 +1,8 @@
 import numpy
+import pandas
 from shapely import geometry
+import geopandas
+
 
 def mpl_ax(ax, fallback='new'):
     """ Checks if a value if an Axes. If None, a new one is created or
@@ -57,6 +60,36 @@ def polygon(polyverts, min_points=3):
         raise ValueError('polyverts must contain at least {} points'.format(min_points))
 
     return polyverts_array
+
+
+def _explode_geom(row):
+    # save each geo part in its own row
+    gsr = geopandas.GeoSeries([
+        poly for poly in geometry.shape(row['geometry'])
+    ])
+    meta = row['properties']
+    return geopandas.GeoDataFrame(meta, geometry=gsr, index=gsr.index)
+
+
+def _explode_gdf(gdf):
+    return (
+        pandas.concat(
+            [_explode_geom(row) for row in gdf.iterfeatures()],
+            ignore_index=True, sort=True
+        ).pipe(geopandas.GeoDataFrame, crs=gdf.crs)
+    )
+
+
+def simple_polygon_gdf(gdf):
+    if not gdf.geom_type.str.endswith('Polygon').all():
+        raise ValueError("geometries must all be (Multi)Polygons")
+    elif gdf.geom_type.eq('MultiPolygon').any():
+        simples = gdf.loc[gdf.geom_type.eq('Polygon'), :]
+        multis = gdf.loc[gdf.geom_type.eq('MultiPolygon'), :].pipe(_explode_gdf)
+        gdf = pandas.concat([
+            simples, multis
+        ], ignore_index=True, sort=True).pipe(geopandas.GeoDataFrame, crs=gdf.crs)
+    return gdf
 
 
 def xy_array(x, y, as_pairs=True):

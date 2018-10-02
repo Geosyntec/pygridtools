@@ -26,3 +26,11 @@ def assert_gis_files_equal(baselinefile, outputfile, atol=0.001):
         expected.drop('geometry', axis=1).sort_index(axis='columns')
     )
     assert result.geom_almost_equals(expected).all()
+
+
+def assert_gdfs_equal(expected_gdf, result_gdf):
+    pdtest.assert_frame_equal(
+        expected_gdf.drop('geometry', axis=1).sort_index(axis='columns'),
+        result_gdf.drop('geometry', axis=1).sort_index(axis='columns')
+    )
+    assert expected_gdf.geom_almost_equals(result_gdf).all()

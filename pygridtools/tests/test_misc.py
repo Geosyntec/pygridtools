@@ -1,5 +1,9 @@
+from pathlib import Path
+from pkg_resources import resource_filename
+
 import numpy
 from numpy import nan
+import geopandas
 
 import pytest
 import numpy.testing as nptest
@@ -344,3 +348,48 @@ def test_mask_with_polygon(inside, expected):
     ]
     mask = misc.mask_with_polygon(x, y, polyverts, inside=inside)
     nptest.assert_array_equal(mask, expected)
+
+
+@pytest.mark.parametrize(('usemasks', 'fname'), [
+    pytest.param(False, 'array_grid.shp', marks=pytest.mark.xfail),
+    pytest.param(True, 'mask_grid.shp', marks=pytest.mark.xfail),
+])
+def test_gdf_of_cells(usemasks, fname, simple_grid, example_crs):
+    if usemasks:
+        mask = numpy.array([
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+        ])
+    else:
+        mask = None
+
+    baselinedir = Path(resource_filename('pygridtools.tests', 'baseline_files'))
+    river = 'test'
+    expected = geopandas.read_file(str(baselinedir / fname))
+    result = misc.gdf_of_cells(simple_grid.x, simple_grid.y, mask, example_crs)
+    utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)
+
+
+@pytest.mark.parametrize(('usemasks', 'fname'), [
+    (False, 'array_point.shp'),
+    (True, 'mask_point.shp'),
+])
+def test_gdf_of_points(usemasks, fname, example_crs):
+    x = numpy.array([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
+    y = numpy.array([[4, 4, 4], [5, 5, 5], [6, 6, 6], [7, 7, 7]])
+    mask = numpy.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]], dtype=bool)
+    if usemasks:
+        x = numpy.ma.masked_array(x, mask)
+        y = numpy.ma.masked_array(y, mask)
+
+    baselinedir = Path(resource_filename('pygridtools.tests', 'baseline_files'))
+    river = 'test'
+    expected = geopandas.read_file(str(baselinedir / fname))
+    result = misc.gdf_of_points(x, y, example_crs)
+    utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)

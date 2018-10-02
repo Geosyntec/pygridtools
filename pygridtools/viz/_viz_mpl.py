@@ -5,7 +5,8 @@ from pygridtools import misc
 from pygridtools import validate
 
 
-def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None):
+def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None,
+                 show_legend=True):
     """ Plot a model grid's domain.
 
     Parameters
@@ -20,8 +21,11 @@ def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None):
     ax : matplotib.Axes, optional
         The Axes on which the domain will be drawn. If omitted, a new
         one will be created.
+    show_legend : bool, default = True
 
     """
+    leg = None
+
     # setup the figure
     fig, ax = validate.mpl_ax(ax)
 
@@ -43,12 +47,12 @@ def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None):
             ax.plot(domain_x[idx], domain_y[idx], marker, ls='none', label=label)[0]
             for idx, marker, label in zip(beta_selectors, beta_markers, beta_labels)
         ]
-
-        ax.legend()
+        if show_legend:
+            leg = ax.legend()
 
     ax.autoscale()
     ax.margins(0.1)
-    return fig, {'domain': line_artist, 'beta': beta_artists}
+    return fig, {'domain': line_artist, 'beta': beta_artists, 'legend': leg}
 
 
 def _plot_boundaries(extent_x=None, extent_y=None, extent=None, islands_x=None,

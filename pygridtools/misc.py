@@ -282,7 +282,7 @@ def padded_sum(padded, window=1):
             padded[:-window, window:] + padded[window:, :-window])
 
 
-def mask_with_polygon(x, y, polyverts, inside=True):
+def mask_with_polygon(x, y, *polyverts, inside=True):
     """ Mask x-y arrays inside or outside a polygon
 
     Parameters
@@ -301,15 +301,18 @@ def mask_with_polygon(x, y, polyverts, inside=True):
 
     """
     # validate input
-    polyverts = validate.polygon(polyverts)
+    polyverts = [validate.polygon(pv) for pv in polyverts]
     points = validate.xy_array(x, y, as_pairs=True)
 
     # compute the mask
-    mask = mpath.Path(polyverts).contains_points(points).reshape(x.shape)
-    if inside:
-        return mask
-    else:
-        return ~mask
+    mask = numpy.dstack([
+        mpath.Path(pv).contains_points(points).reshape(x.shape)
+        for pv in polyverts
+    ]).any(axis=-1)
+
+    if not inside:
+        mask = ~mask
+    return mask
 
 
 def gdf_of_cells(X, Y, mask, crs, elev=None, triangles=False):

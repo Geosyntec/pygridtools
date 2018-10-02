@@ -328,25 +328,43 @@ def test_padded_sum():
     nptest.assert_array_equal(result, expected)
 
 
-@pytest.mark.parametrize(('inside', 'expected'), [
-    (True, numpy.array([
-        [0, 0, 0, 0, 0], [0, 1, 1, 1, 0],
-        [0, 1, 1, 1, 0], [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0]], dtype=bool)),
-    (False, numpy.array([
-        [1, 1, 1, 1, 1], [1, 0, 0, 0, 1],
-        [1, 0, 0, 0, 1], [1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1]], dtype=bool))
-], ids=['inside', 'outside'])
-def test_mask_with_polygon(inside, expected):
-    y, x = numpy.mgrid[:5, :5]
+@pytest.mark.parametrize('size', [5, 10])
+@pytest.mark.parametrize('inside', [True, False], ids=['inside', 'outside'])
+def test_mask_with_polygon(size, inside):
+    expected_masks = {
+        5: numpy.array([
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 1, 1],
+            [0, 0, 0, 1, 1]
+        ], dtype=bool),
+        10: numpy.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+       ], dtype=bool)
+    }
+
+    expected = expected_masks[size]
+    if not inside:
+        expected = numpy.bitwise_not(expected)
+
+    y, x = numpy.mgrid[:size, :size]
+
     polyverts = [
-        (0.5, 2.5),
-        (3.5, 2.5),
-        (3.5, 0.5),
-        (0.5, 0.5),
+        [(0.5, 2.5), (3.5, 2.5), (3.5, 0.5), (0.5, 0.5),],
+        [(2.5, 4.5), (5.5, 4.5), (5.5, 2.5), (2.5, 2.5),]
     ]
-    mask = misc.mask_with_polygon(x, y, polyverts, inside=inside)
+
+    mask = misc.mask_with_polygon(x, y, *polyverts, inside=inside)
     nptest.assert_array_equal(mask, expected)
 
 

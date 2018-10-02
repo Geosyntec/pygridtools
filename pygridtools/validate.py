@@ -1,5 +1,5 @@
 import numpy
-
+from shapely import geometry
 
 def mpl_ax(ax, fallback='new'):
     """ Checks if a value if an Axes. If None, a new one is created or
@@ -42,6 +42,9 @@ def mpl_ax(ax, fallback='new'):
 
 
 def polygon(polyverts, min_points=3):
+    if isinstance(polyverts, geometry.Polygon):
+        polyverts = [_ for _ in polyverts.exterior.coords][:-1]
+
     polyverts_array = numpy.asarray(polyverts)
     if polyverts_array.ndim != 2:
         raise ValueError('polyverts must be a 2D array, or '

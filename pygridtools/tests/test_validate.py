@@ -1,5 +1,6 @@
 import numpy
 from matplotlib import pyplot
+from shapely.geometry import Polygon
 
 import pytest
 import numpy.testing as nptest
@@ -31,14 +32,15 @@ def test_mpl_ax_with_None():
 
 @pytest.mark.parametrize(('polycoords', 'error'), [
     ([(2, 2), (5, 2), (5, 5), (2, 5)], None),
+    (Polygon([(2, 2), (5, 2), (5, 5), (2, 5)]), None),
     ([(2, 2), (5, 2)], ValueError),
     ([(2, 2, 1), (5, 2, 1), (5, 5, 1), (2, 5, 1)], ValueError),
     ([[(2, 2), (5, 2), (5, 5), (2, 5)], [(2, 2), (5, 2), (5, 5), (2, 5)]], ValueError)
 ])
-def Test_polygon(polycoords, error):
+def test_polygon(polycoords, error):
     with raises(error):
         poly = validate.polygon(polycoords)
-        nptest.assert_array_equal(numpy.array(polycoords), poly)
+        nptest.assert_array_equal(numpy.array([(2, 2), (5, 2), (5, 5), (2, 5)]), poly)
 
 
 def test_xy_array_not_as_pairs():

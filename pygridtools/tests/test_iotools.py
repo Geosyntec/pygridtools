@@ -13,6 +13,7 @@ import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from pygridtools import iotools
+from pygridgen.tests.utils import raises
 from . import utils
 
 
@@ -62,58 +63,6 @@ def test_read_polygons(as_gdf):
             nptest.assert_array_almost_equal(res, exp)
 
 
-@pytest.mark.parametrize(('usemasks', 'fname'), [
-    (False, 'array_point.shp'),
-    (True, 'mask_point.shp'),
-])
-def test_write_points(usemasks, fname, example_crs):
-    x = numpy.array([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
-    y = numpy.array([[4, 4, 4], [5, 5, 5], [6, 6, 6], [7, 7, 7]])
-    mask = numpy.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]], dtype=bool)
-    if usemasks:
-        x = numpy.ma.masked_array(x, mask)
-        y = numpy.ma.masked_array(y, mask)
-
-    baselinedir = resource_filename('pygridtools.tests', 'baseline_files')
-    river = 'test'
-    with tempfile.TemporaryDirectory() as outputdir:
-        outfile = os.path.join(outputdir, fname)
-        basefile = os.path.join(baselinedir, fname)
-        gdf = iotools.write_points(x, y, example_crs, outfile, river=river)
-        utils.assert_gis_files_equal(outfile, basefile)
-        assert isinstance(gdf, geopandas.GeoDataFrame)
-
-
-@pytest.mark.parametrize(('usemasks', 'fname'), [
-    (False, 'array_grid.shp'),
-    # (True, 'mask_grid.shp'),
-])
-def test_write_cells(usemasks, fname, simple_grid, example_crs):
-    if usemasks:
-        mask = numpy.array([
-            [0, 0, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1],
-        ])
-    else:
-        mask = None
-
-    baselinedir = resource_filename('pygridtools.tests', 'baseline_files')
-    river = 'test'
-    with tempfile.TemporaryDirectory() as outputdir:
-        outfile = os.path.join(outputdir, fname)
-        basefile = os.path.join(baselinedir, fname)
-        gdf = iotools.write_cells(simple_grid.x, simple_grid.y, mask, example_crs,
-                                  outfile, river=river)
-        utils.assert_gis_files_equal(basefile, outfile)
-        assert isinstance(gdf, geopandas.GeoDataFrame)
-
-
 def test_read_grid():
     pntfile = resource_filename('pygridtools.tests.baseline_files', 'array_point.shp')
     cellfile = resource_filename('pygridtools.tests.baseline_files', 'array_grid.shp')
@@ -125,5 +74,5 @@ def test_read_grid():
 
     pdtest.assert_frame_equal(result_df, known_df)
 
-    with utils.raises(NotImplementedError):
+    with raises(NotImplementedError):
         result_df = iotools.read_grid(cellfile)

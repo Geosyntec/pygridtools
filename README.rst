@@ -60,19 +60,6 @@ Finally, to fully run the tests, you need ``pytest`` and a few plugins
     conda install pytest pytest-mpl pytest-pep8 --channel=conda-forge
 
 
-Dependencies
-------------
-
-Basics
-~~~~~~
-
-The remaining python depedencies are the following:
-
-* numpy, scipy
-* matplotlib
-* pandas (for easy data I/O and manipulation)
-* geopandas (for shapfile I/O)
-
 Grid Generation
 ~~~~~~~~~~~~~~~
 

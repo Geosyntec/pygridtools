@@ -6,12 +6,15 @@ import tempfile
 import numpy
 from numpy import nan
 import pandas
+from shapely.geometry import Polygon
+import geopandas
 
 import pytest
 import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from pygridtools import core
+from pygridgen.tests.utils import raises
 from . import utils
 
 BASELINE_IMAGES = 'baseline_files/test_core'
@@ -81,7 +84,7 @@ def test_split_rows(C, index, axis, first, second):
         nptest.assert_array_equal(a, expected[first])
         nptest.assert_array_equal(b, expected[second])
     else:
-        with utils.raises(ValueError):
+        with raises(ValueError):
             left, right = core.split(C, index, axis=axis)
 
 
@@ -110,7 +113,7 @@ def test__interp_between_vectors(N):
         result = core._interp_between_vectors(vector1, vector2, n_nodes=N)
         nptest.assert_array_equal(result, expected[N])
     else:
-        with utils.raises(ValueError):
+        with raises(ValueError):
             core._interp_between_vectors(vector1, vector2, n_nodes=0)
 
 
@@ -273,12 +276,12 @@ def g2(simple_nodes):
 
 @pytest.fixture
 def polyverts():
-    return [(2.4, 0.9), (3.6, 0.9), (3.6, 2.4), (2.4, 2.4)]
+    return geopandas.GeoSeries(Polygon([(2.4, 0.9), (3.6, 0.9), (3.6, 2.4), (2.4, 2.4)]))
 
 
 def test_ModelGrid_bad_shapes(simple_cells):
     xc, yc = simple_cells
-    with utils.raises(ValueError):
+    with raises(ValueError):
         mg = core.ModelGrid(xc, yc[2:, 2:])
 
 
@@ -326,7 +329,7 @@ def test_ModelGrid_to_dataframe(g1, usemask, which, error):
         return df
 
     if error:
-        with utils.raises(ValueError):
+        with raises(ValueError):
             g1.to_dataframe(usemask=usemask, which=which)
     else:
 
@@ -381,7 +384,7 @@ def test_ModelGrid_to_dataframe(g1, usemask, which, error):
 ])
 def test_ModelGrid_to_coord_pairs(g1, usemask, which, error):
     if error:
-        with utils.raises(error):
+        with raises(error):
             g1.to_coord_pairs(usemask=usemask, which=which)
     else:
 
@@ -595,14 +598,14 @@ def test_extract(mg, simple_nodes):
     nptest.assert_array_equal(result.nodes_y, yn[2:5, 3:6])
 
 
-@pytest.mark.parametrize(('inside', 'use_existing'), [
-    (True, False),
-    (True, True),
-    (False, False)
+@pytest.mark.parametrize(('where', 'use_existing'), [
+    ('inside', False),
+    ('inside', True),
+    ('outside', False)
 ])
-def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
+def test_ModelGrid_mask_centroids(mg, polyverts, where, use_existing):
     expected = {
-        (True, False): numpy.array([
+        ('inside', False): numpy.array([
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 0],
@@ -612,7 +615,7 @@ def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0]
         ]),
-        (True, True): numpy.array([
+        ('inside', True): numpy.array([
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1],
             [0, 0, 0, 1, 1, 0],
@@ -622,7 +625,7 @@ def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1]
         ]),
-        (False, False):  numpy.array([
+        ('outside', False):  numpy.array([
             [1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1],
             [1, 1, 1, 0, 0, 1],
@@ -634,11 +637,11 @@ def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
         ])
     }
 
-    result = mg.mask_centroids(polyverts, inside=inside, use_existing=use_existing)
+    result = mg.mask_centroids(**{where: polyverts}, use_existing=use_existing)
 
     nptest.assert_array_equal(
         result.cell_mask.astype(int),
-        expected[(inside, use_existing)].astype(int)
+        expected[(where, use_existing)].astype(int)
     )
 
 
@@ -648,42 +651,37 @@ def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
     [dict(triangles=True), NotImplementedError],
 ])
 def test_ModelGrid_mask_nodes_errors(mg, polyverts, kwargs, error):
-    with utils.raises(error):
-        mg.mask_nodes(polyverts, **kwargs)
+    with raises(error):
+        mg.mask_nodes(inside=polyverts, **kwargs)
 
 
-@pytest.mark.parametrize(['geom', 'expectedfile'], [
-    ('point', 'mgshp_nomask_nodes_points.shp'),
-    ('polygon', 'mgshp_nomask_cells_polys.shp'),
-    ('line', None),
-])
-def test_ModelGrid_to_gis_nodes(g1, geom, expectedfile):
-    with tempfile.TemporaryDirectory() as outdir:
-        outfile = os.path.join(outdir, 'outfile.shp')
-        if expectedfile is None:
-            with utils.raises(ValueError):
-                g1.to_gis(outfile, which='nodes', geom=geom, usemask=False)
-        else:
-                resultfile = resource_filename('pygridtools.tests.baseline_files', expectedfile)
-                g1.to_gis(outfile, which='nodes', geom=geom, usemask=False)
-                utils.assert_gis_files_equal(outfile, resultfile)
+def test_masks_no_polys(mg):
+    with raises(ValueError):
+        mg.mask_nodes()
+
+    with raises(ValueError):
+        mg.mask_centroids()
 
 
+def test_ModelGrid_to_point_geodataframe(g1):
+    expectedfile = resource_filename('pygridtools.tests.baseline_files',  'mgshp_nomask_nodes_points.shp')
+    expected = geopandas.read_file(expectedfile)
+    result = g1.to_point_geodataframe(which='nodes', usemask=False)
+    utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)
+
+
+@pytest.mark.xfail
 @pytest.mark.parametrize('usemask', [True, False])
-@pytest.mark.parametrize('geom', ['point', 'polygon'])
-def test_ModelGrid_to_gis_cells(g1, geom, usemask):
+def test_ModelGrid_to_gis_cells(g1, usemask):
     expectedfile = {
-        (True, 'point'): 'mgshp_mask_cells_points.shp',
-        (True, 'polygon'): 'mgshp_mask_cells_polys.shp',
-        (False, 'point'): 'mgshp_nomask_cells_points.shp',
-        (False, 'polygon'): 'mgshp_nomask_cells_polys.shp',
+        True: 'mgshp_mask_cells_polys.shp',
+        False: 'mgshp_nomask_cells_polys.shp',
     }
-    with tempfile.TemporaryDirectory() as outdir:
-        outfile = os.path.join(outdir, 'outfile.shp')
-        expected = resource_filename('pygridtools.tests.baseline_files',
-                                     expectedfile[usemask, geom])
-        g1.to_gis(outfile, which='cells', geom=geom, usemask=usemask)
-        utils.assert_gis_files_equal(outfile, expected)
+    expectedfile = resource_filename('pygridtools.tests.baseline_files',
+                                     expectedfile[usemask])
+    expected = geopandas.read_file(expectedfile)
+    result = g1.to_polygon_geodataframe(usemask=usemask)
+    utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)
 
 
 @pytest.mark.parametrize(('which', 'usemask', 'error'), [
@@ -694,7 +692,7 @@ def test_ModelGrid_to_gis_cells(g1, geom, usemask):
 ])
 def test_ModelGrid__get_x_y_nodes_and_mask(g1, which, usemask, error):
     if error:
-        with utils.raises(error):
+        with raises(error):
             g1._get_x_y(which, usemask=usemask)
     else:
         x, y = g1._get_x_y(which, usemask=usemask)
@@ -722,16 +720,11 @@ def test_ModelGrid_plots_masked(river_grid, river_bathy):
     (dict(rawgrid=False), core.ModelGrid)
 ])
 @pytest.mark.skipif(not HASPGG, reason='pygridgen unavailabile')
-def test_make_grid(simple_boundary, simple_bathy, otherargs, gridtype):
+def test_make_grid(simple_boundary_gdf, otherargs, gridtype):
     if not gridtype:
         gridtype = pygridgen.Gridgen
 
     gridparams = {'nnodes': 12, 'verbose': False, 'ul_idx': 0}
     gridparams.update(otherargs)
-    grid = core.make_grid(
-        9, 7,
-        domain=simple_boundary,
-        bathydata=simple_bathy.dropna(),
-        **gridparams
-    )
+    grid = core.make_grid(9, 7, domain=simple_boundary_gdf, **gridparams)
     assert (isinstance(grid, gridtype))

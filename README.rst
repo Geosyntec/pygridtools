@@ -18,8 +18,8 @@ Depends heavily on `gridgen <https://github.com/sakov/gridgen-c>`_ and `pygridge
 
 The full documentation for this for library is `here <https://Geosyntec.github.io/pygridtools>`_.
 
-Installation
-------------
+Installation and Depedencies
+----------------------------
 `conda-forge <https:/github.com/conda-forge>`_ generously maintains Linux and Mac OS X conda builds of *pygridtools*.
 
 Install with
@@ -33,23 +33,32 @@ Until we figure that out, you can do the following in the source directory.
 
 ::
 
-    conda install seaborn geopandas
+    conda create --name=grid python=3.6 numpy scipy pandas matplotlib shapely geopandas --channel=conda-forge
     pip install -e .
 
 You won't be able to generate new grids, but you should be able to manipulate existing grids.
 
-Dependencies
-------------
+To create new grids on Linux or Mac OS, you'll need ``pygridgen``
 
-Basics
-~~~~~~
+::
 
-The remaining python depedencies are the following:
+    conda activate grid
+    conda install pygridgen --channel=conda-forge
 
-* numpy
-* matplotlib
-* pandas (for easy data I/O and manipulation)
-* geopandas (for shapfile I/O)
+If you'd like to build the docs, you need a few more things
+
+::
+
+    conda activate grid
+    conda install sphinx numpydoc sphinx_rtd_theme nbsphinx --channel=conda-forge
+
+Finally, to fully run the tests, you need ``pytest`` and a few plugins
+
+::
+
+    conda activate grid
+    conda install pytest pytest-mpl pytest-pep8 --channel=conda-forge
+
 
 Grid Generation
 ~~~~~~~~~~~~~~~

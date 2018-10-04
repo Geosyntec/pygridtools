@@ -1,10 +1,15 @@
+from pathlib import Path
+from pkg_resources import resource_filename
+
 import numpy
 from numpy import nan
+import geopandas
 
 import pytest
 import numpy.testing as nptest
 
 from pygridtools import misc
+from pygridgen.tests.utils import raises
 from . import utils
 
 numpy.set_printoptions(linewidth=150, nanstr='-')
@@ -82,7 +87,7 @@ def test_make_record(geom, geomtype, error, as_array):
     if as_array:
         geom = numpy.array(geom)
 
-    with utils.raises(error):
+    with raises(error):
         record = misc.make_record(1, geom, geomtype, props)
         assert record == expected_geoms[geomtype.lower()]
 
@@ -289,7 +294,7 @@ def test_padded_stack_a_bunch(stackgrids):
 
 @pytest.mark.parametrize(('how', 'where'), [('junk', '+'), ('h', 'junk')])
 def test_padded_stack_errors(stackgrids, how, where):
-    with utils.raises(ValueError):
+    with raises(ValueError):
         misc.padded_stack(stackgrids['input']['g1'], stackgrids['input']['g3'],
                           how=how, where=where, shift=2)
 
@@ -323,23 +328,86 @@ def test_padded_sum():
     nptest.assert_array_equal(result, expected)
 
 
-@pytest.mark.parametrize(('inside', 'expected'), [
-    (True, numpy.array([
-        [0, 0, 0, 0, 0], [0, 1, 1, 1, 0],
-        [0, 1, 1, 1, 0], [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0]], dtype=bool)),
-    (False, numpy.array([
-        [1, 1, 1, 1, 1], [1, 0, 0, 0, 1],
-        [1, 0, 0, 0, 1], [1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1]], dtype=bool))
-], ids=['inside', 'outside'])
-def test_mask_with_polygon(inside, expected):
-    y, x = numpy.mgrid[:5, :5]
+@pytest.mark.parametrize('size', [5, 10])
+@pytest.mark.parametrize('inside', [True, False], ids=['inside', 'outside'])
+def test_mask_with_polygon(size, inside):
+    expected_masks = {
+        5: numpy.array([
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 1, 1],
+            [0, 0, 0, 1, 1]
+        ], dtype=bool),
+        10: numpy.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ], dtype=bool)
+    }
+
+    expected = expected_masks[size]
+    if not inside:
+        expected = numpy.bitwise_not(expected)
+
+    y, x = numpy.mgrid[:size, :size]
+
     polyverts = [
-        (0.5, 2.5),
-        (3.5, 2.5),
-        (3.5, 0.5),
-        (0.5, 0.5),
+        [(0.5, 2.5), (3.5, 2.5), (3.5, 0.5), (0.5, 0.5)],
+        [(2.5, 4.5), (5.5, 4.5), (5.5, 2.5), (2.5, 2.5)]
     ]
-    mask = misc.mask_with_polygon(x, y, polyverts, inside=inside)
+
+    mask = misc.mask_with_polygon(x, y, *polyverts, inside=inside)
     nptest.assert_array_equal(mask, expected)
+
+
+@pytest.mark.parametrize(('usemasks', 'fname'), [
+    pytest.param(False, 'array_grid.shp', marks=pytest.mark.xfail),
+    pytest.param(True, 'mask_grid.shp', marks=pytest.mark.xfail),
+])
+def test_gdf_of_cells(usemasks, fname, simple_grid, example_crs):
+    if usemasks:
+        mask = numpy.array([
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1],
+        ])
+    else:
+        mask = None
+
+    baselinedir = Path(resource_filename('pygridtools.tests', 'baseline_files'))
+    river = 'test'
+    expected = geopandas.read_file(str(baselinedir / fname))
+    result = misc.gdf_of_cells(simple_grid.x, simple_grid.y, mask, example_crs)
+    utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)
+
+
+@pytest.mark.parametrize(('usemasks', 'fname'), [
+    (False, 'array_point.shp'),
+    (True, 'mask_point.shp'),
+])
+def test_gdf_of_points(usemasks, fname, example_crs):
+    x = numpy.array([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
+    y = numpy.array([[4, 4, 4], [5, 5, 5], [6, 6, 6], [7, 7, 7]])
+    mask = numpy.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]], dtype=bool)
+    if usemasks:
+        x = numpy.ma.masked_array(x, mask)
+        y = numpy.ma.masked_array(y, mask)
+
+    baselinedir = Path(resource_filename('pygridtools.tests', 'baseline_files'))
+    river = 'test'
+    expected = geopandas.read_file(str(baselinedir / fname))
+    result = misc.gdf_of_points(x, y, example_crs)
+    utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)

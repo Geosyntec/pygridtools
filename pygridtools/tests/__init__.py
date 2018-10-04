@@ -1,7 +1,7 @@
 from pkg_resources import resource_filename
 
 import pygridtools
-from .utils import requires
+from pygridgen.tests.utils import requires
 
 try:
     import pytest

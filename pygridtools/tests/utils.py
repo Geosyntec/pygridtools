@@ -3,7 +3,11 @@ from contextlib import contextmanager
 from functools import wraps
 import filecmp
 
-import pytest
+try:
+    import pytest
+except ImportError:
+    pytest = None
+
 import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
@@ -24,29 +28,9 @@ def assert_gis_files_equal(baselinefile, outputfile, atol=0.001):
     assert result.geom_almost_equals(expected).all()
 
 
-def raises(error):
-    """Wrapper around pytest.raises to support None."""
-    if error:
-        return pytest.raises(error)
-    else:
-        @contextmanager
-        def not_raises():
-            try:
-                yield
-            except Exception as e:
-                raise e
-        return not_raises()
-
-
-def requires(module, modulename):
-    def outer_wrapper(function):
-        @wraps(function)
-        def inner_wrapper(*args, **kwargs):
-            if module is None:
-                raise RuntimeError(
-                    "{} required for `{}`".format(modulename, function.__name__)
-                )
-            else:
-                return function(*args, **kwargs)
-        return inner_wrapper
-    return outer_wrapper
+def assert_gdfs_equal(expected_gdf, result_gdf):
+    pdtest.assert_frame_equal(
+        expected_gdf.drop('geometry', axis=1).sort_index(axis='columns'),
+        result_gdf.drop('geometry', axis=1).sort_index(axis='columns')
+    )
+    assert expected_gdf.geom_almost_equals(result_gdf).all()

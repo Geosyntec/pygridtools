@@ -1,6 +1,8 @@
 import numpy
 from numpy import nan
 import pandas
+from shapely.geometry import Polygon, Point
+import geopandas
 
 import pytest
 
@@ -8,21 +10,15 @@ from pygridtools import ModelGrid
 
 
 class FakeGrid(object):
-    def __init__(self):
+    def __init__(self, boundary):
         self.x, self.y = simple_nodes()
         self.xn, self.yn = simple_nodes()
-        boundary = simple_boundary()
         self.xbry = boundary['x']
         self.ybry = boundary['y']
         self.beta = boundary['beta']
         self.ny, self.nx = self.x.shape
         self.x_rho, self.y_rho = simple_cells()
         self.cell_mask = self.x_rho.mask.copy()
-
-
-@pytest.fixture(scope='module')
-def fakegrid():
-    return FakeGrid()
 
 
 @pytest.fixture(scope='module')
@@ -34,6 +30,20 @@ def simple_boundary():
 
 
 @pytest.fixture(scope='module')
+def simple_boundary_gdf():
+    xbry = numpy.array([1, 2, 2,  2, 3, 4, 4, 3,  2, 2, 1, 1, 1])
+    ybry = numpy.array([4, 4, 3,  2, 2, 2, 1, 1,  1, 0, 0, 1, 4])
+    beta = numpy.array([1, 1, 0, -1, 0, 1, 1, 0, -1, 1, 1, 0, 0])
+    points = [Point(x, y) for x, y in zip(xbry, ybry)]
+    return geopandas.GeoDataFrame({'beta': beta, 'reach': 'reach'}, geometry=points)
+
+
+@pytest.fixture(scope='module')
+def fakegrid():
+    return FakeGrid(simple_boundary)
+
+
+@pytest.fixture(scope='module')
 def simple_islands():
     xbry = numpy.array([1.2, 1.7, 1.7, 1.2, 1.7, 3.2, 3.2, 1.7])
     ybry = numpy.array([3.7, 3.7, 2.2, 2.2, 1.7, 1.7, 1.2, 1.2])
@@ -42,19 +52,18 @@ def simple_islands():
 
 
 @pytest.fixture(scope='module')
-def simple_grid():
+def simple_grid(simple_boundary):
     '''
     Makes a basic grid for testing purposes
     '''
     try:
         import pygridgen
-        boundary = simple_boundary()
         numpy.random.seed(0)
         ny = 9
         nx = 7
         ul_idx = 0
-        grid = pygridgen.Gridgen(boundary.x, boundary.y, boundary.beta,
-                                 (ny, nx), ul_idx=ul_idx)
+        grid = pygridgen.Gridgen(simple_boundary.x, simple_boundary.y,
+                                 simple_boundary.beta, (ny, nx), ul_idx=ul_idx)
     except ImportError:
         grid = fakegrid()
 
@@ -153,7 +162,7 @@ def mg(simple_nodes):
 
 @pytest.fixture(scope='module')
 def river():
-    return [
+    return geopandas.GeoSeries(Polygon([
         (2.5, 59),
         (2.5, 57),
         (5.5, 56),
@@ -165,7 +174,7 @@ def river():
         (8.5, 55),
         (8.5, 59),
         (2.5, 59),
-    ]
+    ]))
 
 
 @pytest.fixture(scope='module')
@@ -180,7 +189,7 @@ def river_grid(river):
         52.9, 53.5, 54.2, 54.9, 55.6, 56.3, 57.1, 57.8, 58.5, 59.3
     ] * 20]).reshape((20, 20)).T
 
-    return ModelGrid(_x, _y).mask_nodes(river, min_nodes=2)
+    return ModelGrid(_x, _y).mask_nodes(outside=river, min_nodes=2)
 
 
 @pytest.fixture(scope='module')

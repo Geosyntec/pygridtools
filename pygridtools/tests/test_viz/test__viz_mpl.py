@@ -20,47 +20,8 @@ def boundary_artists_keys():
 
 
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
-def test_domain_with_beta_df(simple_boundary, domain_artists_keys):
-    fig, artists = _viz_mpl._plot_domain(
-        domain_x='x',
-        domain_y='y',
-        beta='beta',
-        data=simple_boundary
-    )
-    assert sorted(artists.keys()) == domain_artists_keys
-    return fig
-
-
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
-def test_domain_with_beta_array(simple_boundary, domain_artists_keys):
-    fig, artists = _viz_mpl._plot_domain(
-        domain_x=simple_boundary['x'],
-        domain_y=simple_boundary['y'],
-        beta=simple_boundary['beta'],
-        data=None
-    )
-    assert sorted(artists.keys()) == domain_artists_keys
-    return fig
-
-
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
-def test_domain_without_beta_df(simple_boundary, domain_artists_keys):
-    fig, artists = _viz_mpl._plot_domain(
-        domain_x='x',
-        domain_y='y',
-        data=simple_boundary
-    )
-    assert sorted(artists.keys()) == domain_artists_keys
-    return fig
-
-
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_IMAGES, tolerance=15)
-def test_domain_without_beta_array(simple_boundary, domain_artists_keys):
-    fig, artists = _viz_mpl._plot_domain(
-        domain_x=simple_boundary['x'],
-        domain_y=simple_boundary['y'],
-        data=None
-    )
+def test_domain(simple_boundary_gdf, domain_artists_keys):
+    fig, artists = _viz_mpl._plot_domain(simple_boundary_gdf, betacol='beta')
     assert sorted(artists.keys()) == domain_artists_keys
     return fig
 

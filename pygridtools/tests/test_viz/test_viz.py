@@ -7,10 +7,8 @@ import numpy.testing as nptest
 
 
 @pytest.mark.parametrize('engine', ['mpl'])
-def test_plot_domain_smoke(simple_boundary, engine):
-    fig3 = viz.plot_domain(domain_x='x', domain_y='y', beta='beta', data=simple_boundary)
-    fig4 = viz.plot_domain(domain_x=simple_boundary['x'], domain_y=simple_boundary['y'],
-                          beta=simple_boundary['beta'], data=None)
+def test_plot_domain_smoke(simple_boundary_gdf, engine):
+    fig3 = viz.plot_domain(simple_boundary_gdf, betacol='beta')
 
 
 @pytest.mark.parametrize('engine', ['mpl'])

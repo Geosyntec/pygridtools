@@ -1,7 +1,7 @@
 import numpy
 from numpy import nan
 import pandas
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 import geopandas
 
 import pytest
@@ -27,6 +27,15 @@ def simple_boundary():
     ybry = numpy.array([4, 4, 3,  2, 2, 2, 1, 1,  1, 0, 0, 1, 4])
     beta = numpy.array([1, 1, 0, -1, 0, 1, 1, 0, -1, 1, 1, 0, 0])
     return pandas.DataFrame({'x': xbry, 'y': ybry, 'beta': beta, 'reach': 'reach'})
+
+
+@pytest.fixture(scope='module')
+def simple_boundary_gdf():
+    xbry = numpy.array([1, 2, 2,  2, 3, 4, 4, 3,  2, 2, 1, 1, 1])
+    ybry = numpy.array([4, 4, 3,  2, 2, 2, 1, 1,  1, 0, 0, 1, 4])
+    beta = numpy.array([1, 1, 0, -1, 0, 1, 1, 0, -1, 1, 1, 0, 0])
+    points = [Point(x, y) for x, y in zip(xbry, ybry)]
+    return geopandas.GeoDataFrame({'beta': beta, 'reach': 'reach'}, geometry=points)
 
 
 @pytest.fixture(scope='module')

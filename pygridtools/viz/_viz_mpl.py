@@ -5,19 +5,17 @@ from pygridtools import misc
 from pygridtools import validate
 
 
-def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None,
-                 show_legend=True):
+def _plot_domain(domain, betacol='beta', ax=None, show_legend=True):
     """ Plot a model grid's domain.
 
     Parameters
     ----------
-    x, y, beta : str or array-like, optional
-        Either column labels or sequences representing the x- and
-        y-coordinates and beta values of each point defining the domain
-        of the model grid.
-    data : pandas.DataFrame, optional
-        If ``x``, ``y``, and ``beta`` are strings (column labels),
-        ``data`` must be a pandas.DataFrame containing those labels.
+    domain : GeoDataFrame
+        Defines the boundary of the model area. Needs to have a column of
+        Point geometries and a a column of beta (turning point) values.
+    betacol : str
+        Label of the column in *domain* that contains the beta (i.e., turning
+        point) values of domain. This sum of this column must be 4.
     ax : matplotib.Axes, optional
         The Axes on which the domain will be drawn. If omitted, a new
         one will be created.
@@ -29,26 +27,19 @@ def _plot_domain(domain_x=None, domain_y=None, beta=None, data=None, ax=None,
     # setup the figure
     fig, ax = validate.mpl_ax(ax)
 
-    # coerce values into a dataframe if necessary
-    if data is not None:
-        domain_x, domain_y = data[domain_x], data[domain_y]
-        if beta is not None:
-            beta = data[beta]
-
     # plot the boundary as a line
-    line_artist, = ax.plot(domain_x, domain_y, 'k-', label='__nolegend__')
+    line_artist, = ax.plot(domain.geometry.x, domain.geometry.y, 'k-', label='__nolegend__')
 
     beta_artists = []
-    if beta is not None:
-        beta_selectors = [beta < 0, beta == 0, beta > 0]
-        beta_markers = ['s', 'o', '^']
-        beta_labels = ['negative', 'neutral', 'positive']
-        beta_artists = [
-            ax.plot(domain_x[idx], domain_y[idx], marker, ls='none', label=label)[0]
-            for idx, marker, label in zip(beta_selectors, beta_markers, beta_labels)
-        ]
-        if show_legend:
-            leg = ax.legend()
+    beta_selectors = [domain[betacol] < 0, domain[betacol] == 0, domain[betacol] > 0]
+    beta_markers = ['s', 'o', '^']
+    beta_labels = ['negative', 'neutral', 'positive']
+    beta_artists = [
+        ax.plot(domain.geometry.x[idx], domain.geometry.y[idx], marker, ls='none', label=label)[0]
+        for idx, marker, label in zip(beta_selectors, beta_markers, beta_labels)
+    ]
+    if show_legend:
+        leg = ax.legend()
 
     ax.autoscale()
     ax.margins(0.1)

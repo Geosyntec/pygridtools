@@ -929,7 +929,8 @@ class ModelGrid(object):
         return cls(gridgen.x, gridgen.y, crs=crs).update_cell_mask()
 
 
-def make_grid(ny, nx, domain, crs=None, rawgrid=True, **gparams):
+def make_grid(ny, nx, domain, betacol='beta', crs=None, rawgrid=True,
+              **gg_params):
     """
     Generate a :class:`~pygridgen.Gridgen` or :class:`~ModelGrid`
     from scratch. This can take a large number of parameters passed
@@ -941,13 +942,12 @@ def make_grid(ny, nx, domain, crs=None, rawgrid=True, **gparams):
     ny, nx : int
         The number of rows and columns that will make up the grid's
         *nodes*. Note the final grid *cells* will be (ny-1) by (nx-1).
-    domain : optional pandas.DataFrame or None (default)
-        Defines the boundary of the model area. Must be provided if
-        `makegrid` = True. Required columns:
-
-          - 'x' (easting)
-          - 'y' (northing),
-          - 'beta' (turning points, must sum to 1)
+    domain : GeoDataFrame
+        Defines the boundary of the model area. Needs to have a column of
+        Point geometries and a a column of beta (turning point) values.
+    betacol : str
+        Label of the column in *domain* that contains the beta (i.e., turning
+        point) values of domain. This sum of this column must be 4.
     crs : dict or str, optional
         Output projection parameters as string or in dictionary form.
     rawgrid : bool (default = True)
@@ -1014,13 +1014,15 @@ def make_grid(ny, nx, domain, crs=None, rawgrid=True, **gparams):
     pygridgen.Gridgen, pygridgen.csa, pygridtools.ModelGrid
 
     """
-
+    crs = domain.crs or crs
     try:
         import pygridgen
     except ImportError:  # pragma: no cover
         raise ImportError("`pygridgen` not installed. Cannot make grid.")
 
-    grid = pygridgen.Gridgen(domain.x, domain.y, domain.beta, (ny, nx), **gparams)
+    grid = pygridgen.Gridgen(domain.geometry.x, domain.geometry.y,
+                             domain.loc[:, betacol].values, (ny, nx),
+                             **gg_params)
 
     if rawgrid:
         return grid

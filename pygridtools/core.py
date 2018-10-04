@@ -645,22 +645,20 @@ class ModelGrid(object):
         masked.cell_mask = mask
         return masked
 
-    def mask_nodes(self, gdf, min_nodes=3, inside=False,
+    def mask_nodes(self, inside=None, outside=None, min_nodes=3,
                    use_existing=False, triangles=False):
         """ Create mask the ModelGrid based on its nodes with a polygon.
 
         Parameters
         ----------
-        polyverts : sequence of a polygon's vertices
-            A sequence of x-y pairs for each vertex of the polygon.
+        inside, outside : GeoDataFrame, optional
+            GeoDataFrames of Polygons or MultiPolygons inside or outside of
+            which nodes will be masked, respectively.
         min_nodes : int (default = 3)
             Only used when ``use_centroids`` is False. This is the
             minimum number of nodes inside the polygon required to mark
             the cell as "inside". Must be greater than 0, but no more
             than 4.
-        inside : bool (default = True)
-            Toggles masking of cells either *inside* (True) or *outside*
-            (False) the polygon.
         use_existing : bool (default = True)
             When True, the newly computed mask is combined (via a
             bit-wise `or` operation) with the existing ``cell_mask``
@@ -673,30 +671,46 @@ class ModelGrid(object):
             to the cells.
 
         """
+        if inside is None and outside is None:
+            raise ValueError("must provide at least one of `inside` or `outside`")
+
         if triangles:
             raise NotImplementedError("triangular cells are not yet implemented")
 
         if min_nodes <= 0 or min_nodes > 4:
             raise ValueError("`min_nodes` must be greater than 0 and no more than 4.")
 
-        poly = validate.simple_polygon_gdf(gdf).geometry.tolist()
-        _node_mask = misc.mask_with_polygon(self.xn, self.yn, *poly, inside=inside)
+        if inside is not None:
+            poly = validate.simple_polygon_gdf(inside).geometry.tolist()
+            inside_node_mask = misc.mask_with_polygon(
+                self.xn, self.yn, *poly, inside=True
+            )
+        else:
+            inside_node_mask = numpy.zeros_like(self.xn).astype(bool)
+
+        if outside is not None:
+            poly = validate.simple_polygon_gdf(outside).geometry.tolist()
+            outside_node_mask = misc.mask_with_polygon(
+                self.xn, self.yn, *poly, inside=False
+            )
+        else:
+            outside_node_mask = numpy.zeros_like(self.xn).astype(bool)
+
+        node_mask = numpy.bitwise_or(inside_node_mask, outside_node_mask)
 
         cell_mask = (
-            misc.padded_sum(_node_mask.astype(int), window=1) >= min_nodes
+            misc.padded_sum(node_mask.astype(int), window=1) >= min_nodes
         ).astype(bool)
         return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
 
-    def mask_centroids(self, gdf, inside=True, use_existing=True):
+    def mask_centroids(self, inside=None, outside=None, use_existing=True):
         """ Create mask for the cells of the ModelGrid with a polygon.
 
         Parameters
         ----------
-        polyverts : sequence of a polygon's vertices
-            A sequence of x-y pairs for each vertex of the polygon.
-        inside : bool (default = True)
-            Toggles masking of cells either *inside* (True) or *outside*
-            (False) the polygon.
+        inside, outside : GeoDataFrame, optional
+            GeoDataFrames of Polygons or MultiPolygons inside or outside of
+            which nodes will be masked, respectively.
         use_existing : bool (default = True)
             When True, the newly computed mask is combined (via a
             bit-wise `or` operation) with the existing ``cell_mask``
@@ -709,8 +723,26 @@ class ModelGrid(object):
             to the cells.
 
         """
-        poly = validate.simple_polygon_gdf(gdf).geometry.tolist()
-        cell_mask = misc.mask_with_polygon(self.xc, self.yc, *poly, inside=inside)
+        if inside is None and outside is None:
+            raise ValueError("must provide at least one of `inside` or `outside`")
+
+        if inside is not None:
+            poly = validate.simple_polygon_gdf(inside).geometry.tolist()
+            inside_cell_mask = misc.mask_with_polygon(
+                self.xc, self.yc, *poly, inside=True
+            )
+        else:
+            inside_cell_mask = numpy.zeros_like(self.xc).astype(bool)
+
+        if outside is not None:
+            poly = validate.simple_polygon_gdf(outside).geometry.tolist()
+            outside_cell_mask = misc.mask_with_polygon(
+                self.xc, self.yc, *poly, inside=False
+            )
+        else:
+            outside_cell_mask = numpy.zeros_like(self.xc).astype(bool)
+
+        cell_mask = numpy.bitwise_or(inside_cell_mask, outside_cell_mask)
         return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
 
     @numpy.deprecate(message='use mask_nodes or mask_centroids')
@@ -1006,12 +1038,11 @@ def make_grid(ny, nx, domain, betacol='beta', crs=None, rawgrid=True,
     Notes
     -----
     If your boundary has a lot of points, this really can take quite
-    some time. Setting verbose=True will help track the progress of the
-    grid generation.
+    some time.
 
     See Also
     --------
-    pygridgen.Gridgen, pygridgen.csa, pygridtools.ModelGrid
+    pygridgen.Gridgen, pygridtools.ModelGrid
 
     """
     crs = domain.crs or crs

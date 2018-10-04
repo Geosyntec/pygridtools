@@ -598,14 +598,14 @@ def test_extract(mg, simple_nodes):
     nptest.assert_array_equal(result.nodes_y, yn[2:5, 3:6])
 
 
-@pytest.mark.parametrize(('inside', 'use_existing'), [
-    (True, False),
-    (True, True),
-    (False, False)
+@pytest.mark.parametrize(('where', 'use_existing'), [
+    ('inside', False),
+    ('inside', True),
+    ('outside', False)
 ])
-def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
+def test_ModelGrid_mask_centroids(mg, polyverts, where, use_existing):
     expected = {
-        (True, False): numpy.array([
+        ('inside', False): numpy.array([
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 0],
@@ -615,7 +615,7 @@ def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0]
         ]),
-        (True, True): numpy.array([
+        ('inside', True): numpy.array([
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1],
             [0, 0, 0, 1, 1, 0],
@@ -625,7 +625,7 @@ def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
             [0, 0, 1, 1, 1, 1],
             [0, 0, 1, 1, 1, 1]
         ]),
-        (False, False):  numpy.array([
+        ('outside', False):  numpy.array([
             [1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1],
             [1, 1, 1, 0, 0, 1],
@@ -637,11 +637,11 @@ def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
         ])
     }
 
-    result = mg.mask_centroids(polyverts, inside=inside, use_existing=use_existing)
+    result = mg.mask_centroids(**{where: polyverts}, use_existing=use_existing)
 
     nptest.assert_array_equal(
         result.cell_mask.astype(int),
-        expected[(inside, use_existing)].astype(int)
+        expected[(where, use_existing)].astype(int)
     )
 
 
@@ -652,7 +652,15 @@ def test_ModelGrid_mask_centroids(mg, polyverts, inside, use_existing):
 ])
 def test_ModelGrid_mask_nodes_errors(mg, polyverts, kwargs, error):
     with raises(error):
-        mg.mask_nodes(polyverts, **kwargs)
+        mg.mask_nodes(inside=polyverts, **kwargs)
+
+
+def test_masks_no_polys(mg):
+    with raises(ValueError):
+        mg.mask_nodes()
+
+    with raises(ValueError):
+        mg.mask_centroids()
 
 
 def test_ModelGrid_to_point_geodataframe(g1):

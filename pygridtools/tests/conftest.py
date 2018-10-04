@@ -189,7 +189,7 @@ def river_grid(river):
         52.9, 53.5, 54.2, 54.9, 55.6, 56.3, 57.1, 57.8, 58.5, 59.3
     ] * 20]).reshape((20, 20)).T
 
-    return ModelGrid(_x, _y).mask_nodes(river, min_nodes=2)
+    return ModelGrid(_x, _y).mask_nodes(outside=river, min_nodes=2)
 
 
 @pytest.fixture(scope='module')

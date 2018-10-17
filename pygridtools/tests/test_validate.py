@@ -172,19 +172,6 @@ def test_xy_array_only_one_mask():
         validate.xy_array(_x, y)
 
 
-@pytest.mark.parametrize(('mode', 'expected', 'error'), [
-    ('z', None, ValueError),
-    ('A', 'a', None),
-    ('a', 'a', None),
-    ('W', 'w', None),
-    ('w', 'w', None)
-])
-def test_file_mode(mode, expected, error):
-    with raises(error):
-        result = validate.file_mode(mode)
-        assert expected == result
-
-
 @pytest.mark.parametrize(('x', 'y', 'offset', 'expected'), [
     (numpy.zeros((8, 7)), None, 0, None),
     (numpy.zeros((8, 7)), numpy.zeros((6, 5)), 0, None),

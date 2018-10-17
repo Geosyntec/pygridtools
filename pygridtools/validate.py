@@ -46,7 +46,8 @@ def mpl_ax(ax, fallback='new'):
 
 def polygon(polyverts, min_points=3):
     if isinstance(polyverts, geometry.Polygon):
-        polyverts = [_ for _ in polyverts.exterior.coords][:-1]
+        # might have Z coordinate. only pull X, Y
+        polyverts = [xyz[:2] for xyz in polyverts.exterior.coords][:-1]
 
     polyverts_array = numpy.asarray(polyverts)
     if polyverts_array.ndim != 2:
@@ -57,7 +58,7 @@ def polygon(polyverts, min_points=3):
         raise ValueError('polyverts must be two columns of points')
 
     if polyverts_array.shape[0] < min_points:
-        raise ValueError('polyverts must contain at least {} points'.format(min_points))
+        raise ValueError('polyverts must contain at least 3 points')
 
     return polyverts_array
 
@@ -107,13 +108,6 @@ def xy_array(x, y, as_pairs=True):
         return numpy.array(list(zip(x.flatten(), y.flatten())))
     else:
         return x, y
-
-
-def file_mode(mode):
-    if mode.lower() not in ['a', 'w']:
-        raise ValueError('`mode` must be either "a" (append) or "w" (write)')
-
-    return mode.lower()
 
 
 def elev_or_mask(x, other, array_name=None, offset=1, failNone=False):

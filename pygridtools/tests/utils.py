@@ -21,11 +21,7 @@ def assert_textfiles_equal(baselinefile, outputfile):
 def assert_gis_files_equal(baselinefile, outputfile, atol=0.001):
     expected = geopandas.read_file(baselinefile)
     result = geopandas.read_file(outputfile)
-    pdtest.assert_frame_equal(
-        result.drop('geometry', axis=1).sort_index(axis='columns'),
-        expected.drop('geometry', axis=1).sort_index(axis='columns')
-    )
-    assert result.geom_almost_equals(expected).all()
+    assert_gdfs_equal(expected, result)
 
 
 def assert_gdfs_equal(expected_gdf, result_gdf):

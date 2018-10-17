@@ -12,8 +12,14 @@ import pytest
 import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
+try:
+    import ipywidgets
+except ImportError:
+    ipywidgets = None
+
 from pygridtools import iotools
-from pygridgen.tests.utils import raises
+import pygridgen
+from pygridgen.tests.utils import raises, requires
 from . import utils
 
 
@@ -76,3 +82,19 @@ def test_read_grid():
 
     with raises(NotImplementedError):
         result_df = iotools.read_grid(cellfile)
+
+
+def test__change_shape(simple_grid):
+    xn = iotools._change_shape(simple_grid, 18, 12, lambda x, y: x)
+    assert xn.shape == (18, 12)
+
+
+@requires(ipywidgets, 'ipywidgets')
+@requires(pygridgen, 'pygridgen')
+def test_interactive_grid_shape(simple_grid):
+    newgrid, widget = iotools.interactive_grid_shape(simple_grid, max_n=100)
+    assert isinstance(newgrid, pygridgen.grid.Gridgen)
+    assert isinstance(widget, ipywidgets.interactive)
+    assert isinstance(widget.children[0], ipywidgets.IntSlider)
+    assert isinstance(widget.children[1], ipywidgets.IntSlider)
+    assert widget.children[0].max == widget.children[1].max == 100

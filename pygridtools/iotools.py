@@ -8,8 +8,16 @@ import pandas
 from shapely.geometry import Point, Polygon
 import geopandas
 
+try:
+    import ipywidgets
+except ImportError:  # pragma: no cover
+    ipywidgets = None
+
+from pygridgen.tests.utils import requires
+
 from pygridtools import misc
 from pygridtools import validate
+from pygridtools import viz
 
 
 def _warn_filterfxn(filterfxn):
@@ -145,3 +153,83 @@ def read_grid(gisfile, icol='ii', jcol='jj', othercols=None, expand=1,
             raise NotImplementedError(msg)
 
         return grid.assign(easting=grid['geometry'].x, northing=grid['geometry'].y)[final_cols]
+
+
+def _change_shape(g, irows, jcols, plotfxn, plotopts=None):
+    """ changes the number of rows and cols in a Gridgen (g) and passes the
+    grid nodes to a plotting function
+    """
+    if not plotopts:
+        plotopts = {}
+    g.ny = irows
+    g.nx = jcols
+    g.generate_grid()
+    return plotfxn(g.x, g.y, **plotopts)
+
+
+@requires(ipywidgets, 'ipywidgets')
+def interactive_grid_shape(grid, max_n=200, plotfxn=None, **kwargs):
+    """ Interactive ipywidgets for select the shape of a grid
+
+    Parameters
+    ----------
+    grid : pygridgen.Gridgen
+        The base grid from which the grids of new shapes (resolutions) will be
+        generated.
+    max_n : int (default = 200)
+        The maximum number of possible cells in each dimension.
+    plotfxn : callable, optional
+        Function that plots the grid to provide user feedback. The call
+        signature of this function must accept to positional parameters for the
+        x- and y-arrays of node locations, and then accept any remaining keyword
+        arguments. If not provided, *pygridtools.viz.plot_cells* is used.
+
+    Additional Parameters
+    ---------------------
+    All remaining keyword arguments are passed to *plotfxn*
+
+    Returns
+    -------
+    newgrid : pygridgen.Gridgen
+        The reshaped grid
+    widget : ipywidgets.interactive
+        Collection of IntSliders for changing the number cells along each axis
+        in the grid.
+
+    Examples
+    --------
+    >>> from pygridgen import grid
+    >>> from pygridtools import viz, iotools
+    >>> def make_fake_bathy(shape):
+    ...     j_cells, i_cells = shape
+    ...     y, x = numpy.mgrid[:j_cells, :i_cells]
+    ...     z = (y - (j_cells // 2))** 2 - x
+    ...     return z
+    >>> def plot_grid(x, y, ax=None):
+    ...     shape = x[1:, 1:].shape
+    ...     bathy = make_fake_bathy(shape)
+    ...     if not ax:
+    ...         fig, ax = pyplot.subplots(figsize=(8, 8))
+    ...     ax.set_aspect('equal')
+    ...     return viz.plot_cells(x, y, ax=ax, cmap='Blues', colors=bathy, lw=0.5, ec='0.3')
+    >>> d = numpy.array([
+    ... (13, 16,  1.00), (18, 13,  1.00), (12,  7,  0.50),
+    ... (10, 10, -0.25), ( 5, 10, -0.25), ( 5,  0,  1.00),
+    ... ( 0,  0,  1.00), ( 0, 15,  0.50), ( 8, 15, -0.25),
+    ... (11, 13, -0.25)])
+    >>> g = grid.Gridgen(d[:, 0], d[:, 1], d[:, 2], (75, 75), ul_idx=1, focus=None)
+    >>> new_grid, widget = iotools.interactive_grid_shape(g, plotfxn=plot_grid)
+    """
+
+    if not plotfxn:
+        plotfxn = viz.plot_cells
+
+    common_opts = dict(min=2, max=max_n, continuous_update=False)
+    return grid, ipywidgets.interactive(
+        _change_shape,
+        g=ipywidgets.fixed(grid),
+        irows=ipywidgets.IntSlider(value=grid.ny, **common_opts),
+        jcols=ipywidgets.IntSlider(value=grid.nx, **common_opts),
+        plotfxn=ipywidgets.fixed(plotfxn),
+        plotopts=ipywidgets.fixed(kwargs)
+    )

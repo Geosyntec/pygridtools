@@ -18,6 +18,9 @@ import os
 import shlex
 import sphinx
 
+print('inside conf.py')
+print(sys.executable)
+
 numpydoc_show_class_members = False
 autodoc_member_order = 'bysource'
 
@@ -45,7 +48,7 @@ extensions = [
     'numpydoc',
     'IPython.sphinxext.ipython_directive',
     'IPython.sphinxext.ipython_console_highlighting',
-    'matplotlib.sphinxext.only_directives',
+    # 'matplotlib.sphinxext.only_directives',
     'matplotlib.sphinxext.plot_directive',
 ]
 

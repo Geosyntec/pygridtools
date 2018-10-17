@@ -44,6 +44,13 @@ To create new grids on Linux or Mac OS, you'll need ``pygridgen``
 
     conda activate grid
     conda install pygridgen --channel=conda-forge
+    
+If you want to use the interactive ipywidgets to manipulate grid parameters, you'll need a few elements of the jupyter ecosystem
+
+::
+
+    conda activate grid
+    conda install notebook ipywidgets --channel=conda-forge
 
 If you'd like to build the docs, you need a few more things
 

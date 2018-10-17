@@ -3,20 +3,20 @@
 
 .. image:: http://i.imgur.com/JWdgAKk.png
 
-
-
 .. image:: https://travis-ci.org/Geosyntec/pygridtools.svg?branch=master
     :target: https://travis-ci.org/Geosyntec/pygridtools
 
 .. image:: https://codecov.io/gh/Geosyntec/pygridtools/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/Geosyntec/pygridtools
+  
+
 
 
 A high-level interface for curvilinear-orthogonal grid generation, manipulation, and visualization.
 
 Depends heavily on `gridgen <https://github.com/sakov/gridgen-c>`_ and `pygridgen <https://pygridgen.github.io/pygridgen>`_
 
-The full documentation for this for library is `here <https://Geosyntec.github.io/pygridtools>`_.
+The full documentation for this for library is `here <https://pygridtools.readthedocs.io/>`_.
 
 Installation and Depedencies
 ----------------------------

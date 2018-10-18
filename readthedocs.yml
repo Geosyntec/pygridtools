@@ -9,3 +9,5 @@ python:
 
 conda:
   file: docs/docenv.yml
+
+formats: []

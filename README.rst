@@ -22,7 +22,7 @@ The full documentation for this for library is `here <https://pygridtools.readth
 
 Installation and Depedencies
 ----------------------------
-`conda-forge <https:/github.com/conda-forge>`_ generously maintains Linux and Mac OS X conda builds of *pygridtools*.
+`conda-forge <https://github.com/conda-forge/pygridtools-feedstock>`_ generously maintains Linux and Mac OS X conda builds of *pygridtools*.
 
 Install with
 

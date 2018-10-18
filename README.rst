@@ -8,9 +8,9 @@
     :target: https://travis-ci.org/Geosyntec/pygridtools
 
 .. image:: https://codecov.io/gh/Geosyntec/pygridtools/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/Geosyntec/pygridtools
+    :target: https://codecov.io/gh/Geosyntec/pygridtools
 
-  .. image:: https://readthedocs.org/projects/pygridtools/badge/?version=latest
+.. image:: https://readthedocs.org/projects/pygridtools/badge/?version=latest
     :target: https://pygridtools.readthedocs.io/en/latest/?badge=latest
 
 

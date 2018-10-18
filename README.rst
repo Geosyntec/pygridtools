@@ -1,14 +1,15 @@
 `pygridtools`
 =============
 
-.. image:: http://i.imgur.com/JWdgAKk.png
+.. image:: docs/_static/logo.png
+
 
 .. image:: https://travis-ci.org/Geosyntec/pygridtools.svg?branch=master
     :target: https://travis-ci.org/Geosyntec/pygridtools
 
 .. image:: https://codecov.io/gh/Geosyntec/pygridtools/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/Geosyntec/pygridtools
-  
+
 
 
 
@@ -44,7 +45,7 @@ To create new grids on Linux or Mac OS, you'll need ``pygridgen``
 
     conda activate grid
     conda install pygridgen --channel=conda-forge
-    
+
 If you want to use the interactive ipywidgets to manipulate grid parameters, you'll need a few elements of the jupyter ecosystem
 
 ::

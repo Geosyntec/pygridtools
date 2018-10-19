@@ -98,3 +98,87 @@ def test_interactive_grid_shape(simple_grid):
     assert isinstance(widget.children[0], ipywidgets.IntSlider)
     assert isinstance(widget.children[1], ipywidgets.IntSlider)
     assert widget.children[0].max == widget.children[1].max == 100
+
+
+class Test__FocusProperties(object):
+    def __init__(self):
+        self.fp = iotools._FocusProperties()
+
+    def teardown(self):
+        None
+
+    def test_attributes(self):
+        assert hasattr(self.fp, 'pos')
+        assert isinstance(self.fp.pos, float)
+
+        assert hasattr(self.fp, 'axis')
+        assert isinstance(self.fp.axis, str)
+
+        assert hasattr(self.fp, 'factor')
+        assert isinstance(self.fp.factor, float)
+
+        assert hasattr(self.fp, 'extent')
+        assert isinstance(self.fp.extent, float)
+
+        assert hasattr(self.fp, 'focuspoint')
+        assert isinstance(self.fp.focuspoint, pygridgen.grid._FocusPoint)
+
+@pytest.mark.skip(reason="Plotting wrapper")
+def test__plot_focus_point():
+    pass
+
+def test__change_focus(simple_grid):
+    old_axis = 'x'
+    old_pos = 0.5
+    old_factor = 1
+    old_extent = 0.5
+
+    new_axis = 'y'
+    new_pos = 0.9
+    new_factor = 2
+    new_extent = 0.1
+
+    fp = iotools._FocusProperties(
+        pos=old_pos, axis=old_axis,factor=old_factor, extent=old_extent)
+    others = (iotools._FocusProperties(
+        pos=old_pos, axis=old_axis, factor=old_factor, extent=old_extent),)*3
+
+    xn = iotools._change_focus(fp, others, new_axis, new_pos,
+        new_factor, new_extent, simple_grid, lambda x, y: x)
+
+    # test single focus modification
+    assert fp.axis == new_axis
+    assert fp.pos == new_pos
+    assert fp.factor == new_factor
+    assert fp.extent == new_extent
+
+    # test others are not modified
+    for o in others:
+        assert o.axis == old_axis
+        assert o.pos == old_pos
+        assert o.factor == old_factor
+        assert o.extent == old_extent
+
+
+@requires(ipywidgets, 'ipywidgets')
+@requires(pygridgen, 'pygridgen')
+def test_interactive_grid_focus(simple_grid):
+    focus_points, widget = iotools.interactive_grid_focus(simple_grid, n_points=2)
+
+    assert isinstance(focus_points[0], iotools._FocusProperties)
+    assert isinstance(focus_points[1], iotools._FocusProperties)
+    assert isinstance(widget, ipywidgets.widgets.widget_selectioncontainer.Tab)
+    assert isinstance(widget.children[0], ipywidgets.widgets.interaction.interactive)
+    assert isinstance(widget.children[0].children[0], ipywidgets.widgets.widget_selection.ToggleButtons)
+    assert isinstance(widget.children[0].children[1], ipywidgets.widgets.widget_float.FloatSlider)
+    assert isinstance(widget.children[0].children[2], ipywidgets.widgets.widget_float.FloatLogSlider)
+    assert isinstance(widget.children[0].children[3], ipywidgets.widgets.widget_float.FloatSlider)
+
+    assert isinstance(widget.children[1], ipywidgets.widgets.interaction.interactive)
+    assert isinstance(widget.children[1].children[0], ipywidgets.widgets.widget_selection.ToggleButtons)
+    assert isinstance(widget.children[1].children[1], ipywidgets.widgets.widget_float.FloatSlider)
+    assert isinstance(widget.children[1].children[2], ipywidgets.widgets.widget_float.FloatLogSlider)
+    assert isinstance(widget.children[1].children[3], ipywidgets.widgets.widget_float.FloatSlider)
+    # todo: need to figure ranges after some irl testing to then test min and max:
+        # assert widget.children[1].children[0].min == 0.01
+        # assert widget.children[1].children[0].max == 1

@@ -14,6 +14,7 @@ except ImportError:  # pragma: no cover
     ipywidgets = None
 
 from pygridgen.tests.utils import requires
+from pygridgen import grid as pyggrid
 
 from pygridtools import misc
 from pygridtools import validate
@@ -234,10 +235,6 @@ def interactive_grid_shape(grid, max_n=200, plotfxn=None, **kwargs):
         plotopts=ipywidgets.fixed(kwargs)
     )
 
-def make_grid(focus):
-    return grid.Gridgen([10, 65, 65, 10], [5, 5, 40, 40], [1, 1, 1, 1], (35, 55),
-                        ul_idx=3, focus=focus)
-
 class _FocusProperties():
     """A dummy class to hold the properties of the grid._FocusPoint() object.
     This class is required so that multiple ipywidgets.interactive widgets
@@ -266,7 +263,7 @@ class _FocusProperties():
     @property
     def focuspoint(self):
         """Property returns grid._FocusPoint"""
-        return grid._FocusPoint(pos=self.pos, axis=self.axis, factor=self.factor, extent=self.extent)
+        return pyggrid._FocusPoint(pos=self.pos, axis=self.axis, factor=self.factor, extent=self.extent)
 
 def _plot_focus_points(focus_points, g, plotfxn, plotopts=None):
     """Plots multiple focus points on a grid.
@@ -279,15 +276,13 @@ def _plot_focus_points(focus_points, g, plotfxn, plotopts=None):
     """
     if not plotopts:
         plotopts = {}
+
     # extact the grid._FocusPoint from the dummy class
-    f = grid.Focus(*(fp.focuspoint for fp in focus_points))
+    f = pyggrid.Focus(*(fp.focuspoint for fp in focus_points))
     g.focus = f
     g.generate_grid()
 
-    color = plotopts.pop('color', 'seagreen')
-    alpha = plotopts.pop('alpha', 0.7)
-
-    return plotfxn(g.x, g.y, color=color, alpha=alpha, **plotopts)
+    return plotfxn(g.x, g.y, **plotopts)
 
 def _change_focus(fpoint, others, axis, pos, factor, extent, g, plotfxn, plotopts=None):
     """
@@ -348,8 +343,8 @@ def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
     newgrid : pygridgen.Gridgen
         The reshaped grid
     widget : ipywidgets.interactive
-        Collection of IntSliders for changing the number cells along each axis
-        in the grid.
+        Collection of Tab / IntSliders for changing the number focus points
+        along each axis in the grid.
      Examples
     --------
     >>> from pygridgen import grid
@@ -400,4 +395,4 @@ def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
     for n in range(len(widgets)):
         tab_nest.set_title(n, 'Focus {}'.format(n+1))
 
-    return tab_nest, focus_points
+    return focus_points, tab_nest

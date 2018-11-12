@@ -5,6 +5,7 @@ import warnings
 
 import numpy
 import pandas
+from matplotlib import pyplot
 from shapely.geometry import Point, Polygon
 import geopandas
 
@@ -14,7 +15,7 @@ except ImportError:  # pragma: no cover
     ipywidgets = None
 
 from pygridgen.tests.utils import requires
-from pygridgen import grid as pyggrid
+import pygridgen as pgg
 
 from pygridtools import misc
 from pygridtools import validate
@@ -235,13 +236,15 @@ def interactive_grid_shape(grid, max_n=200, plotfxn=None, **kwargs):
         plotopts=ipywidgets.fixed(kwargs)
     )
 
+
 class _FocusProperties():
     """A dummy class to hold the properties of the grid._FocusPoint() object.
     This class is required so that multiple ipywidgets.interactive widgets
     can interact on the same plot.
     """
     def __init__(self, pos=0.5, axis='x', factor=0.5, extent=0.5):
-        """Parameters
+        """
+        Parameters
         ----------
         pos : float
             Relative position within the grid of the focus. This must
@@ -263,22 +266,36 @@ class _FocusProperties():
     @property
     def focuspoint(self):
         """Property returns grid._FocusPoint"""
-        return pyggrid._FocusPoint(pos=self.pos, axis=self.axis, factor=self.factor, extent=self.extent)
+        return pgg.grid._FocusPoint(pos=self.pos, axis=self.axis, factor=self.factor, extent=self.extent)
 
 def _plot_focus_points(focus_points, g, plotfxn, plotopts=None):
     """Plots multiple focus points on a grid.
+
     Parameters
     ----------
     focus_points : tuple of FocusProperties
         These focus points are applied to grid `g`.
     g : grid.Gridgen
         The grid to plot.
+    plotfxn : callable
+        Function that plots the grid to provide user feedback. The call
+        signature of this function must accept to positional parameters for the
+        x- and y-arrays of node locations, and then accept any remaining keyword
+        arguments.
+
+    Additional Parameters
+    ---------------------
+    All remaining keyword arguments are passed to *plotfxn*
+
+    Returns
+    -------
+    plotfxn(g.x, g.y, **plotopts)
     """
     if not plotopts:
         plotopts = {}
 
     # extact the grid._FocusPoint from the dummy class
-    f = pyggrid.Focus(*(fp.focuspoint for fp in focus_points))
+    f = pgg.grid.Focus(*(fp.focuspoint for fp in focus_points))
     g.focus = f
     g.generate_grid()
 
@@ -295,11 +312,11 @@ def _change_focus(fpoint, others, axis, pos, factor, extent, g, plotfxn, plotopt
         The focus point modified and applied to grid `g`.
     others : tuple of FocusProperties
         These focus points are applied to grid `g` but not modified.
+    axis : string ('x' or 'y')
+        Axis along which the grid will be focused by `fpoint`.
     pos : float
         Relative position within the grid of the focus `fpoint`. This must
         be in the range [0, 1]
-    axis : string ('x' or 'y')
-        Axis along which the grid will be focused by `fpoint`.
     factor : float
         Amount to focus grid by `fpoint`. Creates cell sizes that are factor
         smaller (factor > 1) or larger (factor < 1) in the focused
@@ -308,6 +325,19 @@ def _change_focus(fpoint, others, axis, pos, factor, extent, g, plotfxn, plotopt
         Lateral extent of focused region by `fpoint`.
     g : grid.Gridgen
         The grid to plot.
+    plotfxn : callable
+        Function that plots the grid to provide user feedback. The call
+        signature of this function must accept to positional parameters for the
+        x- and y-arrays of node locations, and then accept any remaining keyword
+        arguments.
+
+    Additional Parameters
+    ---------------------
+    All remaining keyword arguments are passed to *plotfxn*
+
+    Returns
+    -------
+    _plot_focus_points(focuspoints, g, plotfxn, plotopts)
     """
     # update fpoint properties
     fpoint.pos=pos
@@ -318,21 +348,30 @@ def _change_focus(fpoint, others, axis, pos, factor, extent, g, plotfxn, plotopt
     focuspoints = (fpoint,) + others
     return _plot_focus_points(focuspoints, g, plotfxn, plotopts)
 
+def _plot_points_wrapper(x, y, **kwargs):
+    figsize = kwargs.pop('figsize', (9,9))
+    fig, ax = pyplot.subplots(figsize=figsize)
+    ax.set_aspect('equal')
+
+    return viz.plot_points(x, y, ax=ax, **kwargs)
+
 @requires(ipywidgets, 'ipywidgets')
 def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
     """
+    Interactive ipywidgets for changing focus points.
+
     Parameters
     ----------
     grid : pygridgen.Gridgen
-        The base grid from which the grids of new shapes (resolutions) will be
+        The base grid from which the grids of new focus points will be
         generated.
-    max_n : int (default = 200)
-        The maximum number of possible cells in each dimension.
+    n_points : int
+        The number of focal points to add to the grid.
     plotfxn : callable, optional
         Function that plots the grid to provide user feedback. The call
         signature of this function must accept to positional parameters for the
         x- and y-arrays of node locations, and then accept any remaining keyword
-        arguments. If not provided, *pygridtools.viz.plot_cells* is used.
+        arguments. If not provided, *pygridtools.viz.plot_points* is used.
 
     Additional Parameters
     ---------------------
@@ -345,7 +384,8 @@ def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
     widget : ipywidgets.interactive
         Collection of Tab / IntSliders for changing the number focus points
         along each axis in the grid.
-     Examples
+
+    Examples
     --------
     >>> from pygridgen import grid
     >>> from pygridtools import viz, iotools
@@ -360,7 +400,8 @@ def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
     """
 
     if not plotfxn:
-        plotfxn = viz.plot_points
+        plotfxn = _plot_points_wrapper
+
     # common linear slider options
     common_opts = dict(min=0.01, max=1, step=0.01, continuous_update=False)
     # common log slider options

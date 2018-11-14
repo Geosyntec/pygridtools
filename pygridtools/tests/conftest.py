@@ -7,6 +7,7 @@ import geopandas
 import pytest
 
 from pygridtools import ModelGrid
+from pygridtools.iotools import _FocusProperties
 
 
 class FakeGrid(object):
@@ -201,3 +202,11 @@ def river_bathy(river_grid):
 @pytest.fixture(scope='module')
 def example_crs():
     return {'init': 'epsg:26916'}
+
+
+@pytest.fixture(scope='module')
+def focus_properties():
+    '''
+    Makes iotools._FocusPropterties
+    '''
+    return _FocusProperties()

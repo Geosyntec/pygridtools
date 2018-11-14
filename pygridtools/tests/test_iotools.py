@@ -128,9 +128,9 @@ def test__change_focus(simple_grid):
     new_extent = 0.1
 
     fp = iotools._FocusProperties(
-        pos=old_pos, axis=old_axis,factor=old_factor, extent=old_extent)
+        pos=old_pos, axis=old_axis, factor=old_factor, extent=old_extent)
     others = (iotools._FocusProperties(
-        pos=old_pos, axis=old_axis, factor=old_factor, extent=old_extent),)*3
+        pos=old_pos, axis=old_axis, factor=old_factor, extent=old_extent),) * 3
 
     xn = iotools._change_focus(fp, others, new_axis, new_pos,
         new_factor, new_extent, simple_grid, lambda x, y: x)
@@ -171,5 +171,5 @@ def test_interactive_grid_focus_tabs(simple_grid, parent, child, widget_type):
     assert isinstance(widget.children[parent], ipywidgets.widgets.interaction.interactive)
     assert isinstance(widget.children[parent].children[child], widget_type)
     # todo: need to figure ranges after some irl testing to then test min and max:
-        # assert widget.children[1].children[0].min == 0.01
-        # assert widget.children[1].children[0].max == 1
+    # assert widget.children[1].children[0].min == 0.01
+    # assert widget.children[1].children[0].max == 1

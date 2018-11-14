@@ -258,15 +258,16 @@ class _FocusProperties():
         extent : float
             Lateral extent of focused region."""
 
-        self.pos=pos
-        self.axis=axis
-        self.factor=factor
-        self.extent=extent
+        self.pos = pos
+        self.axis = axis
+        self.factor = factor
+        self.extent = extent
 
     @property
     def focuspoint(self):
         """Property returns grid._FocusPoint"""
         return pgg.grid._FocusPoint(pos=self.pos, axis=self.axis, factor=self.factor, extent=self.extent)
+
 
 def _plot_focus_points(focus_points, g, plotfxn, plotopts=None):
     """Plots multiple focus points on a grid.
@@ -300,6 +301,7 @@ def _plot_focus_points(focus_points, g, plotfxn, plotopts=None):
     g.generate_grid()
 
     return plotfxn(g.x, g.y, **plotopts)
+
 
 def _change_focus(fpoint, others, axis, pos, factor, extent, g, plotfxn, plotopts=None):
     """
@@ -340,20 +342,22 @@ def _change_focus(fpoint, others, axis, pos, factor, extent, g, plotfxn, plotopt
     _plot_focus_points(focuspoints, g, plotfxn, plotopts)
     """
     # update fpoint properties
-    fpoint.pos=pos
-    fpoint.axis=axis
-    fpoint.factor=factor
-    fpoint.extent=extent
+    fpoint.pos = pos
+    fpoint.axis = axis
+    fpoint.factor = factor
+    fpoint.extent = extent
     # concat points to plot
     focuspoints = (fpoint,) + others
     return _plot_focus_points(focuspoints, g, plotfxn, plotopts)
 
+
 def _plot_points_wrapper(x, y, **kwargs):
-    figsize = kwargs.pop('figsize', (9,9))
+    figsize = kwargs.pop('figsize', (9, 9))
     fig, ax = pyplot.subplots(figsize=figsize)
     ax.set_aspect('equal')
 
     return viz.plot_points(x, y, ax=ax, **kwargs)
+
 
 @requires(ipywidgets, 'ipywidgets')
 def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
@@ -416,7 +420,7 @@ def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
         widget = ipywidgets.interactive(
             _change_focus,
             fpoint=ipywidgets.fixed(focus_points[n]),
-            others=ipywidgets.fixed(tuple(focus_points[:n] + focus_points[n+1:])),
+            others=ipywidgets.fixed(tuple(focus_points[:n] + focus_points[n + 1:])),
             axis=ipywidgets.ToggleButtons(
                 options=['x', 'y'],
                 description='Axis:'),
@@ -434,6 +438,6 @@ def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
     tab_nest = ipywidgets.Tab()
     tab_nest.children = widgets
     for n in range(len(widgets)):
-        tab_nest.set_title(n, 'Focus {}'.format(n+1))
+        tab_nest.set_title(n, 'Focus {}'.format(n + 1))
 
     return focus_points, tab_nest

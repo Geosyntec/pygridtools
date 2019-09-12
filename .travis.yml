@@ -7,7 +7,15 @@ matrix:
         - COVERAGE=false
     - python: 3.6
       env:
+        - COVERAGE=false
+        - ARGS=""
+    - python: 3.7
+      language: python
+      sudo: required
+      dist: xenial
+      env:
         - COVERAGE=true
+        - ARGS="--strict"
 
 before_install:
   # Here we just install Miniconda, which you shouldn't have to change.

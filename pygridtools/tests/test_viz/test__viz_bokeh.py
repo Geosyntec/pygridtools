@@ -1,7 +1,7 @@
 from pygridtools.viz import _viz_bokeh
 
 import pytest
-from pygridgen.tests.utils import raises
+from pygridgen.tests import raises
 
 
 def test__plot_domain(simple_boundary):

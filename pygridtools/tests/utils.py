@@ -1,7 +1,9 @@
 from pkg_resources import resource_filename
 from contextlib import contextmanager
 from functools import wraps
+from pathlib import Path
 import filecmp
+
 
 try:
     import pytest

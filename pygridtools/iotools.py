@@ -14,7 +14,7 @@ try:
 except ImportError:  # pragma: no cover
     ipywidgets = None
 
-from pygridgen.tests.utils import requires
+from pygridgen.tests import requires
 import pygridgen as pgg
 
 from pygridtools import misc

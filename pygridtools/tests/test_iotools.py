@@ -19,7 +19,7 @@ except ImportError:
 
 from pygridtools import iotools
 import pygridgen
-from pygridgen.tests.utils import raises, requires
+from pygridgen.tests import raises, requires
 from . import utils
 
 

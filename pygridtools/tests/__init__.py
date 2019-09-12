@@ -1,7 +1,7 @@
 from pkg_resources import resource_filename
 
 import pygridtools
-from pygridgen.tests.utils import requires
+from pygridgen.tests import requires
 
 try:
     import pytest
@@ -20,7 +20,7 @@ def test(*args):
 def teststrict(*args):
     options = list(set([
         resource_filename('pygridtools', ''),
-        '--pep',
+        '--pep8',
         '--mpl',
         '--doctest-modules'
     ] + list(args)))

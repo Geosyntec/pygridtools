@@ -51,6 +51,10 @@ GEFDC_TEMPLATE = dedent("""\
 """)
 
 
+def _n_digits(num):
+    return int(numpy.floor(numpy.log10(num))) + 1
+
+
 def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
                   writeheader=True, rowlabels=True,
                   maxcols=125, flip=True):
@@ -88,6 +92,9 @@ def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
 
     nrows, ncols = cell_array.shape
 
+    rowfmt = '{0:3d}  {1:s}\n'
+    colfmt = f'{{:0{_n_digits(ncols)}d}}'
+
     if cell_array.shape[1] > maxcols:
         first_array = cell_array[:, :maxcols]
         second_array = cell_array[:, maxcols:]
@@ -119,9 +126,8 @@ def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
                 row_strings = row.astype(str)
                 cell_text = ''.join(row_strings.tolist())
                 if rowlabels:
-                    row_text = '{0:3d}  {1:s}\n'.format(
-                        int(row_number), cell_text
-                    )
+                    rowheader = ''
+                    row_text = rowfmt.format(int(row_number), cell_text)
                 else:
                     row_text = '     {0:s}\n'.format(cell_text)
 

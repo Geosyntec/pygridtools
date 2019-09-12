@@ -17,6 +17,8 @@ import geopandas
 
 
 def assert_textfiles_equal(baselinefile, outputfile):
+    expectedtext = Path(baselinefile).open('r').read()
+    resulttext = Path(outputfile).open('r').read()
     assert filecmp.cmp(baselinefile, outputfile)
 
 

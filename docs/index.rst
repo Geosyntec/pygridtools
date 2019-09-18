@@ -10,6 +10,7 @@ Tutorials
    tutorial/01_GridgenBasics
    tutorial/02_ShapefilesAndCellMasks
    tutorial/03_MergingSpliting
+   tutorial/04_InteractiveWidgets
 
 API Reference
 -------------

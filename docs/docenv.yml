@@ -134,8 +134,7 @@ dependencies:
   - py=1.8.0=py_0
   - pycparser=2.19=py37_1
   - pygments=2.4.2=py_0
-  - pygridgen=0.2.dev0=dev_0
-  - pygridtools=0.3.1=dev_0
+  - pygridgen=0.2.1=py37hc1659b7_0
   - pyopenssl=19.0.0=py37_0
   - pyparsing=2.4.2=py_0
   - pyproj=2.3.1=py37h2fd02e8_0

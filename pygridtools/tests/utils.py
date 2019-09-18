@@ -1,7 +1,9 @@
 from pkg_resources import resource_filename
 from contextlib import contextmanager
 from functools import wraps
+from pathlib import Path
 import filecmp
+
 
 try:
     import pytest
@@ -15,6 +17,8 @@ import geopandas
 
 
 def assert_textfiles_equal(baselinefile, outputfile):
+    expectedtext = Path(baselinefile).open('r').read()
+    resulttext = Path(outputfile).open('r').read()
     assert filecmp.cmp(baselinefile, outputfile)
 
 

@@ -2,12 +2,17 @@ language: python
 
 matrix:
   include:
-    - python: 3.5
-      env:
-        - COVERAGE=false
     - python: 3.6
       env:
+        - COVERAGE=false
+        - ARGS=""
+    - python: 3.7
+      language: python
+      sudo: required
+      dist: xenial
+      env:
         - COVERAGE=true
+        - ARGS="--strict"
 
 before_install:
   # Here we just install Miniconda, which you shouldn't have to change.
@@ -20,9 +25,10 @@ before_install:
 install:
   # We just set up a conda environment with the right Python version. This
   # should not need changing.
-  - conda create --yes --channel=conda-forge --name=test python=$TRAVIS_PYTHON_VERSION pygridgen fiona geopandas scipy matplotlib ipywidgets pytest pytest-mpl pytest-cov pytest-pep8 coverage docopt requests pyyaml
+  - conda create --yes --channel=conda-forge --name=test python=$TRAVIS_PYTHON_VERSION gridgen fiona geopandas scipy matplotlib ipywidgets pytest pytest-mpl pytest-cov pytest-pep8 coverage docopt requests pyyaml
   - source activate test
   - pip install codecov
+  - pip install git+https://github.com/pygridgen/pygridgen.git
   - pip install .
 
 script:

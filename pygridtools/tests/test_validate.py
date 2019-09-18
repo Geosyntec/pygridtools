@@ -7,7 +7,7 @@ import pytest
 import numpy.testing as nptest
 
 from pygridtools import validate
-from pygridgen.tests.utils import raises
+from pygridgen.tests import raises
 from . import utils
 
 

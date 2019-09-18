@@ -14,7 +14,7 @@ import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from pygridtools import core
-from pygridgen.tests.utils import raises
+from pygridgen.tests import raises
 from . import utils
 
 BASELINE_IMAGES = 'baseline_files/test_core'

@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 DESCRIPTION = "utilities to facilitate grid generation"
 LONG_DESCRIPTION = DESCRIPTION
 NAME = "pygridtools"
-VERSION = "0.1"
+VERSION = "0.3.1"
 AUTHOR = "Paul Hobson (Geosyntec Consultants)"
 AUTHOR_EMAIL = "phobson@geosyntec.com"
 URL = "https://github.com/Geosyntec/pygridtools"

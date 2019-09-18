@@ -15,6 +15,20 @@ from pygridtools import gefdc
 from . import utils
 
 
+@pytest.mark.parametrize(('num', 'expected'), [
+    (5, 1),
+    (10, 2),
+    (89, 2),
+    (200, 3),
+    (999, 3),
+    (1200, 4),
+    (12000, 5),
+])
+def test__n_digits(num, expected):
+    result = gefdc._n_digits(num)
+    assert result == expected
+
+
 @pytest.mark.parametrize(('maxcols', 'knownfile'), [
     (150, resource_filename('pygridtools.tests.baseline_files', 'cell_basic.inp')),
     (5, resource_filename('pygridtools.tests.baseline_files', 'cell_chunked.inp'))

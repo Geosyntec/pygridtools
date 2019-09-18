@@ -185,10 +185,8 @@ def interactive_grid_shape(grid, max_n=200, plotfxn=None, **kwargs):
         signature of this function must accept to positional parameters for the
         x- and y-arrays of node locations, and then accept any remaining keyword
         arguments. If not provided, *pygridtools.viz.plot_cells* is used.
-
-    Additional Parameters
-    ---------------------
-    All remaining keyword arguments are passed to *plotfxn*
+    **kwargs : plotting parametes, optional
+        All remaining keyword arguments are passed to *plotfxn*
 
     Returns
     -------
@@ -244,6 +242,7 @@ class _FocusProperties():
     """
     def __init__(self, pos=0.5, axis='x', factor=0.5, extent=0.5):
         """
+
         Parameters
         ----------
         pos : float

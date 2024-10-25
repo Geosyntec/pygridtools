@@ -1,0 +1,42 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Run basic unit tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: mamba-org/setup-micromamba@v1
+      with:
+        # the create command looks like this:
+        micromamba-version: '2.0.2-2'
+        environment-name: test-env
+        create-args: >-
+          python=${{ matrix.python-version }}
+          gridgen
+          numpy
+          matplotlib
+          pyproj
+          pytest
+          coverage
+          docopt
+          requests
+          pyyaml
+        init-shell: bash
+        cache-environment: true
+        post-cleanup: 'all'
+    - name: Run Python tests
+      run: python check_pygridtools.py --verbose --durations=10 --strict
+      shell: bash -el {0}

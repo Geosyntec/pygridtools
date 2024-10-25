@@ -1,0 +1,26 @@
+exclude = [
+    "docs"
+]
+
+line-length = 110
+indent-width = 4
+
+[lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    ## flake8-bugbear
+    # "B",
+    # flake8-simplify
+    "SIM",
+]
+
+[format]
+indent-style = "space"
+quote-style = "double"
+skip-magic-trailing-comma = false
+line-ending = "auto"

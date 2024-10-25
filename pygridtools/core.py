@@ -745,12 +745,15 @@ class ModelGrid(object):
         cell_mask = numpy.bitwise_or(inside_cell_mask, outside_cell_mask)
         return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
 
-    @numpy.deprecate(message='use mask_nodes or mask_centroids')
     def mask_cells_with_polygon(self, polyverts, use_centroids=True, **kwargs):
-        if use_centroids:
-            return self.mask_centroids(polyverts, **kwargs)
-        else:
-            return self.mask_nodes(polyverts, **kwargs)
+        with warnings.warn(
+            ".mask_cells_with_polygon is deprecated. Use .mask_nodes or .mask_centroids",
+            DeprecationWarning
+        ):
+            if use_centroids:
+                return self.mask_centroids(polyverts, **kwargs)
+            else:
+                return self.mask_nodes(polyverts, **kwargs)
 
     def plot_cells(self, engine='mpl', ax=None, usemask=True, showisland=True,
                    cell_kws=None, domain_kws=None, extent_kws=None,

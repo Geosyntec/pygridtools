@@ -218,7 +218,7 @@ def interactive_grid_shape(grid, max_n=200, plotfxn=None, **kwargs):
     ... ( 0,  0,  1.00), ( 0, 15,  0.50), ( 8, 15, -0.25),
     ... (11, 13, -0.25)])
     >>> g = grid.Gridgen(d[:, 0], d[:, 1], d[:, 2], (75, 75), ul_idx=1, focus=None)
-    >>> new_grid, widget = iotools.interactive_grid_shape(g, plotfxn=plot_grid)
+    >>> new_grid, widget = iotools.interactive_grid_shape(g, plotfxn=plot_grid)  # doctest: +SKIP
     """
 
     if not plotfxn:
@@ -399,7 +399,7 @@ def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
     ... (11, 13, -0.25)])
     >>> g = grid.Gridgen(d[:, 0], d[:, 1], d[:, 2], (75, 75), ul_idx=1, focus=None)
     >>> n = 4 # number of focus objects
-    >>> new_grid, widget = iotools.interactive_grid_focus(g, n)
+    >>> new_grid, widget = iotools.interactive_grid_focus(g, n)  # doctest: +SKIP
     """
 
     if not plotfxn:

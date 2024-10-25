@@ -11,7 +11,7 @@ import geopandas
 
 import pytest
 import numpy.testing as nptest
-import pandas.util.testing as pdtest
+import pandas.testing as pdtest
 
 from pygridtools import core
 from pygridgen.tests import raises

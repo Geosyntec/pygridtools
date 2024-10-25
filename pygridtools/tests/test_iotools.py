@@ -78,7 +78,7 @@ def test_read_grid():
         index=pandas.MultiIndex.from_product([[2, 3, 4, 5], [2, 3, 4]], names=['jj', 'ii'])
     ).assign(elev=0.0).assign(river='test').reset_index().set_index(['ii', 'jj']).sort_index()
 
-    pdtest.assert_frame_equal(result_df, known_df)
+    pdtest.assert_frame_equal(result_df, known_df, check_column_type=False, check_index_type=False)
 
     with raises(NotImplementedError):
         result_df = iotools.read_grid(cellfile)

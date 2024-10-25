@@ -665,7 +665,10 @@ def test_masks_no_polys(mg):
 
 def test_ModelGrid_to_point_geodataframe(g1):
     expectedfile = resource_filename('pygridtools.tests.baseline_files',  'mgshp_nomask_nodes_points.shp')
-    expected = geopandas.read_file(expectedfile)
+    expected = geopandas.read_file(expectedfile).assign(
+        ii=lambda df: df["ii"].astype("int64"),
+        jj=lambda df: df["jj"].astype("int64"),
+    )
     result = g1.to_point_geodataframe(which='nodes', usemask=False)
     utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)
 

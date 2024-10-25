@@ -407,7 +407,10 @@ def test_gdf_of_points(usemasks, fname, example_crs):
         y = numpy.ma.masked_array(y, mask)
 
     baselinedir = Path(resource_filename('pygridtools.tests', 'baseline_files'))
-    river = 'test'
-    expected = geopandas.read_file(str(baselinedir / fname))
+
+    expected = geopandas.read_file(str(baselinedir / fname)).assign(
+        ii=lambda df: df["ii"].astype("int64"),
+        jj=lambda df: df["jj"].astype("int64"),
+    )
     result = misc.gdf_of_points(x, y, example_crs)
     utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)

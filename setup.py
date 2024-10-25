@@ -4,14 +4,14 @@ from setuptools import setup, find_packages
 DESCRIPTION = "utilities to facilitate grid generation"
 LONG_DESCRIPTION = DESCRIPTION
 NAME = "pygridtools"
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 AUTHOR = "Paul Hobson (Geosyntec Consultants)"
 AUTHOR_EMAIL = "phobson@geosyntec.com"
 URL = "https://github.com/Geosyntec/pygridtools"
 DOWNLOAD_URL = "https://github.com/Geosyntec/pygridtools/archive/master.zip"
 LICENSE = "BSD 3-clause"
 PACKAGES = find_packages()
-PLATFORMS = "Python 3.6 and later."
+PLATFORMS = "Python 3.9 and later."
 CLASSIFIERS = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
@@ -20,8 +20,7 @@ CLASSIFIERS = [
     "Topic :: Formats and Protocols :: Data Formats",
     "Topic :: Scientific/Engineering :: Earth Sciences",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    'Programming Language :: Python :: 3.6',
-    'Programming Language :: Python :: 3.7',
+    "Programming Language :: Python",
 ]
 INSTALL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'fiona', 'pandas', 'geopandas']
 PACKAGE_DATA = {}

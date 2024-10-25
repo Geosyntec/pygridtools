@@ -1,4 +1,4 @@
-from pkg_resources import resource_filename
+from importlib import resources
 
 import pygridtools
 from pygridgen.tests import requires
@@ -11,7 +11,7 @@ except ImportError:
 
 @requires(pytest, 'pytest')
 def test(*args):
-    options = [resource_filename('pygridtools', '')]
+    options = [resources('pygridtools', '')]
     options.extend(list(args))
     return pytest.main(options)
 
@@ -19,8 +19,7 @@ def test(*args):
 @requires(pytest, 'pytest')
 def teststrict(*args):
     options = list(set([
-        resource_filename('pygridtools', ''),
-        '--pep8',
+        resources('pygridtools', ''),
         '--mpl',
         '--doctest-modules'
     ] + list(args)))

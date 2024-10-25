@@ -9,7 +9,7 @@ import geopandas
 
 import pytest
 import numpy.testing as nptest
-import pandas.util.testing as pdtest
+import pandas.testing as pdtest
 
 from pygridtools import gefdc
 from . import utils

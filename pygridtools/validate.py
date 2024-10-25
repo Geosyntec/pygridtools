@@ -66,7 +66,7 @@ def polygon(polyverts, min_points=3):
 def _explode_geom(row):
     # save each geo part in its own row
     gsr = geopandas.GeoSeries([
-        poly for poly in geometry.shape(row['geometry'])
+        poly for poly in geometry.shape(row['geometry']).geoms
     ])
     meta = row['properties']
     return geopandas.GeoDataFrame(meta, geometry=gsr, index=gsr.index)

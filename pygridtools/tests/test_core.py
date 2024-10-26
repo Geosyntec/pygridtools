@@ -1,7 +1,4 @@
-import os
-import warnings
 from pkg_resources import resource_filename
-import tempfile
 
 import numpy
 from numpy import nan
@@ -282,7 +279,7 @@ def polyverts():
 def test_ModelGrid_bad_shapes(simple_cells):
     xc, yc = simple_cells
     with raises(ValueError):
-        mg = core.ModelGrid(xc, yc[2:, 2:])
+        core.ModelGrid(xc, yc[2:, 2:])
 
 
 def test_ModelGrid_nodes_and_cells(g1, simple_cells):

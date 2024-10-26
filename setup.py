@@ -1,4 +1,3 @@
-import os
 from setuptools import setup, find_packages
 
 DESCRIPTION = "utilities to facilitate grid generation"

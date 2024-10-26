@@ -116,7 +116,7 @@ def elev_or_mask(x, other, array_name=None, offset=1, failNone=False):
 
     if other is None:
         if failNone:
-            raise ValueError('`{}` cannot be `None`'.format(array_name))
+            raise ValueError(f'`{array_name}` cannot be `None`')
         else:
             return numpy.zeros_like(x)
     else:
@@ -124,7 +124,7 @@ def elev_or_mask(x, other, array_name=None, offset=1, failNone=False):
                 other.shape[0] != x.shape[0] - offset or
                 other.shape[1] != x.shape[1] - offset
         ):
-            raise ValueError('`{}` not compatible with `x`'.format(array_name))
+            raise ValueError(f'`{array_name}` not compatible with `x`')
 
         else:
             return other

@@ -1,4 +1,3 @@
-from __future__ import division
 
 import warnings
 from copy import deepcopy
@@ -198,7 +197,7 @@ def extract(nodes, jstart=None, istart=None, jend=None, iend=None):
     return deepcopy(nodes[jstart:jend, istart:iend])
 
 
-class ModelGrid(object):
+class ModelGrid:
     """
     Container for a curvilinear-orthogonal grid. Provides convenient
     access to masking, manipulation, and visualization methods.
@@ -825,10 +824,7 @@ class ModelGrid(object):
 
     def to_polygon_geodataframe(self, usemask=True, elev=None):
         x, y = self._get_x_y(which='nodes', usemask=False)
-        if usemask:
-            mask = self.cell_mask.copy()
-        else:
-            mask = None
+        mask = self.cell_mask.copy() if usemask else None
 
         return misc.gdf_of_cells(x, y, mask, crs=self.crs, elev=elev, triangles=False)
 

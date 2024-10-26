@@ -4,12 +4,9 @@ import tempfile
 
 import numpy
 import pandas
-from shapely import geometry
-import geopandas
 
 import pytest
 import numpy.testing as nptest
-import pandas.testing as pdtest
 
 from pygridtools import gefdc
 from . import utils
@@ -52,7 +49,6 @@ def test_convert_gridext_to_gis(example_crs):
     gridextfile = resource_filename('pygridtools.tests.test_data', 'gridext.inp')
     baselinefile = resource_filename('pygridtools.tests.baseline_files', 'gridext.shp')
     river = 'test'
-    reach = 1
 
     with tempfile.TemporaryDirectory() as outputdir:
         outputfile = os.path.join(outputdir, 'gridext.shp')
@@ -90,7 +86,7 @@ def test_write_gridout_file(simple_nodes):
     with tempfile.TemporaryDirectory() as outdir:
         result_filename = os.path.join(outdir, 'testgrid.out')
 
-        df = gefdc.write_gridout_file(x, y, result_filename)
+        _ = gefdc.write_gridout_file(x, y, result_filename)
         utils.assert_textfiles_equal(known_filename, result_filename)
 
 

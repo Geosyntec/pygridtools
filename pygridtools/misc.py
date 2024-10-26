@@ -1,10 +1,10 @@
 from collections import OrderedDict
 from shapely.geometry import Point, Polygon
+import importlib
 
 import numpy
 import matplotlib.path as mpath
 import pandas
-from shapely import geometry
 import geopandas
 from pygridgen import csa
 
@@ -81,7 +81,7 @@ def make_record(ID, coords, geomtype, props):
     """
 
     if geomtype not in ['Point', 'LineString', 'Polygon']:
-        raise ValueError('Geometry {} not suppered'.format(geomtype))
+        raise ValueError(f'Geometry {geomtype} not suppered')
 
     if isinstance(coords, numpy.ma.MaskedArray):
         coords = coords.data
@@ -123,10 +123,9 @@ def interpolate_bathymetry(bathy, x_points, y_points, xcol='x', ycol='y', zcol='
 
     """
 
-    try:
-        import pygridgen
-    except ImportError:  # pragma: no cover
-        raise ImportError("`pygridgen` not installed. Cannot interpolate bathymetry.")
+    HASPGG = bool(importlib.util.find_spec("pygridgen"))
+    if not HASPGG:
+        raise RuntimeError("`pygridgen` not installed. Cannot interpolate bathymetry.")
 
     if bathy is None:
         elev = numpy.zeros(x_points.shape)
@@ -372,7 +371,7 @@ def gdf_of_cells(X, Y, mask, crs, elev=None, triangles=False):
                 # build the attributes
                 record = OrderedDict(
                     id=row, ii=ii + 2, jj=jj + 2, elev=Z,
-                    ii_jj='{:02d}_{:02d}'.format(ii + 2, jj + 2),
+                    ii_jj=f'{ii + 2:02d}_{jj + 2:02d}',
                     geometry=Polygon(shell=coords)
                 )
 
@@ -428,7 +427,7 @@ def gdf_of_points(X, Y, crs, elev=None):
                 record = OrderedDict(
                     id=int(row), ii=int(ii + 2), jj=int(jj + 2),
                     elev=float(elev[jj, ii]),
-                    ii_jj='{:02d}_{:02d}'.format(ii + 2, jj + 2),
+                    ii_jj=f'{ii + 2:02d}_{jj + 2:02d}',
                     geometry=Point(coords)
                 )
 

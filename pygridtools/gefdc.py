@@ -7,8 +7,6 @@ import pandas
 from shapely.geometry import Point
 import geopandas
 
-from pygridtools import iotools
-from pygridtools import misc
 from pygridtools import validate
 
 
@@ -93,7 +91,7 @@ def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
     nrows, ncols = cell_array.shape
 
     rowfmt = '{0:3d}  {1:s}\n'
-    colfmt = f'{{:0{_n_digits(ncols)}d}}'
+    # colfmt = f'{{:0{_n_digits(ncols)}d}}'
 
     if cell_array.shape[1] > maxcols:
         first_array = cell_array[:, :maxcols]
@@ -108,7 +106,7 @@ def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
 
     else:
         columns = numpy.arange(1, maxcols + 1, dtype=int)
-        colstr = [list('{:04d}'.format(c)) for c in columns]
+        colstr = [list(f'{c:04d}') for c in columns]
         hundreds = ''.join([c[1] for c in colstr])
         tens = ''.join([c[2] for c in colstr])
         ones = ''.join([c[3] for c in colstr])
@@ -117,19 +115,16 @@ def write_cellinp(cell_array, outputfile='cell.inp', mode='w',
             if writeheader:
                 title = 'C -- cell.inp for EFDC model by pygridtools\n'
                 outfile.write(title)
-                outfile.write('C    {}\n'.format(hundreds[:ncols]))
-                outfile.write('C    {}\n'.format(tens[:ncols]))
-                outfile.write('C    {}\n'.format(ones[:ncols]))
+                outfile.write(f'C    {hundreds[:ncols]}\n')
+                outfile.write(f'C    {tens[:ncols]}\n')
+                outfile.write(f'C    {ones[:ncols]}\n')
 
             for n, row in enumerate(cell_array):
                 row_number = nrows - n
                 row_strings = row.astype(str)
                 cell_text = ''.join(row_strings.tolist())
-                if rowlabels:
-                    rowheader = ''
-                    row_text = rowfmt.format(int(row_number), cell_text)
-                else:
-                    row_text = '     {0:s}\n'.format(cell_text)
+
+                row_text = rowfmt.format(int(row_number), cell_text) if rowlabels else f'     {cell_text:s}\n'
 
                 outfile.write(row_text)
 
@@ -153,7 +148,7 @@ def write_gridout_file(xcoords, ycoords, outfile):
     })
 
     with Path(outfile).open('w') as f:
-        f.write('## {:d} x {:d}\n'.format(nx, ny))
+        f.write(f'## {nx:d} x {ny:d}\n')
 
     # XXX: https://github.com/pandas-dev/pandas/issues/21882
     with Path(outfile).open('a') as f:
@@ -295,8 +290,8 @@ def make_gefdc_cells(node_mask, cell_mask=None, triangles=False):
             if total == bank_cell * shift**2:
                 cells[cj, ci] = land_cell
 
-    nrows = cells.shape[0]
-    ncols = cells.shape[1]
+    # nrows = cells.shape[0]
+    # ncols = cells.shape[1]
 
     # nchunks = numpy.ceil(ncols / maxcols)
     # if ncols > maxcols:

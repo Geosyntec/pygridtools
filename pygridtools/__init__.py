@@ -1,7 +1,7 @@
-from .misc import *
-from .core import *
-from . import iotools
-from . import viz
-from . import validate
+from .misc import *  # noqa: F403
+from .core import *  # noqa: F403
+from . import iotools  # noqa: F401
+from . import viz  # noqa: F401
+from . import validate  # noqa: F401
 
-from .tests import test, teststrict
+from .tests import test, teststrict  # noqa: F401

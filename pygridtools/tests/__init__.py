@@ -1,6 +1,5 @@
 from importlib import resources
 
-import pygridtools
 from pygridgen.tests import requires
 
 try:

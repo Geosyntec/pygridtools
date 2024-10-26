@@ -1,5 +1,7 @@
+import importlib.util
 from pathlib import Path
 from pkg_resources import resource_filename
+import importlib
 
 import numpy
 from numpy import nan
@@ -14,11 +16,7 @@ from . import utils
 
 numpy.set_printoptions(linewidth=150, nanstr='-')
 
-try:
-    import pygridgen
-    HASPGG = True
-except ImportError:
-    HASPGG = False
+HASPGG = bool(importlib.util.find_spec("pygridgen"))
 
 
 @pytest.mark.parametrize(('masked', 'z', 'triangles'), [
@@ -234,8 +232,8 @@ def stackgrids():
                 [nan, nan, nan, nan, 4.4, 4.5,  4.6,  4.7,  4.8, nan, nan, nan, nan, nan, nan, nan, nan],
                 [nan, nan, nan, nan, 5.4, 5.5,  5.6,  5.7,  5.8, nan, nan, nan, nan, nan, nan, nan, nan],
                 [nan, nan, nan, nan, nan, nan,  6.6,  6.7,  6.8, nan, nan, nan, nan, nan, nan, nan, nan],
-                [nan, nan, nan, nan, nan, nan,  7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13, 7.14, 7.15, 7.16],
-                [nan, nan, nan, nan, nan, nan,  8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13, 8.14, 8.15, 8.16],
+                [nan, nan, nan, nan, nan, nan,  7.6,  7.7,  7.8, 7.9, 7.10, 7.11, 7.12, 7.13, 7.14, 7.15, 7.16],  # noqa: E501
+                [nan, nan, nan, nan, nan, nan,  8.6,  8.7,  8.8, 8.9, 8.10, 8.11, 8.12, 8.13, 8.14, 8.15, 8.16],  # noqa: E501
                 [nan, nan, nan, nan, nan, nan,  9.6,  9.7,  9.8, 9.9, 9.10, 9.11, 9.12, 9.13, nan, nan, nan],
                 [nan, nan, nan, nan, nan, nan, 10.6, 10.7, 10.8, nan, nan, nan, nan, nan, nan, nan, nan],
                 [nan, nan, nan, nan, nan, nan, 11.6, 11.7, 11.8, nan, nan, nan, nan, nan, nan, nan, nan],
@@ -388,7 +386,6 @@ def test_gdf_of_cells(usemasks, fname, simple_grid, example_crs):
         mask = None
 
     baselinedir = Path(resource_filename('pygridtools.tests', 'baseline_files'))
-    river = 'test'
     expected = geopandas.read_file(str(baselinedir / fname))
     result = misc.gdf_of_cells(simple_grid.x, simple_grid.y, mask, example_crs)
     utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)

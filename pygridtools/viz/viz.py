@@ -10,7 +10,7 @@ def _check_engine(engine):
     elif engine.lower() in bokeh_strings:
         return _viz_bokeh
     else:
-        raise ValueError("'{}' is not a valid engine".format(engine))
+        raise ValueError(f"'{engine}' is not a valid engine")
 
 
 def plot_domain(*args, **kwargs):

@@ -1,7 +1,6 @@
 import numpy
 from matplotlib import patches
 
-from pygridtools import misc
 from pygridtools import validate
 
 
@@ -112,7 +111,7 @@ def _plot_cells(x, y, mask=None, colors=None, ax=None, sticky_edges=False,
     cmap = plot_opts.pop('cmap', 'Greys')
 
     cells = ax.pcolor(x, y, cell_colors, edgecolors=ec, lw=lw,
-                      vmin=vmin, vmax=vmax, cmap=cmap,
+                      vmin=vmin, vmax=vmax, cmap=cmap, facecolor=fc,
                       **plot_opts)
     return fig, {'cells': cells}
 

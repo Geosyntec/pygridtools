@@ -10,7 +10,7 @@ from pygridtools import ModelGrid
 from pygridtools.iotools import _FocusProperties
 
 
-class FakeGrid(object):
+class FakeGrid:
     def __init__(self, boundary):
         self.x, self.y = simple_nodes()
         self.xn, self.yn = simple_nodes()

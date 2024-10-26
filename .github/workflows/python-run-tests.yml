@@ -5,9 +5,9 @@ name: Run basic unit tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   build:
@@ -26,14 +26,21 @@ jobs:
         create-args: >-
           python=${{ matrix.python-version }}
           gridgen
-          numpy
+          shapely
+          fiona
+          geopandas
+          scipy
           matplotlib
-          pyproj
+          ipywidgets
           pytest
+          pytest-mpl
+          pytest-cov
+          pytest-pep8
           coverage
           docopt
           requests
           pyyaml
+          pygridgen
         init-shell: bash
         cache-environment: true
         post-cleanup: 'all'

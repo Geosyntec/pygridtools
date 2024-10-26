@@ -1,4 +1,3 @@
-import os
 from setuptools import setup, find_packages
 
 DESCRIPTION = "utilities to facilitate grid generation"
@@ -22,7 +21,7 @@ CLASSIFIERS = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Python",
 ]
-INSTALL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'fiona', 'pandas', 'geopandas']
+INSTALL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'fiona', 'pandas', 'geopandas', "shapely"]
 PACKAGE_DATA = {}
 DATA_FILES = []
 

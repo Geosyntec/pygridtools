@@ -1,4 +1,3 @@
-from __future__ import division
 
 import warnings
 from copy import deepcopy
@@ -198,7 +197,7 @@ def extract(nodes, jstart=None, istart=None, jend=None, iend=None):
     return deepcopy(nodes[jstart:jend, istart:iend])
 
 
-class ModelGrid(object):
+class ModelGrid:
     """
     Container for a curvilinear-orthogonal grid. Provides convenient
     access to masking, manipulation, and visualization methods.
@@ -745,12 +744,15 @@ class ModelGrid(object):
         cell_mask = numpy.bitwise_or(inside_cell_mask, outside_cell_mask)
         return self.update_cell_mask(mask=cell_mask, merge_existing=use_existing)
 
-    @numpy.deprecate(message='use mask_nodes or mask_centroids')
     def mask_cells_with_polygon(self, polyverts, use_centroids=True, **kwargs):
-        if use_centroids:
-            return self.mask_centroids(polyverts, **kwargs)
-        else:
-            return self.mask_nodes(polyverts, **kwargs)
+        with warnings.warn(
+            ".mask_cells_with_polygon is deprecated. Use .mask_nodes or .mask_centroids",
+            DeprecationWarning
+        ):
+            if use_centroids:
+                return self.mask_centroids(polyverts, **kwargs)
+            else:
+                return self.mask_nodes(polyverts, **kwargs)
 
     def plot_cells(self, engine='mpl', ax=None, usemask=True, showisland=True,
                    cell_kws=None, domain_kws=None, extent_kws=None,
@@ -822,10 +824,7 @@ class ModelGrid(object):
 
     def to_polygon_geodataframe(self, usemask=True, elev=None):
         x, y = self._get_x_y(which='nodes', usemask=False)
-        if usemask:
-            mask = self.cell_mask.copy()
-        else:
-            mask = None
+        mask = self.cell_mask.copy() if usemask else None
 
         return misc.gdf_of_cells(x, y, mask, crs=self.crs, elev=elev, triangles=False)
 

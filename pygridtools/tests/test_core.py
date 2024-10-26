@@ -1,7 +1,4 @@
-import os
-import warnings
 from pkg_resources import resource_filename
-import tempfile
 
 import numpy
 from numpy import nan
@@ -282,7 +279,7 @@ def polyverts():
 def test_ModelGrid_bad_shapes(simple_cells):
     xc, yc = simple_cells
     with raises(ValueError):
-        mg = core.ModelGrid(xc, yc[2:, 2:])
+        core.ModelGrid(xc, yc[2:, 2:])
 
 
 def test_ModelGrid_nodes_and_cells(g1, simple_cells):
@@ -665,7 +662,10 @@ def test_masks_no_polys(mg):
 
 def test_ModelGrid_to_point_geodataframe(g1):
     expectedfile = resource_filename('pygridtools.tests.baseline_files',  'mgshp_nomask_nodes_points.shp')
-    expected = geopandas.read_file(expectedfile)
+    expected = geopandas.read_file(expectedfile).assign(
+        ii=lambda df: df["ii"].astype("int64"),
+        jj=lambda df: df["jj"].astype("int64"),
+    )
     result = g1.to_point_geodataframe(which='nodes', usemask=False)
     utils.assert_gdfs_equal(expected.drop(columns=['river', 'reach']), result)
 

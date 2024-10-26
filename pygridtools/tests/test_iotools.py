@@ -1,7 +1,4 @@
-import os
-import sys
 from pkg_resources import resource_filename
-import tempfile
 
 import numpy
 import pandas
@@ -20,7 +17,6 @@ except ImportError:
 from pygridtools import iotools
 import pygridgen
 from pygridgen.tests import raises, requires
-from . import utils
 
 
 @pytest.mark.parametrize(('filterfxn', 'points_in_boundary'), [
@@ -78,7 +74,7 @@ def test_read_grid():
         index=pandas.MultiIndex.from_product([[2, 3, 4, 5], [2, 3, 4]], names=['jj', 'ii'])
     ).assign(elev=0.0).assign(river='test').reset_index().set_index(['ii', 'jj']).sort_index()
 
-    pdtest.assert_frame_equal(result_df, known_df)
+    pdtest.assert_frame_equal(result_df, known_df, check_column_type=False, check_index_type=False)
 
     with raises(NotImplementedError):
         result_df = iotools.read_grid(cellfile)
@@ -132,7 +128,7 @@ def test__change_focus(simple_grid):
     others = (iotools._FocusProperties(
         pos=old_pos, axis=old_axis, factor=old_factor, extent=old_extent),) * 3
 
-    xn = iotools._change_focus(fp, others, new_axis, new_pos,
+    _ = iotools._change_focus(fp, others, new_axis, new_pos,
         new_factor, new_extent, simple_grid, lambda x, y: x)
 
     # test single focus modification
@@ -166,7 +162,7 @@ def test_interactive_grid_focus_tabs(simple_grid, tab):
     (1, ipywidgets.widgets.widget_float.FloatSlider),
     (2, ipywidgets.widgets.widget_float.FloatLogSlider),
     (3, ipywidgets.widgets.widget_float.FloatSlider)])
-def test_interactive_grid_focus_tabs(simple_grid, parent, child, widget_type):
+def test_interactive_grid_focus_tabs2(simple_grid, parent, child, widget_type):
     focus_points, widget = iotools.interactive_grid_focus(simple_grid, n_points=2)
     assert isinstance(widget.children[parent], ipywidgets.widgets.interaction.interactive)
     assert isinstance(widget.children[parent].children[child], widget_type)

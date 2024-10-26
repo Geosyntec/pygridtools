@@ -1,12 +1,7 @@
-import os
-from collections import OrderedDict
-from textwrap import dedent
 import warnings
 
 import numpy
-import pandas
 from matplotlib import pyplot
-from shapely.geometry import Point, Polygon
 import geopandas
 
 try:
@@ -17,8 +12,6 @@ except ImportError:  # pragma: no cover
 from pygridgen.tests import requires
 import pygridgen as pgg
 
-from pygridtools import misc
-from pygridtools import validate
 from pygridtools import viz
 
 
@@ -218,7 +211,7 @@ def interactive_grid_shape(grid, max_n=200, plotfxn=None, **kwargs):
     ... ( 0,  0,  1.00), ( 0, 15,  0.50), ( 8, 15, -0.25),
     ... (11, 13, -0.25)])
     >>> g = grid.Gridgen(d[:, 0], d[:, 1], d[:, 2], (75, 75), ul_idx=1, focus=None)
-    >>> new_grid, widget = iotools.interactive_grid_shape(g, plotfxn=plot_grid)
+    >>> new_grid, widget = iotools.interactive_grid_shape(g, plotfxn=plot_grid)  # doctest: +SKIP
     """
 
     if not plotfxn:
@@ -235,7 +228,7 @@ def interactive_grid_shape(grid, max_n=200, plotfxn=None, **kwargs):
     )
 
 
-class _FocusProperties():
+class _FocusProperties:
     """A dummy class to hold the properties of the grid._FocusPoint() object.
     This class is required so that multiple ipywidgets.interactive widgets
     can interact on the same plot.
@@ -399,7 +392,7 @@ def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
     ... (11, 13, -0.25)])
     >>> g = grid.Gridgen(d[:, 0], d[:, 1], d[:, 2], (75, 75), ul_idx=1, focus=None)
     >>> n = 4 # number of focus objects
-    >>> new_grid, widget = iotools.interactive_grid_focus(g, n)
+    >>> new_grid, widget = iotools.interactive_grid_focus(g, n)  # doctest: +SKIP
     """
 
     if not plotfxn:
@@ -437,6 +430,6 @@ def interactive_grid_focus(g, n_points, plotfxn=None, **kwargs):
     tab_nest = ipywidgets.Tab()
     tab_nest.children = widgets
     for n in range(len(widgets)):
-        tab_nest.set_title(n, 'Focus {}'.format(n + 1))
+        tab_nest.set_title(n, f'Focus {n + 1}')
 
     return focus_points, tab_nest

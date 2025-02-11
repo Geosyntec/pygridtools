@@ -77,7 +77,7 @@ def _explode_gdf(gdf):
         pandas.concat(
             [_explode_geom(row) for row in gdf.iterfeatures()],
             ignore_index=True, sort=True
-        ).pipe(geopandas.GeoDataFrame, crs=gdf.crs)
+        ).pipe(geopandas.GeoDataFrame).set_crs(gdf.crs)
     )
 
 
